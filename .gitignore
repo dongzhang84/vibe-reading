@@ -16,6 +16,10 @@ next-env.d.ts
 # vercel
 .vercel
 
+# supabase CLI scratch
+supabase/.temp/
+supabase/.branches/
+
 # macOS
 .DS_Store
 .AppleDouble

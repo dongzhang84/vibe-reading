@@ -427,30 +427,22 @@ npm run db:types
 
 照 STANDARD.md §3 原样复制 `lib/supabase/client.ts` / `server.ts` / `admin.ts` / `callback/route.ts` / `middleware.ts`。**只有以下偏离：**
 
-### 3.0 所有 createClient 调用必须指定 `db: { schema: 'vr' }`
+### 3.0 所有 createClient 必须指定 schema + Database 泛型
 
-我们的表在 `vr` schema，不是 `public`。每个 `createClient` 都要传 schema 选项，否则 `.from('books')` 会去查 `public.books`（不存在）。
+我们的表在 `vr` schema，不是 `public`。每个 `createClient` 都要传 schema 选项（否则 `.from('books')` 会去查不存在的 `public.books`），并且带上 `<Database, 'vr'>` 泛型把 TypeScript 类型也聚焦到 vr schema：
 
 ```typescript
-// lib/supabase/client.ts
-createBrowserClient(url, key, {
-  db: { schema: 'vr' },
-})
+import type { Database } from '@/types/db'
 
-// lib/supabase/server.ts
-createServerClient(url, key, {
-  cookies: { ... },
-  db: { schema: 'vr' },
-})
-
-// lib/supabase/admin.ts
-createClient(url, serviceRoleKey, {
-  auth: { persistSession: false },
+createBrowserClient<Database, 'vr'>(url, key, { db: { schema: 'vr' } })
+createServerClient<Database, 'vr'>(url, key, { cookies: {...}, db: { schema: 'vr' } })
+createClient<Database, 'vr'>(url, serviceRoleKey, {
+  auth: { persistSession: false, autoRefreshToken: false },
   db: { schema: 'vr' },
 })
 ```
 
-配完之后，`.from('books')` 自动解析成 `vr.books`。**不要**写 `.from('vr.books')`。
+配完之后，`.from('books')` 自动解析成 `vr.books`，字段名和类型也有完整编译期检查。**不要**写 `.from('vr.books')`。
 
 ### 3.1 砍掉 GitHub
 
@@ -475,60 +467,11 @@ Vibe Reading 的 schema 里**没有 Profile 表**——用户信息直接用 `au
 
 ### 3.4 Login Modal（不是 full page）
 
-Screen 3 → Screen 4 之间的登录**是 modal 不是跳转**。
+Screen 3 → Screen 4 之间的登录**是 modal 不是跳转**。组件在 `components/LoginModal.tsx`，提供 Google + Email/Password 两种方式，按 Esc 或点遮罩关闭。点 Google 走 `/auth/callback?next=<returnTo>` 回跳；Email 登录成功调 `onSuccess` 回调（不跳页）。
 
-`components/LoginModal.tsx`：
+### 3.5 Callback 支持 next 参数
 
-```tsx
-'use client'
-import { createClient } from '@/lib/supabase/client'
-
-export function LoginModal({ onSuccess }: { onSuccess: () => void }) {
-  const supabase = createClient()
-
-  async function handleGoogle() {
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=${
-          encodeURIComponent(window.location.pathname)
-        }`
-      }
-    })
-  }
-
-  async function handleEmail(email: string, password: string) {
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (!error) onSuccess()
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
-      <div className="bg-white rounded-lg p-8 max-w-md">
-        <h2>Welcome to Vibe Reading.</h2>
-        <p>You've just seen how this book maps to your goal.
-           To go deeper — read chapters, get briefs, check your
-           understanding — we need to know who you are.</p>
-        <p className="text-sm text-slate-500">This is the only time we'll ask.</p>
-        <button onClick={handleGoogle}>Sign in with Google</button>
-        {/* email + password 表单 */}
-      </div>
-    </div>
-  )
-}
-```
-
-### 3.5 Callback 要支持 next 参数
-
-`app/auth/callback/route.ts`：
-
-```typescript
-const nextPath = searchParams.get('next') ?? '/library'
-// ...成功后：
-return NextResponse.redirect(`${origin}${nextPath}`)
-```
-
-登录后要回到用户**登录前所在的那一屏**，不能粗暴跳到 `/library`——否则 Screen 3 的上下文就丢了。
+`app/auth/callback/route.ts` 读 `?next=<path>` 并在 `exchangeCodeForSession` 成功后跳转。**防开放重定向：** 只接受以 `/` 开头且不以 `//` 开头的同源路径；其他一律降级到 `/library`。登录后要回到用户登录前所在的那一屏，不能粗暴跳到 `/library`——否则 Screen 3 的上下文就丢了。
 
 ### 3.6 登录后 Session → User 迁移
 
