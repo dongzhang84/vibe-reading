@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-04-22 20:22 UTC  
+**Generated:** 2026-04-22 20:33 UTC  
 **Showing:** last 1 week(s) of 1 total  
 
 ---
@@ -11,11 +11,11 @@
 |------|-------|
 | Status | ❌ Stalled |
 | Active days | 2 / 7 |
-| Total commits | 4 |
+| Total commits | 5 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| ⚪ | **2** | **2** | ⚪ | ⚪ | ⚪ | ⚪ |
+| ⚪ | **2** | **3** | ⚪ | ⚪ | ⚪ | ⚪ |
 
 **Tue – Tuesday, Apr 21**
 
@@ -24,6 +24,7 @@
 
 **Wed – Wednesday, Apr 22**
 
+- `241cdc4` add db:types script for vr schema — _dongzhang84_ `2026-04-22 13:33`
 - `58c8fb1` Phase 1 scaffold + Phase 2 doc revisions — _dongzhang84_ `2026-04-22 13:21`
 - `9ba717b` chore: scaffold Next.js app with Tailwind and shadcn/ui — _dongzhang84_ `2026-04-22 09:15`
 
