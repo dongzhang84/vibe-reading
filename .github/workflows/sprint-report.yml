@@ -1,0 +1,201 @@
+name: Sprint Report
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  generate-sprint-report:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate SPRINT.md
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { execSync } = require('child_process');
+            const fs = require('fs');
+
+            const KEEP_WEEKS = 8;
+            const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+            // Returns YYYY-MM-DD for a Date (UTC)
+            function toDateStr(d) {
+              return d.toISOString().split('T')[0];
+            }
+
+            // Returns the Monday (UTC) of the ISO week containing date d
+            function isoWeekMonday(d) {
+              const day = d.getUTCDay(); // 0=Sun … 6=Sat
+              const daysToMonday = day === 0 ? 6 : day - 1;
+              const monday = new Date(d);
+              monday.setUTCDate(d.getUTCDate() - daysToMonday);
+              monday.setUTCHours(0, 0, 0, 0);
+              return monday;
+            }
+
+            // Add N days to a UTC date
+            function addDays(d, n) {
+              const r = new Date(d);
+              r.setUTCDate(r.getUTCDate() + n);
+              return r;
+            }
+
+            // ── 1. Fetch all commits from repo creation ──────────────────────────
+            console.log('Fetching all commits from origin/main...');
+            const gitLog = execSync(
+              'git log origin/main --no-merges --format="%H|%ad|%an|%s" --date=format:"%Y-%m-%d %H:%M"' +
+              ' --invert-grep --grep="chore: update SPRINT.md"',
+              { encoding: 'utf8' }
+            ).trim();
+
+            const allCommits = gitLog
+              ? gitLog.split('\n').map(line => {
+                  const [hash, date, author, ...rest] = line.split('|');
+                  return { hash: hash.slice(0, 7), date, author, subject: rest.join('|') };
+                })
+              : [];
+
+            // Belt-and-suspenders: drop any bot commits that slipped through
+            const commits = allCommits.filter(c =>
+              c.author !== 'github-actions[bot]' &&
+              !c.subject.includes('chore: update SPRINT.md')
+            );
+
+            console.log(`Total commits found: ${commits.length} (after filtering bot commits)`);
+
+            // ── 2. Group commits by YYYY-MM-DD ──────────────────────────────────
+            const byDay = {};
+            for (const c of commits) {
+              const day = c.date.split(' ')[0];
+              if (!byDay[day]) byDay[day] = [];
+              byDay[day].push(c);
+            }
+
+            // ── 3. Find first and current Monday ────────────────────────────────
+            const now = new Date();
+            const allDays = Object.keys(byDay).sort();
+
+            if (allDays.length === 0) {
+              fs.writeFileSync('SPRINT.md', '# Sprint Report\n\n_No commits found._\n');
+              console.log('No commits — wrote empty SPRINT.md.');
+              return;
+            }
+
+            const firstCommitDate = new Date(allDays[0] + 'T12:00:00Z');
+            const firstMonday = isoWeekMonday(firstCommitDate);
+            const currentMonday = isoWeekMonday(now);
+
+            // ── 4. Build an ordered list of all week Monday dates ────────────────
+            const weekMondays = [];
+            for (let m = new Date(firstMonday); m <= currentMonday; m = addDays(m, 7)) {
+              weekMondays.push(toDateStr(m));
+            }
+
+            // Keep only the most recent KEEP_WEEKS weeks
+            const keptMondays = weekMondays.slice(-KEEP_WEEKS);
+            const totalWeeks  = weekMondays.length; // for global week numbering
+
+            // ── 5. Render newest-first ───────────────────────────────────────────
+            const now_str = now.toISOString().replace('T', ' ').slice(0, 16);
+            const lines = [
+              '# Sprint Report',
+              '',
+              `**Generated:** ${now_str} UTC  `,
+              `**Showing:** last ${keptMondays.length} week(s) of ${totalWeeks} total  `,
+              '',
+              '---',
+              '',
+            ];
+
+            const renderedMondays = [...keptMondays].reverse(); // newest first
+
+            for (const mondayStr of renderedMondays) {
+              const monday   = new Date(mondayStr + 'T00:00:00Z');
+              const sunday   = addDays(monday, 6);
+              const sundayStr = toDateStr(sunday);
+
+              // Global week number (1 = oldest)
+              const weekNumber = weekMondays.indexOf(mondayStr) + 1;
+
+              // Collect all 7 days Mon–Sun
+              const weekDays = Array.from({ length: 7 }, (_, i) => toDateStr(addDays(monday, i)));
+              const activeDays = weekDays.filter(d => byDay[d] && byDay[d].length > 0);
+              const weekCommits = activeDays.reduce((sum, d) => sum + byDay[d].length, 0);
+
+              // Status badge
+              let status;
+              if (activeDays.length >= 5)      status = '✅ Good';
+              else if (activeDays.length >= 3)  status = '⚠️ Slow';
+              else                               status = '❌ Stalled';
+
+              // Handle current (in-progress) week label
+              const isCurrentWeek = mondayStr === toDateStr(currentMonday);
+              const weekLabel = isCurrentWeek ? ' _(current)_' : '';
+
+              lines.push(`## Week ${weekNumber}${weekLabel} · ${mondayStr} to ${sundayStr}`);
+              lines.push('');
+              lines.push(`| Stat | Value |`);
+              lines.push(`|------|-------|`);
+              lines.push(`| Status | ${status} |`);
+              lines.push(`| Active days | ${activeDays.length} / 7 |`);
+              lines.push(`| Total commits | ${weekCommits} |`);
+              lines.push('');
+
+              // Daily breakdown table header
+              lines.push(`| ${DAY_NAMES.join(' | ')} |`);
+              lines.push(`|${DAY_NAMES.map(() => '---').join('|')}|`);
+
+              // Commit counts per day (⚪ if none)
+              const countRow = weekDays.map(d => {
+                const n = byDay[d] ? byDay[d].length : 0;
+                return n > 0 ? `**${n}**` : '⚪';
+              });
+              lines.push(`| ${countRow.join(' | ')} |`);
+              lines.push('');
+
+              // Per-day commit list (only days with commits)
+              for (const dayStr of weekDays) {
+                const dayCom = byDay[dayStr];
+                if (!dayCom || dayCom.length === 0) continue;
+                const dayIndex = weekDays.indexOf(dayStr); // 0=Mon
+                const dayLabel = new Date(dayStr + 'T12:00:00Z').toLocaleDateString('en-US', {
+                  weekday: 'long', month: 'short', day: 'numeric', timeZone: 'UTC'
+                });
+                lines.push(`**${DAY_NAMES[dayIndex]} – ${dayLabel}**`);
+                lines.push('');
+                for (const c of dayCom) {
+                  lines.push(`- \`${c.hash}\` ${c.subject} — _${c.author}_ \`${c.date}\``);
+                }
+                lines.push('');
+              }
+
+              lines.push('---');
+              lines.push('');
+            }
+
+            lines.push('_Auto-generated by [sprint-report workflow](/.github/workflows/sprint-report.yml)_');
+
+            const content = lines.join('\n');
+            fs.writeFileSync('SPRINT.md', content);
+            console.log(`SPRINT.md written — ${keptMondays.length} week(s) rendered.`);
+
+      - name: Commit SPRINT.md
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add SPRINT.md
+          if git diff --cached --quiet; then
+            echo "No changes to SPRINT.md — skipping commit."
+          else
+            git commit -m "chore: update SPRINT.md [skip ci]"
+            git push
+          fi
