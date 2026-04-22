@@ -156,9 +156,18 @@ npx supabase gen types typescript --project-id myvtqxfcwzrntepcfvkn --schema vr 
 
 ---
 
-## Phase 1 — Landing + Upload (Screen 1)
+## Phase 1 — Landing + Upload (Screen 1) + 壳
 
 产品的第一印象屏。要做到打开页面 5 秒内理解：**这个工具不一样，它拒绝偷懒**。
+
+本 Phase **不是只写文案**，要把整个 app 的壳定下来。不能把 landing 设计留给"后面再搞"——Next.js scaffold 的默认 title / favicon / 字体留着就是泄露，视觉第一印象立刻掉价。
+
+### 1.0 壳基础（绝对不能漏的 4 件事）
+
+1. **`app/layout.tsx` 真 metadata**：`title: 'Vibe Reading'`、`description` = tagline、`openGraph` + `twitter` 让分享预览不是 "Create Next App"
+2. **字体连上 CSS 变量**：`globals.css` 里 `--font-sans: var(--font-geist-sans)`（scaffold 默认的 `--font-sans: var(--font-sans)` 是死循环，body 根本没用上 Geist）
+3. **favicon 换掉**：删 scaffold 的 `app/favicon.ico`，用 `app/icon.svg`（SVG 路径画 "V" 字形，无字体依赖，清晰可缩）
+4. **Geist 作为唯一字体**，没有 serif / display 字体干扰，让排版本身成为设计
 
 ### 1.1 页面结构（`app/page.tsx`）
 

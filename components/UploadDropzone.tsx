@@ -14,12 +14,12 @@ export function UploadDropzone() {
     setError(null)
     if (file.type !== 'application/pdf') {
       setState('error')
-      setError('PDF only. This tool reads books, not images or notes.')
+      setError('PDF only.')
       return
     }
     if (file.size > MAX_BYTES) {
       setState('error')
-      setError('Max 50MB. Trim the PDF or try a smaller book.')
+      setError('Max 50MB.')
       return
     }
 
@@ -30,7 +30,9 @@ export function UploadDropzone() {
     try {
       const res = await fetch('/api/upload', { method: 'POST', body: form })
       if (!res.ok) {
-        const { error: apiError } = await res.json().catch(() => ({ error: 'Upload failed' }))
+        const { error: apiError } = await res
+          .json()
+          .catch(() => ({ error: 'Upload failed' }))
         setState('error')
         setError(apiError ?? 'Upload failed')
         return
@@ -57,16 +59,16 @@ export function UploadDropzone() {
         if (f) handleFile(f)
       }}
       onClick={() => inputRef.current?.click()}
-      className={`group flex cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed px-8 py-16 text-center transition-colors ${
-        isDragOver
-          ? 'border-black bg-black/5 dark:border-white dark:bg-white/10'
-          : 'border-zinc-300 hover:border-zinc-500 dark:border-zinc-700 dark:hover:border-zinc-500'
-      }`}
-      role="button"
-      tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') inputRef.current?.click()
       }}
+      role="button"
+      tabIndex={0}
+      className={`group flex cursor-pointer flex-col items-center justify-center gap-2 rounded-md border border-dashed px-8 py-14 text-center transition-colors outline-none focus-visible:border-foreground ${
+        isDragOver
+          ? 'border-foreground bg-muted/40'
+          : 'border-border hover:border-foreground/60'
+      }`}
     >
       <input
         ref={inputRef}
@@ -80,20 +82,18 @@ export function UploadDropzone() {
       />
 
       {state === 'uploading' ? (
-        <p className="text-base text-zinc-700 dark:text-zinc-300">Uploading…</p>
+        <p className="text-sm text-foreground">Uploading…</p>
       ) : (
         <>
-          <p className="text-base font-medium text-zinc-900 dark:text-zinc-100">
-            Drop a PDF here, or click to choose
+          <p className="text-sm text-foreground">
+            Drop a PDF, or click to choose
           </p>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            PDF only · up to 50MB
-          </p>
+          <p className="text-xs text-muted-foreground">PDF · up to 50MB</p>
         </>
       )}
 
       {error && (
-        <p className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>
+        <p className="mt-1 text-xs text-destructive">{error}</p>
       )}
     </div>
   )
