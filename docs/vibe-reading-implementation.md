@@ -50,15 +50,15 @@ npm install @supabase/supabase-js @supabase/ssr pdf-parse react-pdf openai
 npm install -D @types/pdf-parse supabase
 ```
 
-### Step 2: Supabase 项目 — 复用 launchradar 的 project + 独立 schema
+### Step 2: Supabase 配置
 
-Vibe Reading 和 LaunchRadar（以及未来的 GrowPilot）**共享同一个 Supabase project**。隔离靠 Postgres schema：Vibe Reading 用 `vr` schema，LaunchRadar 在 `public`。命名约定是 2 字母代号前缀。
+**按 STANDARD §3.7 Supabase Setup Checklist 执行**，以下是 Vibe Reading 的偏离：
 
-- **不新建 project**。从 `/Users/dong/Projects/launchradar/.env.local` 直接复制 `NEXT_PUBLIC_SUPABASE_URL` / anon key / service role key
-- Auth 设置已经是好的（launchradar 已经配过 Email + Google，无需动）
-- Dashboard → **Project Settings → API → Exposed schemas**：在原有 `public, graphql_public` 后面加 `vr` → Save（**这一步关键，漏了 supabase-js 会 404**）
-- Storage bucket：暂缓。Phase 4 实现上传时再决定用 `vr-pdfs` 还是别的名字
-- Redirect URL：launchradar 已配 `http://localhost:3000/auth/callback` 和 Vercel URL，复用即可
+- **复用 launchradar 的 Supabase project** — 不新建 project。凭据从 `/Users/dong/Projects/launchradar/.env.local` 直接复制
+- **Schema**：`vr`（2-letter 前缀约定；LaunchRadar 在 `public`，GrowPilot 未来 `gp`）
+- **Auth 设置**：launchradar 已配好 Email + Google，无需再动
+- **Storage bucket**：暂缓到 Phase 4（PDF 上传）时再决定用 `vr-pdfs` 还是别的名字
+- **跳过**的 provider：GitHub OAuth / Magic Link / 其他——只保留 Email + Google
 
 ### Step 3: 目录结构
 
@@ -404,7 +404,10 @@ grant all on all sequences in schema vr to service_role;
 grant select, insert, update, delete on all tables in schema vr to authenticated;
 ```
 
-跑完 SQL 后，在 Dashboard → Project Settings → API → Exposed schemas 里加上 `vr` → Save，然后：
+跑完 SQL 后：
+1. 按 STANDARD §3.7.3 把 `vr` 加到 Exposed Schemas
+2. 按 STANDARD §3.7.5 用探针脚本验证（service_role ✅ / anon blocked）
+3. 生成类型：
 
 ```bash
 npm run db:types
@@ -1416,8 +1419,6 @@ git push   # 推到 main 自动触发 Vercel 部署
 | Screen 3 AI 超时 | 一次把全书内容塞进 prompt | 只传章节标题 + 前 500 字（见 `ChapterInput`） |
 | Rule 1 被绕过 | 用户直接访问 `/b/xxx/map` 跳过 goal | middleware / 页面组件第一步检查 goal，没有就 redirect |
 | Rule 3 Brief 输出散文 | 没用 JSON schema | 用 OpenAI `response_format: json_schema` + strict |
-| supabase-js 查 `vr` 表报 `PGRST106: Invalid schema: vr` | 没在 Dashboard Exposed schemas 里加 `vr` | Settings → API → Exposed schemas → 加 `vr` → Save |
-| supabase-js 查表全部返回空数组 | `createClient` 漏传 `db: { schema: 'vr' }` | client/server/admin 三个地方都要补（见 §3.0）|
 | Rule 4 用户点浏览器返回逃跑 | 浏览器返回总是能用 | 接受这个——不强行拦浏览器返回，但 UI 不提供按钮 |
 | 登录后丢失 map 上下文 | callback 直接跳 /library | callback 必须用 `?next=` 参数回原路径 |
 | Session book 孤儿堆积 | 24h cron 没跑 | 每周检查一次 Vercel Cron 日志；用 SQL 算孤儿数 |
