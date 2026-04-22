@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:types": "supabase gen types typescript --project-id myvtqxfcwzrntepcfvkn --schema vr > types/db.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
