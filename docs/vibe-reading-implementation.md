@@ -50,14 +50,15 @@ npm install @supabase/supabase-js @supabase/ssr pdf-parse react-pdf openai
 npm install -D @types/pdf-parse supabase
 ```
 
-### Step 2: Supabase 项目创建
+### Step 2: Supabase 项目 — 复用 launchradar 的 project + 独立 schema
 
-- Dashboard → 新建项目 → 记下 `URL` / `anon key` / `service role key`
-- Authentication → Providers → **Email**: 关闭 "Confirm email"（开发阶段）
-- Authentication → Providers → **Google**: 填入 Google Cloud Console 的 Client ID + Secret
-- **不开** GitHub、magic link 或其他 provider
-- Storage → 创建 bucket `pdfs`，设为 **private**（不允许匿名访问）
-- Redirect URL: `http://localhost:3000/auth/callback`（上线后再加 Vercel URL）
+Vibe Reading 和 LaunchRadar（以及未来的 GrowPilot）**共享同一个 Supabase project**。隔离靠 Postgres schema：Vibe Reading 用 `vr` schema，LaunchRadar 在 `public`。命名约定是 2 字母代号前缀。
+
+- **不新建 project**。从 `/Users/dong/Projects/launchradar/.env.local` 直接复制 `NEXT_PUBLIC_SUPABASE_URL` / anon key / service role key
+- Auth 设置已经是好的（launchradar 已经配过 Email + Google，无需动）
+- Dashboard → **Project Settings → API → Exposed schemas**：在原有 `public, graphql_public` 后面加 `vr` → Save（**这一步关键，漏了 supabase-js 会 404**）
+- Storage bucket：暂缓。Phase 4 实现上传时再决定用 `vr-pdfs` 还是别的名字
+- Redirect URL：launchradar 已配 `http://localhost:3000/auth/callback` 和 Vercel URL，复用即可
 
 ### Step 3: 目录结构
 
@@ -113,10 +114,10 @@ vibe-reading/
 
 ### Step 4: 环境变量
 
-`.env.local`:
+`.env.local`（Supabase 凭据直接从 `launchradar/.env.local` 复制——共享同一个 project）：
 
 ```bash
-# Supabase
+# Supabase (shared with launchradar; isolated by schema `vr`)
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
@@ -128,7 +129,7 @@ OPENAI_API_KEY=
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 # Cron
-CRON_SECRET=            # openssl rand -base64 32
+CRON_SECRET=            # 可复用 launchradar 的，或 openssl rand -base64 32
 ```
 
 > 没有 `DATABASE_URL`（Supabase-only 模式）。
@@ -136,16 +137,18 @@ CRON_SECRET=            # openssl rand -base64 32
 
 ### Step 5: Supabase TypeScript 类型自动生成
 
+**关键：必须加 `--schema vr`，否则默认只生成 `public`。**
+
 ```bash
 npx supabase login
-npx supabase gen types typescript --project-id <your-project-ref> > types/db.ts
+npx supabase gen types typescript --project-id myvtqxfcwzrntepcfvkn --schema vr > types/db.ts
 ```
 
 把这行加到 `package.json`:
 
 ```json
 "scripts": {
-  "db:types": "supabase gen types typescript --project-id <ref> > types/db.ts"
+  "db:types": "supabase gen types typescript --project-id myvtqxfcwzrntepcfvkn --schema vr > types/db.ts"
 }
 ```
 
@@ -261,61 +264,102 @@ export async function getSessionId(): Promise<string | null> {
 
 ## Phase 2 — 数据库 Schema
 
-**在 Supabase Dashboard → SQL Editor 直接跑下面的 SQL。** 不用 migration 工具，改 schema 就直接改。所有表 **RLS DISABLED**（STANDARD §4.1：安全靠 API 层保证）。
+**在 Supabase Dashboard → SQL Editor 直接跑下面的 SQL。** 不用 migration 工具，改 schema 就直接改。
+
+**约定：**（遵循 `stack/STANDARD.md` §4.1）
+- 所有表放在 `vr` schema（不是 `public`）
+- 所有表 **RLS ENABLED** + owner-based policies（Layer 2 防御）
+- API route 第一行仍必须验证 session（Layer 1 防御 — STANDARD §4.1）
+- 后端 admin client（`service_role` key）自动绕过 RLS
+- pre-login session book 场景：`owner_id` 为 null 的行 RLS 不允许前端看到——这没问题，pre-login 流程只通过后端 API（service_role）访问
+
+> 需要推倒重建时：先把下面第一段 `drop schema if exists vr cascade;` 跑一次再跑完整脚本。
 
 ```sql
--- 书：登录前 owner_id=null + session_id，登录后 owner_id=user.id + session_id=null
-create table books (
+-- 如需重置：取消下面两行注释
+-- drop schema if exists vr cascade;
+-- create schema vr;
+
+create schema if not exists vr;
+
+-- Grants
+grant usage on schema vr to service_role, authenticated;
+alter default privileges in schema vr grant all on tables to service_role;
+alter default privileges in schema vr grant all on sequences to service_role;
+alter default privileges in schema vr grant select, insert, update, delete on tables to authenticated;
+alter default privileges in schema vr grant usage, select on sequences to authenticated;
+
+-- ─── books ───────────────────────────────────────────────────────────────────
+-- pre-login: owner_id=null + session_id；login 后: owner_id=user.id + session_id=null
+create table vr.books (
   id uuid primary key default gen_random_uuid(),
   owner_id uuid references auth.users(id) on delete cascade,
   session_id text,
   title text not null,
   author text,
-  storage_path text not null,        -- Supabase Storage 路径
+  storage_path text not null,
   page_count int,
   created_at timestamptz default now()
 );
-create index on books (owner_id);
-create index on books (session_id);
+create index on vr.books (owner_id);
+create index on vr.books (session_id);
+alter table vr.books enable row level security;
+create policy "own books read"   on vr.books for select using (auth.uid() = owner_id);
+create policy "own books insert" on vr.books for insert with check (auth.uid() = owner_id);
+create policy "own books update" on vr.books for update using (auth.uid() = owner_id);
+create policy "own books delete" on vr.books for delete using (auth.uid() = owner_id);
 
--- 章节（PDF 解析后切分出来）
-create table chapters (
+-- ─── chapters ────────────────────────────────────────────────────────────────
+create table vr.chapters (
   id uuid primary key default gen_random_uuid(),
-  book_id uuid not null references books(id) on delete cascade,
-  seq int not null,                  -- 章节顺序
+  book_id uuid not null references vr.books(id) on delete cascade,
+  seq int not null,
   title text not null,
-  content text not null,             -- 章节纯文本
+  content text not null,
   page_start int,
   page_end int
 );
-create index on chapters (book_id, seq);
+create index on vr.chapters (book_id, seq);
+alter table vr.chapters enable row level security;
+create policy "own chapters" on vr.chapters for all
+  using (book_id in (select id from vr.books where owner_id = auth.uid()))
+  with check (book_id in (select id from vr.books where owner_id = auth.uid()));
 
--- 用户读这本书的目标（一本书一个 goal；改 goal 会覆盖）
-create table goals (
+-- ─── goals ───────────────────────────────────────────────────────────────────
+-- 一本书一个 goal；改 goal 会覆盖
+create table vr.goals (
   id uuid primary key default gen_random_uuid(),
-  book_id uuid not null references books(id) on delete cascade,
+  book_id uuid not null references vr.books(id) on delete cascade,
   text text not null,
   created_at timestamptz default now(),
   unique (book_id)
 );
+alter table vr.goals enable row level security;
+create policy "own goals" on vr.goals for all
+  using (book_id in (select id from vr.books where owner_id = auth.uid()))
+  with check (book_id in (select id from vr.books where owner_id = auth.uid()));
 
--- 三色映射结果（缓存，避免重复 AI 调用）
-create table chapter_maps (
+-- ─── chapter_maps (三色映射缓存) ─────────────────────────────────────────────
+create table vr.chapter_maps (
   id uuid primary key default gen_random_uuid(),
-  book_id uuid not null references books(id) on delete cascade,
-  goal_id uuid not null references goals(id) on delete cascade,
-  chapter_id uuid not null references chapters(id) on delete cascade,
+  book_id uuid not null references vr.books(id) on delete cascade,
+  goal_id uuid not null references vr.goals(id) on delete cascade,
+  chapter_id uuid not null references vr.chapters(id) on delete cascade,
   verdict text not null check (verdict in ('worth', 'skip', 'unanswered')),
   reason text not null,
   created_at timestamptz default now(),
   unique (goal_id, chapter_id)
 );
+alter table vr.chapter_maps enable row level security;
+create policy "own chapter_maps" on vr.chapter_maps for all
+  using (book_id in (select id from vr.books where owner_id = auth.uid()))
+  with check (book_id in (select id from vr.books where owner_id = auth.uid()));
 
--- Brief 结果（缓存）
-create table briefs (
+-- ─── briefs (4 段式 Brief 缓存) ──────────────────────────────────────────────
+create table vr.briefs (
   id uuid primary key default gen_random_uuid(),
-  chapter_id uuid not null references chapters(id) on delete cascade,
-  goal_id uuid not null references goals(id) on delete cascade,
+  chapter_id uuid not null references vr.chapters(id) on delete cascade,
+  goal_id uuid not null references vr.goals(id) on delete cascade,
   one_sentence text not null,
   key_claims jsonb not null,         -- string[] of length 3
   example text not null,
@@ -323,11 +367,23 @@ create table briefs (
   created_at timestamptz default now(),
   unique (chapter_id, goal_id)
 );
+alter table vr.briefs enable row level security;
+create policy "own briefs" on vr.briefs for all
+  using (chapter_id in (
+    select c.id from vr.chapters c
+    join vr.books b on b.id = c.book_id
+    where b.owner_id = auth.uid()
+  ))
+  with check (chapter_id in (
+    select c.id from vr.chapters c
+    join vr.books b on b.id = c.book_id
+    where b.owner_id = auth.uid()
+  ));
 
--- 用户的复述 + AI 挑错结果
-create table restatements (
+-- ─── restatements (用户复述 + AI 挑错结果) ──────────────────────────────────
+create table vr.restatements (
   id uuid primary key default gen_random_uuid(),
-  chapter_id uuid not null references chapters(id) on delete cascade,
+  chapter_id uuid not null references vr.chapters(id) on delete cascade,
   user_id uuid not null references auth.users(id) on delete cascade,
   text text not null,
   got_right jsonb not null,          -- string[]
@@ -335,10 +391,20 @@ create table restatements (
   follow_up text,
   created_at timestamptz default now()
 );
-create index on restatements (user_id, chapter_id);
+create index on vr.restatements (user_id, chapter_id);
+alter table vr.restatements enable row level security;
+create policy "own restatements read"   on vr.restatements for select using (auth.uid() = user_id);
+create policy "own restatements insert" on vr.restatements for insert with check (auth.uid() = user_id);
+create policy "own restatements update" on vr.restatements for update using (auth.uid() = user_id);
+create policy "own restatements delete" on vr.restatements for delete using (auth.uid() = user_id);
+
+-- 再保险一次
+grant all on all tables in schema vr to service_role;
+grant all on all sequences in schema vr to service_role;
+grant select, insert, update, delete on all tables in schema vr to authenticated;
 ```
 
-跑完 SQL 后：
+跑完 SQL 后，在 Dashboard → Project Settings → API → Exposed schemas 里加上 `vr` → Save，然后：
 
 ```bash
 npm run db:types
@@ -349,6 +415,31 @@ npm run db:types
 ## Phase 3 — Auth（Email/Password + Google）
 
 照 STANDARD.md §3 原样复制 `lib/supabase/client.ts` / `server.ts` / `admin.ts` / `callback/route.ts` / `middleware.ts`。**只有以下偏离：**
+
+### 3.0 所有 createClient 调用必须指定 `db: { schema: 'vr' }`
+
+我们的表在 `vr` schema，不是 `public`。每个 `createClient` 都要传 schema 选项，否则 `.from('books')` 会去查 `public.books`（不存在）。
+
+```typescript
+// lib/supabase/client.ts
+createBrowserClient(url, key, {
+  db: { schema: 'vr' },
+})
+
+// lib/supabase/server.ts
+createServerClient(url, key, {
+  cookies: { ... },
+  db: { schema: 'vr' },
+})
+
+// lib/supabase/admin.ts
+createClient(url, serviceRoleKey, {
+  auth: { persistSession: false },
+  db: { schema: 'vr' },
+})
+```
+
+配完之后，`.from('books')` 自动解析成 `vr.books`。**不要**写 `.from('vr.books')`。
 
 ### 3.1 砍掉 GitHub
 
@@ -1324,7 +1415,9 @@ git push   # 推到 main 自动触发 Vercel 部署
 | 章节切分全炸 | 书没有清晰的"Chapter N" 标题 | 用 fallback split 按段落切；未来用 AI 切分（v1.1） |
 | Screen 3 AI 超时 | 一次把全书内容塞进 prompt | 只传章节标题 + 前 500 字（见 `ChapterInput`） |
 | Rule 1 被绕过 | 用户直接访问 `/b/xxx/map` 跳过 goal | middleware / 页面组件第一步检查 goal，没有就 redirect |
-| Rule 3 Brief 输出散文 | 没用 JSON schema | 用 OpenAI `response_format: json_schema` + strict | |
+| Rule 3 Brief 输出散文 | 没用 JSON schema | 用 OpenAI `response_format: json_schema` + strict |
+| supabase-js 查 `vr` 表报 `PGRST106: Invalid schema: vr` | 没在 Dashboard Exposed schemas 里加 `vr` | Settings → API → Exposed schemas → 加 `vr` → Save |
+| supabase-js 查表全部返回空数组 | `createClient` 漏传 `db: { schema: 'vr' }` | client/server/admin 三个地方都要补（见 §3.0）|
 | Rule 4 用户点浏览器返回逃跑 | 浏览器返回总是能用 | 接受这个——不强行拦浏览器返回，但 UI 不提供按钮 |
 | 登录后丢失 map 上下文 | callback 直接跳 /library | callback 必须用 `?next=` 参数回原路径 |
 | Session book 孤儿堆积 | 24h cron 没跑 | 每周检查一次 Vercel Cron 日志；用 SQL 算孤儿数 |
@@ -1362,13 +1455,12 @@ CRON_SECRET=
 □ npx create-next-app vibe-reading --typescript --tailwind --app
 □ npx shadcn@latest init
 □ npm install @supabase/supabase-js @supabase/ssr pdf-parse react-pdf openai
-□ 创建 Supabase 项目 → 复制 URL / anon key / service role key
-□ Supabase Dashboard → 关闭 Email Confirmation
-□ Supabase Dashboard → 开启 Google OAuth（不开 GitHub / magic link）
-□ Supabase Storage → 创建 private bucket 'pdfs'
-□ 跑 Phase 2 的 SQL 建所有表
-□ 跑 npm run db:types 生成 TypeScript 类型
-□ 创建 lib/supabase/client.ts + server.ts + admin.ts（照 STANDARD 3.1）
+□ 复用 launchradar 的 Supabase project —— 从 launchradar/.env.local 复制 URL / anon key / service role key
+□ Supabase Dashboard → Project Settings → API → Exposed schemas 里加 `vr` → Save
+□ Storage bucket：Phase 4 实现上传时再决定
+□ 跑 Phase 2 的 SQL（在 `vr` schema 下建所有表 + 启用 RLS + policies）
+□ 跑 npm run db:types 生成 TypeScript 类型（记得 `--schema vr`）
+□ 创建 lib/supabase/client.ts + server.ts + admin.ts（照 STANDARD 3.1 + §3.0 的 `db: { schema: 'vr' }` 配置）
 □ 创建 middleware.ts（Phase 3.2 的变体）
 □ 创建 app/auth/login + register + callback（Phase 3.4 + 3.5）
 □ 实现 Phase 1: Landing + UploadDropzone + SessionId cookie
