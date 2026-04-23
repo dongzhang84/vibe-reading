@@ -427,6 +427,19 @@ npm run db:types
 
 照 STANDARD.md §3 原样复制 `lib/supabase/client.ts` / `server.ts` / `admin.ts` / `callback/route.ts` / `middleware.ts`。**只有以下偏离：**
 
+### Ownership at a glance
+
+| Step | Owner | Time | 备注 |
+|---|---|---|---|
+| 写 `lib/supabase/{client,server,admin}.ts` 带 `<Database, 'vr'>` + `db: { schema: 'vr' }` | 🤖 | 2 min | |
+| 写 `middleware.ts`（保护 `/library` + `/b/*/(read\|brief\|restate)`）| 🤖 | 2 min | |
+| 写 `/auth/{login,register,callback}` + `components/LoginModal.tsx` | 🤖 | 8 min | |
+| Google Cloud Console → 新建 OAuth Client `vibe-reading` + redirect URI | 🙋 | 3 min | 复用 `Dong's Indie Project` 的 Consent Screen（已配），不需要重新 10 min |
+| Supabase Dashboard → 开 Google provider + 粘 Client ID/Secret | 🙋 | 2 min | 共用的 Supabase project 里 Google 之前没开过（launchradar 只用 Email），第一次要开 |
+| 浏览器端到端测 Email 注册 / Email 登录 / Google OAuth / middleware redirect | 🙋 | 5 min | 4 条路径全过才算 Phase 3 关闭 |
+
+**总人工时间：约 10-12 min**（如果 Consent Screen 已存在）；首次做 Consent Screen 额外 +10 min。
+
 ### 3.0 所有 createClient 必须指定 schema + Database 泛型
 
 我们的表在 `vr` schema，不是 `public`。每个 `createClient` 都要传 schema 选项（否则 `.from('books')` 会去查不存在的 `public.books`），并且带上 `<Database, 'vr'>` 泛型把 TypeScript 类型也聚焦到 vr schema：
@@ -1443,6 +1456,33 @@ CRON_SECRET=
 **Week 1**：作者自测 — 用这个 MVP 读完 1 本自己真想读的书。如果比 ChatPDF / NotebookLM 差 → MVP 失败，回炉。
 
 **Week 2-4**：5-10 个朋友试用 — 看他们在 Screen 2 写得出需求吗？在 Screen 5 真的会打字复述吗？如果大部分人跳过 Screen 2 或 Screen 5，说明方法论太理想化，重新设计。
+
+---
+
+## Human Work Budget
+
+全部 🙋 步骤汇总，按 Phase 给出时间预算。格式见 STANDARD.md §10.5。
+
+| Phase | 🙋 Step | Time | 备注 |
+|---|---|---|---|
+| 0 | 复用 launchradar 的 Supabase 凭据（从 `.env.local` 拷 URL / anon / service role / openai / cron_secret）| 1 min | |
+| 2 | Supabase SQL Editor：粘 Phase 2 的 SQL → Run and enable RLS | 2 min | 🤖 产出 SQL |
+| 2 | Dashboard → Data API → Exposed schemas 加 `vr` → Save | 1 min | |
+| 2 | `npx supabase login`（浏览器 OAuth + 粘 verification code）| 2 min | 首次 + token 过期时 |
+| 3 | Google Cloud Console → `Dong's Indie Project` 里建 OAuth Client `vibe-reading` + redirect URI | 3 min | Consent Screen 已存在，不用重配 |
+| 3 | Supabase Dashboard → Auth → Providers → Google toggle ON + 粘 Client ID/Secret → Save | 2 min | Google 在这个 Supabase project 里首次启用 |
+| 3 | 浏览器端到端测 Email 注册 / Email 登录 / Google OAuth / middleware redirect | 5 min | |
+| 13 | Vercel：import repo + Settings → Environment Variables "Paste .env" 粘 6 个 var + Redeploy | 3 min | |
+| 13 | 浏览器线上 runtime 测 `/` + `/auth/login` + `/library` 重定向 | 3 min | |
+| 13 | Google OAuth Client + Supabase Redirect URLs 加生产 URL | 3 min | 上线后 |
+
+**Setup total**：约 **25-30 min** 人工时间（基于**复用 launchradar Supabase project + 复用 `Dong's Indie Project` GCP Consent Screen** 的前提）
+
+**全新基础设施估算**：新 Supabase project +15 min / 新 GCP project + Consent Screen +15 min = 额外 ~30 min。
+
+**每次 schema 改动**：跑 SQL (2 min) + `npm run db:types` (🤖) → 你约 2 min。
+
+**不在预算内**：朋友试用反馈收集、自用时长、bug 修复节奏——这些是运维成本，不是 setup 成本。
 
 ---
 
