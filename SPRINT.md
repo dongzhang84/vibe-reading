@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-04-22 22:31 UTC  
+**Generated:** 2026-04-23 05:50 UTC  
 **Showing:** last 1 week(s) of 1 total  
 
 ---
@@ -11,11 +11,11 @@
 |------|-------|
 | Status | ❌ Stalled |
 | Active days | 2 / 7 |
-| Total commits | 10 |
+| Total commits | 11 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| ⚪ | **2** | **8** | ⚪ | ⚪ | ⚪ | ⚪ |
+| ⚪ | **2** | **9** | ⚪ | ⚪ | ⚪ | ⚪ |
 
 **Tue – Tuesday, Apr 21**
 
@@ -24,6 +24,7 @@
 
 **Wed – Wednesday, Apr 22**
 
+- `8bb5edc` CLAUDE.md: record the two setup blockers hit this session — _dongzhang84_ `2026-04-22 22:50`
 - `5ea101c` Phase 3 — Auth (Email + Google) — _dongzhang84_ `2026-04-22 15:31`
 - `55c3e81` Phase 2 close: generate types/db.ts from vr schema — _dongzhang84_ `2026-04-22 14:21`
 - `bb54780` Phase 1 §1.0: reference STANDARD §2.5 instead of duplicating — _dongzhang84_ `2026-04-22 14:17`
