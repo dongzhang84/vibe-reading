@@ -17,7 +17,10 @@ interface MapItem {
   reason: string
 }
 
-type Mode = 'read' | 'brief'
+// Read mode (Screen 4A, PDF viewer) is Phase 10 — deferred. Map screen
+// currently only offers "Brief" as the in-depth path. Keep the union so
+// Phase 10 can restore 'read' without refactoring callers.
+type Mode = 'brief'
 
 interface Props {
   bookId: string
@@ -85,23 +88,27 @@ export function MapScreen({ bookId, chapters, initialResults }: Props) {
   }
 
   async function handleClick(chapterId: string, mode: Mode) {
-    // Require auth to continue into Read / Brief. Check current session;
-    // if signed-in, skip modal and navigate.
+    // Require auth to continue into Brief. If already signed-in, skip the
+    // modal, claim any session books, and navigate.
     const supabase = createClient()
     const {
       data: { user },
     } = await supabase.auth.getUser()
     if (user) {
-      // Claim any session books, then navigate.
       await fetch('/api/claim', { method: 'POST' }).catch(() => null)
       window.location.href = `/b/${bookId}/${mode}/${chapterId}`
       return
     }
+    // Not signed in — open the modal. On return from OAuth the callback
+    // route will auto-claim and redirect to the target page directly,
+    // so no extra click required.
     setPending({ chapterId, mode })
     setModalOpen(true)
   }
 
   async function afterLogin() {
+    // Email path: login succeeded in the modal; claim books, then navigate.
+    // (OAuth path never reaches this callback — it redirects away.)
     await fetch('/api/claim', { method: 'POST' }).catch(() => null)
     if (pending) {
       window.location.href = `/b/${bookId}/${pending.mode}/${pending.chapterId}`
@@ -126,6 +133,13 @@ export function MapScreen({ bookId, chapters, initialResults }: Props) {
     )
   }
 
+  // If OAuth-return auth is required, go straight to the Brief page the
+  // user clicked on — the callback route claims the book inline so Brief
+  // can render without a detour through /map.
+  const modalReturnTo = pending
+    ? `/b/${bookId}/${pending.mode}/${pending.chapterId}`
+    : `/b/${bookId}/map`
+
   return (
     <>
       <section className="flex flex-col gap-10">
@@ -134,7 +148,6 @@ export function MapScreen({ bookId, chapters, initialResults }: Props) {
           emptyText="No chapters matched."
           items={worth}
           byId={byId}
-          onRead={(id) => handleClick(id, 'read')}
           onBrief={(id) => handleClick(id, 'brief')}
         />
 
@@ -142,7 +155,6 @@ export function MapScreen({ bookId, chapters, initialResults }: Props) {
           <Section
             items={skip}
             byId={byId}
-            onRead={(id) => handleClick(id, 'read')}
             onBrief={(id) => handleClick(id, 'brief')}
           />
         </CollapsibleSection>
@@ -152,7 +164,6 @@ export function MapScreen({ bookId, chapters, initialResults }: Props) {
             label="⚠️ Your goal — but this book may not answer it"
             items={unanswered}
             byId={byId}
-            onRead={(id) => handleClick(id, 'read')}
             onBrief={(id) => handleClick(id, 'brief')}
           />
         )}
@@ -160,7 +171,7 @@ export function MapScreen({ bookId, chapters, initialResults }: Props) {
 
       {modalOpen && (
         <LoginModal
-          returnTo={`/b/${bookId}/map`}
+          returnTo={modalReturnTo}
           onClose={() => setModalOpen(false)}
           onSuccess={afterLogin}
         />
@@ -174,14 +185,12 @@ function Section({
   items,
   byId,
   emptyText,
-  onRead,
   onBrief,
 }: {
   label?: string
   items: MapItem[]
   byId: Map<string, ChapterSummary>
   emptyText?: string
-  onRead: (chapterId: string) => void
   onBrief: (chapterId: string) => void
 }) {
   return (
@@ -217,17 +226,10 @@ function Section({
                 <div className="mt-1 flex gap-2">
                   <button
                     type="button"
-                    onClick={() => onRead(r.chapterId)}
-                    className="rounded-md border border-border px-3 py-1.5 text-xs hover:bg-muted/40"
-                  >
-                    Read
-                  </button>
-                  <button
-                    type="button"
                     onClick={() => onBrief(r.chapterId)}
                     className="rounded-md bg-primary px-3 py-1.5 text-xs text-primary-foreground hover:bg-primary/90"
                   >
-                    Brief
+                    Brief →
                   </button>
                 </div>
               </li>

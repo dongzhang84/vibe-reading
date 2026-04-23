@@ -1,10 +1,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
 interface LoginModalProps {
-  /** Optional — path to return to after login. Default: current page. */
+  /** Full path to return to after sign-in. Used as `?next=` on OAuth and as
+   *  in-place navigation target after email sign-in. */
   returnTo?: string
   onClose?: () => void
   onSuccess?: () => void
@@ -24,7 +26,9 @@ export function LoginModal({ returnTo, onClose, onSuccess }: LoginModalProps) {
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  const nextPath = returnTo ?? (typeof window !== 'undefined' ? window.location.pathname : '/library')
+  const nextPath =
+    returnTo ??
+    (typeof window !== 'undefined' ? window.location.pathname : '/library')
 
   async function handleGoogle() {
     const supabase = createClient()
@@ -53,6 +57,8 @@ export function LoginModal({ returnTo, onClose, onSuccess }: LoginModalProps) {
     if (onSuccess) onSuccess()
   }
 
+  const registerHref = `/auth/register?next=${encodeURIComponent(nextPath)}`
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
@@ -68,12 +74,13 @@ export function LoginModal({ returnTo, onClose, onSuccess }: LoginModalProps) {
             Welcome to Vibe Reading.
           </h2>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            You&apos;ve just seen how this book maps to your goal. To go deeper —
-            read chapters, get briefs, check your understanding — we need to
-            know who you are.
+            You&apos;ve just seen how this book maps to your goal. To go
+            deeper — read chapters, get briefs, check your understanding — we
+            need to know who you are.
           </p>
           <p className="text-xs text-muted-foreground/80">
-            This is the only time we&apos;ll ask.
+            Sign in, or create an account — same modal. This is the only time
+            we&apos;ll ask.
           </p>
         </div>
 
@@ -85,10 +92,13 @@ export function LoginModal({ returnTo, onClose, onSuccess }: LoginModalProps) {
           >
             Continue with Google
           </button>
+          <p className="-mt-3 text-xs text-muted-foreground/70">
+            First time? Continue with Google creates your account automatically.
+          </p>
 
           <div className="flex items-center gap-3">
             <hr className="flex-1 border-border" />
-            <span className="text-xs text-muted-foreground">or</span>
+            <span className="text-xs text-muted-foreground">or email</span>
             <hr className="flex-1 border-border" />
           </div>
 
@@ -120,6 +130,16 @@ export function LoginModal({ returnTo, onClose, onSuccess }: LoginModalProps) {
               {loading ? 'Signing in…' : 'Sign in'}
             </button>
           </form>
+
+          <p className="text-center text-xs text-muted-foreground">
+            No account yet?{' '}
+            <Link
+              href={registerHref}
+              className="text-foreground hover:underline"
+            >
+              Sign up with email →
+            </Link>
+          </p>
         </div>
       </div>
     </div>
