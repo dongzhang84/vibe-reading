@@ -494,142 +494,55 @@ Screen 3 → Screen 4 之间的登录**是 modal 不是跳转**。组件在 `com
 
 ## Phase 4 — PDF 解析 + 章节切分
 
+**决策 (2026-04-23)**：PDF 解析用 `unpdf`，不用 `pdf-parse`。
+- 原因：`pdf-parse@2.4.5` 在 Next.js 16 + Turbopack 下 worker 解析失败（先 `fake worker` 找不到 pdf.worker.mjs，后 `DataCloneError`），workaround 都不干净
+- `unpdf` 专为 serverless / edge Node 设计，零配置就跑通
+- 装：`npm install unpdf`（自带 pdfjs-dist 的 serverless build）
+
+**Storage bucket**：`vr-docs`（私有、50MB、`application/pdf` MIME 白名单）。**不用 `pdfs`**——留出空间给未来非 PDF 文档格式。
+
 ### 4.1 Upload API（`app/api/upload/route.ts`）
 
-```typescript
-import { NextResponse } from 'next/server'
-import { getOrCreateSessionId } from '@/lib/session'
-import { createAdminClient } from '@/lib/supabase/admin'
-import { parsePdf, splitIntoChapters } from '@/lib/pdf/parser'
+实际实现见 `app/api/upload/route.ts`。关键点：
 
-export const runtime = 'nodejs'
-export const maxDuration = 60
-
-export async function POST(request: Request) {
-  const sessionId = await getOrCreateSessionId()
-
-  const form = await request.formData()
-  const file = form.get('file')
-  if (!(file instanceof File)) {
-    return NextResponse.json({ error: 'Missing file' }, { status: 400 })
-  }
-  if (file.size > 50 * 1024 * 1024) {
-    return NextResponse.json({ error: 'Max 50MB' }, { status: 400 })
-  }
-
-  const buffer = Buffer.from(await file.arrayBuffer())
-  const { title, author, text, pageCount } = await parsePdf(buffer)
-  const chapters = splitIntoChapters(text)
-
-  if (chapters.length === 0) {
-    return NextResponse.json({ error: 'Could not detect chapters' }, { status: 422 })
-  }
-
-  const db = createAdminClient()
-
-  // 上传 PDF 到 Storage（路径用 sessionId 隔离）
-  const storagePath = `session/${sessionId}/${crypto.randomUUID()}.pdf`
-  await db.storage.from('pdfs').upload(storagePath, buffer, {
-    contentType: 'application/pdf',
-  })
-
-  // 写 books
-  const { data: book, error } = await db
-    .from('books')
-    .insert({
-      session_id: sessionId,
-      title,
-      author,
-      storage_path: storagePath,
-      page_count: pageCount,
-    })
-    .select()
-    .single()
-  if (error) throw error
-
-  // 写 chapters
-  await db.from('chapters').insert(
-    chapters.map((c, i) => ({
-      book_id: book.id,
-      seq: i,
-      title: c.title,
-      content: c.content,
-      page_start: c.pageStart,
-      page_end: c.pageEnd,
-    })),
-  )
-
-  return NextResponse.json({ bookId: book.id })
-}
-```
+- `runtime = 'nodejs'` + `maxDuration = 60`（PDF 解析在 Edge runtime 跑不动）
+- validate: 必须是 `application/pdf` + 大小 ≤ 50 MB
+- 解析失败、章节切不出来都返回 422，dropzone 前端会显示 error
+- Storage 路径 `session/${sessionId}/${uuid}.pdf`（cron cleanup 可按 session 前缀批量删）
+- 错误路径做"最优努力"回滚：书写失败时删 Storage blob；章节写失败时删书 + Storage
+- Books insert 先，Chapters insert 后（外键依赖）
+- 成功返回 `{ bookId }`，前端跳 `/b/${bookId}/goal`
 
 ### 4.2 PDF Parser（`lib/pdf/parser.ts`）
 
-```typescript
-import 'server-only'
-import { PDFParse } from 'pdf-parse'
+实际实现用 `unpdf`：
 
-export async function parsePdf(buffer: Buffer) {
-  const parser = new PDFParse({ data: new Uint8Array(buffer) })
+```typescript
+import { extractText, getDocumentProxy, getMeta } from 'unpdf'
+
+export async function parsePdf(buffer: Buffer): Promise<ParsedPdf> {
+  const data = new Uint8Array(buffer)
+  const pdf = await getDocumentProxy(data)
   try {
-    const [info, text] = await Promise.all([parser.getInfo(), parser.getText()])
+    const [{ info }, { totalPages, text }] = await Promise.all([
+      getMeta(pdf),
+      extractText(pdf, { mergePages: true }),
+    ])
     return {
-      title: info.info?.Title ?? 'Untitled',
-      author: info.info?.Author,
-      text: text.text,
-      pageCount: text.pages.length,
+      title: cleanStr(info?.Title) ?? 'Untitled',
+      author: cleanStr(info?.Author) ?? null,
+      text: text as string,
+      pageCount: totalPages,
     }
   } finally {
-    await parser.destroy()
+    await pdf.destroy()
   }
-}
-
-export interface ChapterChunk {
-  title: string
-  content: string
-  pageStart?: number
-  pageEnd?: number
-}
-
-export function splitIntoChapters(fullText: string): ChapterChunk[] {
-  // 尝试按 "Chapter N" / "CHAPTER N" / 中文"第 N 章" 切分
-  const pattern = /\n\s*(?:Chapter\s+\d+|CHAPTER\s+\d+|第[一二三四五六七八九十百零〇\d]+章)[^\n]{0,80}\n/gi
-
-  const matches: { index: number; title: string }[] = []
-  let m: RegExpExecArray | null
-  while ((m = pattern.exec(fullText)) !== null) {
-    matches.push({ index: m.index, title: m[0].trim() })
-  }
-
-  if (matches.length === 0) {
-    // Fallback: 按数字编号段落
-    return fallbackSplit(fullText)
-  }
-
-  const chunks: ChapterChunk[] = []
-  for (let i = 0; i < matches.length; i++) {
-    const start = matches[i].index
-    const end = i + 1 < matches.length ? matches[i + 1].index : fullText.length
-    const raw = fullText.slice(start, end).trim()
-    const [titleLine, ...rest] = raw.split('\n')
-    chunks.push({
-      title: titleLine.trim(),
-      content: rest.join('\n').trim(),
-    })
-  }
-  return chunks.filter((c) => c.content.length > 200)
-}
-
-function fallbackSplit(text: string): ChapterChunk[] {
-  // 按 form-feed 或 20+ 换行切大段
-  return text
-    .split(/\n{5,}/)
-    .map((s, i) => ({ title: `Section ${i + 1}`, content: s.trim() }))
-    .filter((c) => c.content.length > 500)
 }
 ```
 
-> **章节切分是精度痛点**。先用规则粗切，自测发现不对再迭代。**不要一开始就用 AI 切分**，太贵太慢。
+`splitIntoChapters(fullText)` 规则切分：匹配 `Chapter N` / `CHAPTER N` / `第 N 章`，找不到退到 `fallbackSplit`（按 `\n{5,}` 切段，保留 500 字以上的段）。完整代码见 `lib/pdf/parser.ts`。
+
+> **章节切分是精度痛点**。规则先粗切，自测真实书发现规则不够再迭代。**不要一开始就用 AI 切分**——太贵太慢，而且 Phase 4 只是为 Phase 6 的三色映射 AI 准备"章节粒度的文本"，切得差一点也能跑。
 
 ### 4.3 Admin Client（`lib/supabase/admin.ts`）
 
