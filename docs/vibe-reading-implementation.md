@@ -1461,28 +1461,46 @@ CRON_SECRET=
 
 ## Human Work Budget
 
-全部 🙋 步骤汇总，按 Phase 给出时间预算。格式见 STANDARD.md §10.5。
+按 STANDARD §11 的 **5-Phase 顺序**排所有 🙋 步骤。**Vercel 首次部署在 Phase 2**（landing 一可见就部），不等 Auth 写完。格式参照 STANDARD §10.5。
 
-| Phase | 🙋 Step | Time | 备注 |
+| STD Phase | 🙋 Step | Time | 备注 |
 |---|---|---|---|
-| 0 | 复用 launchradar 的 Supabase 凭据（从 `.env.local` 拷 URL / anon / service role / openai / cron_secret）| 1 min | |
-| 2 | Supabase SQL Editor：粘 Phase 2 的 SQL → Run and enable RLS | 2 min | 🤖 产出 SQL |
-| 2 | Dashboard → Data API → Exposed schemas 加 `vr` → Save | 1 min | |
-| 2 | `npx supabase login`（浏览器 OAuth + 粘 verification code）| 2 min | 首次 + token 过期时 |
-| 3 | Google Cloud Console → `Dong's Indie Project` 里建 OAuth Client `vibe-reading` + redirect URI | 3 min | Consent Screen 已存在，不用重配 |
-| 3 | Supabase Dashboard → Auth → Providers → Google toggle ON + 粘 Client ID/Secret → Save | 2 min | Google 在这个 Supabase project 里首次启用 |
-| 3 | 浏览器端到端测 Email 注册 / Email 登录 / Google OAuth / middleware redirect | 5 min | |
-| 13 | Vercel：import repo + Settings → Environment Variables "Paste .env" 粘 6 个 var + Redeploy | 3 min | |
-| 13 | 浏览器线上 runtime 测 `/` + `/auth/login` + `/library` 重定向 | 3 min | |
-| 13 | Google OAuth Client + Supabase Redirect URLs 加生产 URL | 3 min | 上线后 |
+| 0 | GitHub repo → Settings → Secrets → 加 `PLAYBOOK_TOKEN` | 30 sec | 一次性；`new-project.sh` 之后 |
+| 0→1 | 从 `launchradar/.env.local` 拷 Supabase / OpenAI / CRON_SECRET 凭据到本 repo 的 `.env.local` | 1 min | 复用现有 Supabase project |
+| 1 | _Phase 1 全 🤖_（scaffold 清理 + landing 都由 Claude 写）| — | |
+| **2** | **Vercel Dashboard → Import repo → "Paste .env" 粘贴 → Deploy** | 3 min | **landing 一可见就部，不等 DB/Auth** |
+| 2 | 打开线上 URL 实测 landing 页渲染（Deploy Ready ≠ runtime OK）| 1 min | 只测 `/`；其他路由暂未写 |
+| 3 | Supabase SQL Editor 粘 `vr` schema SQL → Run and enable RLS | 2 min | 🤖 产出 SQL |
+| 3 | Dashboard → Data API → Exposed schemas 加 `vr` → Save | 1 min | 不加 supabase-js 会 404 |
+| 3 | `npx supabase login`（浏览器 OAuth + terminal verification code）| 2 min | 首次 / token 过期 |
+| 3 | Google Cloud Console → `Dong's Indie Project` 建 OAuth Client `vibe-reading` + redirect URI | 3 min | Consent Screen 已存在，复用 |
+| 3 | Supabase Auth → Providers → Google toggle ON + 粘 Client ID/Secret → Save | 2 min | 本 Supabase project Google 首次启用 |
+| 3 | 浏览器实测 Email 注册 / 登录 / Google OAuth / middleware redirect | 5 min | |
+| 4 | — | 0 | vibe-reading 是开源 MVP，无付费，整个 Phase 4 跳过 |
+| 5-N | 每 Phase 完 `git push` → Vercel 自动 redeploy → 浏览器走本 phase user flow | ~3 min × 业务 phase 数 | 业务 phase 约 8-10 个（Goal/Map/Brief/Restate/...）|
+| 上线后 | Google OAuth Client + Supabase Auth Redirect URLs 加生产 URL | 3 min | 一次性，首次 prod deploy 之后 |
 
-**Setup total**：约 **25-30 min** 人工时间（基于**复用 launchradar Supabase project + 复用 `Dong's Indie Project` GCP Consent Screen** 的前提）
+### Total 估算
 
-**全新基础设施估算**：新 Supabase project +15 min / 新 GCP project + Consent Screen +15 min = 额外 ~30 min。
+- **Setup (Phases 0-3)**：约 **20 min** 人工（基于复用 launchradar Supabase + `Dong's Indie Project` GCP Consent Screen）
+- **Per business phase**：约 **3 min / phase**
+- **全 MVP（假设 10 业务 phases）**：~20 min setup + ~30 min phase testing = **约 50 min 总人工时间**
+- **上线后一次性**：+3 min（生产 URL 添加到 OAuth/Supabase redirect 白名单）
 
-**每次 schema 改动**：跑 SQL (2 min) + `npm run db:types` (🤖) → 你约 2 min。
+### 全新基础设施的额外成本
 
-**不在预算内**：朋友试用反馈收集、自用时长、bug 修复节奏——这些是运维成本，不是 setup 成本。
+不复用任何现有 infra 时：
+- 新 Supabase project：+10 min（建 project + 拿 keys）
+- 新 GCP project + OAuth Consent Screen：+10 min
+- 合计额外约 **+20 min**
+
+### 每次 schema 改动
+
+`git commit` 后你约 2 min（Schema SQL 粘 Editor + `npm run db:types` 让 Claude 跑）。
+
+### 不在预算内
+
+朋友试用反馈收集、自用时长、bug 修复节奏——这些是运维成本，不是 setup 成本。
 
 ---
 
