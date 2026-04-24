@@ -51,13 +51,14 @@ Vibe Reading 是一个**反主流**的读书工具。它故意阻止用户做三
 
 ## Solution
 
-一个 5 屏的强制工作流：
+一个 4 屏的工作流：
 
-1. **Upload** — 上传 PDF，系统解析目录
-2. **Define Goal** — 用户必须先用 1–3 句话说明"为什么要读这本书"（不能跳过、不能让 AI 代写）
-3. **Three-Color Map** — AI 基于用户的 goal 把章节分成三色：值得读的 ✅、跳过的 ❌、这本书没回答的 ⚠️
-4. **Read or Brief** — 用户选一章进入精读模式（AI 静默，只在召唤时出现）或转述模式（AI 用严格 4 段式输出：1 句话 + 3 claims + 1 例子 + 作者没说什么）
-5. **Compress & Check** — 用户必须用自己的话复述章节核心，AI 挑错（哪里对、哪里漏、哪里理解偏了）
+1. **Upload** — 上传 PDF，**立刻要求登录**（确保每本书归属用户、可收藏、可问多次）。系统后台解析 PDF outline 提取 TOC，用 AI 基于 intro + conclusion 写本书 overview，再据此生成 3 个适合这本书的推荐问题
+2. **Book Home** — 进入这本书的主页：展示 TOC（让用户先看到书的结构）+ 输入框「你想了解什么问题？」+ 3 个 AI 推荐问题（一键提交）+ 历史问过的问题列表（可重新打开任一）
+3. **Question Result** — 提交问题后，左侧列出与该问题相关的章节 + 简短理由（AI 生成）；每章有 [Brief] / [Read] 两个按钮。点击后**右侧分屏**显示对应内容：Brief 是 4 段式结构化摘要，Read 是 PDF 跳到该章。"← Back to book" 回 Book Home，可以问下一个问题
+4. **(预留) AI 互动复述** — 老 Restate 流程暂时隐藏入口，未来作为「和 AI 互动加速阅读」feature 重做
+
+**为什么是 4 屏不是 5 屏**：老设计假设用户能用 1 句话表达整本书的学习目标（goal）。实际使用中，用户的真实意图是**多个零散问题**（"这本书在讲什么"、"为什么重要"、"它跟 X 的对比是什么"、"第 6 章的论点具体是"）。一本书一个 goal 太粗；一本书 N 个问题更接近真实阅读场景。"goal" 退位为 "question"，一本书可以问多次，历史保留可回看。
 
 ---
 
@@ -79,13 +80,13 @@ Vibe Reading 是一个**反主流**的读书工具。它故意阻止用户做三
 
 开发过程中任何 PM / 程序员都要遵守：
 
-**Rule 1** — AI 不能在用户表达需求之前输出任何关于书的内容。上传 PDF 后不能立刻"AI 已为您总结"，必须先经过 Goal 输入。
+**Rule 1** — AI 不能在用户表达需求之前输出任何**关于章节内容**的东西。上传 PDF 后可以展示 TOC、可以生成 book overview 和推荐问题（这些是书的元信息，不是内容压缩），但**必须先有用户提交的问题**才能触发任何章节级的映射或 brief。
 
-**Rule 2** — 三色匹配屏只做映射，不做内容。"Chapter 3 likely contains X" 可以，但不能在这屏开始总结 Chapter 3 本身。
+**Rule 2** — 相关章节匹配屏只做映射，不做内容。"Chapter 3 likely contains X" 可以，但不能在这屏开始总结 Chapter 3 本身。
 
-**Rule 3** — 转述模式的输出必须强制结构化：1 句话 + 3 claims + 1 例子 + 作者没说什么。不允许散文。
+**Rule 3** — Brief 模式的输出必须强制结构化：1 句话 + 3 claims + 1 例子 + 作者没说什么。不允许散文。
 
-**Rule 4** — 转述之后必须强制接挑错屏，不允许用户直接退出。读了 brief 不复述就走 = 等于没读。
+**Rule 4 (Deferred to v1.1)** — 老版本要求 Brief 后强制接复述屏，不允许跳过。产品转向问题驱动后，"复述章节"作为强制 gate 不再契合（用户问了一个问题期待的是答案 + 章节，不是又一个写作任务）。复述的代码 / 表 / API **全部保留**，作为未来「AI 互动加速阅读」feature 重做时复用的基础。当前 v1：Restate 入口在 UI 上不可见。
 
 ---
 
@@ -126,12 +127,14 @@ Vibe Reading 是一个**反主流**的读书工具。它故意阻止用户做三
 
 ## Login Strategy
 
-- Screen 1–3（上传 → 定 goal → 看三色映射）**不需要登录**
-- 点击"Read Chapter X" 或 "Brief me" 时触发登录 modal
-- 登录理由透明告知：「You've seen how this book maps to your goal. To go deeper, we need to know who you are.」
-- 只支持 Google + magic link，不做密码 / 手机 / 微信
+上传 PDF 后**立刻要求登录**，登录完成后才能进入 Book Home（看 TOC、问问题）。登录提示文案透明告知：「Your book is ready. Sign in so we can remember it for you — ask as many questions as you want.」
 
-**原则：** 登录不是惩罚，是进入价值核心的钥匙。Screen 1-3 不摆 Sign in 按钮，避免用户焦虑"登录是否能解锁什么"。
+**为什么登录提前了**：
+- 老版本 Screen 1-3 不要求登录，是怕用户在看到产品价值前流失。价值兑现点定在"三色映射出现"——所以登录放在 Map → Brief 的转场
+- 新版本价值兑现点**提前到 Book Home**（用户上传完立刻看到 TOC + AI 推荐问题，已经能感受到产品在做什么），所以登录可以前置
+- 同时简化了 pre-login session-book / claim 机制（代码保留，用户感知不到）
+
+支持 Google + Email/Password。**Sign in / Sign up 是同一入口**（modal 文案必须明示 "same modal"；参考 `stack/STANDARD.md` §3.2 的 UX 铁律）。不做 GitHub / 手机 / 微信。
 
 ---
 
@@ -183,13 +186,11 @@ Vibe Reading 是一个**反主流**的读书工具。它故意阻止用户做三
 
 ## Status
 
-**💡 Proposal** — 2026-04-21
+**🔄 Redesigned** — 2026-04-24
 
-产品规格已定稿，尚未动工。下一步：
+第一版（5 屏 goal-driven）已实现并上线。2026-04-24 重新设计为 4 屏 question-driven，原因：真实使用中老 goal 模型在评价性问题（"为什么这本书重要"）上无路径回答，且章节切分的质量问题把下游 Map / Brief 变成乱码。新模型以 TOC + 推荐问题 + 问题历史为核心 UX。
 
-1. 定产品名 + 域名（候选：`viberead.com` / `vibereading.com` / `vibereading.ai`）
-2. 搭脚手架（Next.js + Supabase + pdf-parse + Claude API）
-3. Week 1 自测目标：用它读完一本真想读的书
+实施中（docs 先行，代码紧随）。
 
 ---
 
