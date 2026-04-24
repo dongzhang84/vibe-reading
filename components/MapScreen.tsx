@@ -17,10 +17,7 @@ interface MapItem {
   reason: string
 }
 
-// Read mode (Screen 4A, PDF viewer) is Phase 10 — deferred. Map screen
-// currently only offers "Brief" as the in-depth path. Keep the union so
-// Phase 10 can restore 'read' without refactoring callers.
-type Mode = 'brief'
+type Mode = 'read' | 'brief'
 
 interface Props {
   bookId: string
@@ -148,6 +145,7 @@ export function MapScreen({ bookId, chapters, initialResults }: Props) {
           emptyText="No chapters matched."
           items={worth}
           byId={byId}
+          onRead={(id) => handleClick(id, 'read')}
           onBrief={(id) => handleClick(id, 'brief')}
         />
 
@@ -155,6 +153,7 @@ export function MapScreen({ bookId, chapters, initialResults }: Props) {
           <Section
             items={skip}
             byId={byId}
+            onRead={(id) => handleClick(id, 'read')}
             onBrief={(id) => handleClick(id, 'brief')}
           />
         </CollapsibleSection>
@@ -164,6 +163,7 @@ export function MapScreen({ bookId, chapters, initialResults }: Props) {
             label="⚠️ Your goal — but this book may not answer it"
             items={unanswered}
             byId={byId}
+            onRead={(id) => handleClick(id, 'read')}
             onBrief={(id) => handleClick(id, 'brief')}
           />
         )}
@@ -185,12 +185,14 @@ function Section({
   items,
   byId,
   emptyText,
+  onRead,
   onBrief,
 }: {
   label?: string
   items: MapItem[]
   byId: Map<string, ChapterSummary>
   emptyText?: string
+  onRead: (chapterId: string) => void
   onBrief: (chapterId: string) => void
 }) {
   return (
@@ -226,10 +228,17 @@ function Section({
                 <div className="mt-1 flex gap-2">
                   <button
                     type="button"
+                    onClick={() => onRead(r.chapterId)}
+                    className="rounded-md border border-border px-3 py-1.5 text-xs hover:bg-muted/40"
+                  >
+                    Read
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => onBrief(r.chapterId)}
                     className="rounded-md bg-primary px-3 py-1.5 text-xs text-primary-foreground hover:bg-primary/90"
                   >
-                    Brief →
+                    Brief
                   </button>
                 </div>
               </li>
