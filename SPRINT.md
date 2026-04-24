@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-04-24 18:12 UTC  
+**Generated:** 2026-04-24 19:34 UTC  
 **Showing:** last 1 week(s) of 1 total  
 
 ---
@@ -11,11 +11,11 @@
 |------|-------|
 | Status | ⚠️ Slow |
 | Active days | 4 / 7 |
-| Total commits | 26 |
+| Total commits | 27 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| ⚪ | **2** | **10** | **13** | **1** | ⚪ | ⚪ |
+| ⚪ | **2** | **10** | **13** | **2** | ⚪ | ⚪ |
 
 **Tue – Tuesday, Apr 21**
 
@@ -53,6 +53,7 @@
 
 **Fri – Friday, Apr 24**
 
+- `bfb5267` docs: redesign product spec — question-driven flow (v2) — _dongzhang84_ `2026-04-24 12:34`
 - `c2543fc` Restate: drop ✓/✗ grading; "another reader in the room" tone — _dongzhang84_ `2026-04-24 11:11`
 
 ---
