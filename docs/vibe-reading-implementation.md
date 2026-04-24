@@ -878,7 +878,7 @@ export async function POST() {
   // 把 Storage 里的 PDF 从 session/xxx 挪到 user/{uid}
   for (const book of data ?? []) {
     const newPath = book.storage_path.replace(/^session\/[^/]+\//, `user/${user.id}/`)
-    await db.storage.from('pdfs').move(book.storage_path, newPath)
+    await db.storage.from('vr-docs').move(book.storage_path, newPath)
     await db.from('books').update({ storage_path: newPath }).eq('id', book.id)
   }
 
@@ -1250,7 +1250,7 @@ export async function GET(request: Request) {
 
   // 删 Storage
   if (orphans && orphans.length > 0) {
-    await db.storage.from('pdfs').remove(orphans.map((b) => b.storage_path))
+    await db.storage.from('vr-docs').remove(orphans.map((b) => b.storage_path))
     await db.from('books').delete().in('id', orphans.map((b) => b.id))
   }
 
