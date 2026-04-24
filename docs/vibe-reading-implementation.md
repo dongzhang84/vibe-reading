@@ -46,8 +46,8 @@
 npx create-next-app@latest vibe-reading --typescript --tailwind --app
 cd vibe-reading
 npx shadcn@latest init
-npm install @supabase/supabase-js @supabase/ssr pdf-parse react-pdf openai
-npm install -D @types/pdf-parse supabase
+npm install @supabase/supabase-js @supabase/ssr unpdf react-pdf openai
+npm install -D supabase
 ```
 
 ### Step 2: Supabase 配置
@@ -482,6 +482,16 @@ Vibe Reading 的 schema 里**没有 Profile 表**——用户信息直接用 `au
 
 Screen 3 → Screen 4 之间的登录**是 modal 不是跳转**。组件在 `components/LoginModal.tsx`，提供 Google + Email/Password 两种方式，按 Esc 或点遮罩关闭。点 Google 走 `/auth/callback?next=<returnTo>` 回跳；Email 登录成功调 `onSuccess` 回调（不跳页）。
 
+#### 文案必须写清楚"登录 = 创建账号"（踩过的 UX 坑）
+
+默认如果 modal 只说 "Sign in"，新用户会困惑：我没账号怎么办？点 Google 之后虽然自动创建账号登录成功了，但用户不知道"那一下"到底是 sign in 还是 sign up，会觉得流程"奇怪"。
+
+**三条必写的文案**（缺一个都会有用户困惑）：
+
+1. **Subtitle 明说双用途**：`Sign in, or create an account — same modal. This is the only time we'll ask.`
+2. **Google 按钮下方一行小字**：`First time? Continue with Google creates your account automatically.`
+3. **底部给 Email 新用户一条明路**：`No account yet? [Sign up with email →](/auth/register?next=<same returnTo>)` —— Email path 不会自动建账号（`signInWithPassword` 失败会报 "Invalid credentials"），必须明确引导到 `/auth/register`。
+
 ### 3.5 Callback 支持 next 参数
 
 `app/auth/callback/route.ts` 读 `?next=<path>` 并在 `exchangeCodeForSession` 成功后跳转。**防开放重定向：** 只接受以 `/` 开头且不以 `//` 开头的同源路径；其他一律降级到 `/library`。登录后要回到用户登录前所在的那一屏，不能粗暴跳到 `/library`——否则 Screen 3 的上下文就丢了。
@@ -540,9 +550,25 @@ export async function parsePdf(buffer: Buffer): Promise<ParsedPdf> {
 }
 ```
 
-`splitIntoChapters(fullText)` 规则切分：匹配 `Chapter N` / `CHAPTER N` / `第 N 章`，找不到退到 `fallbackSplit`（按 `\n{5,}` 切段，保留 500 字以上的段）。完整代码见 `lib/pdf/parser.ts`。
+#### `splitIntoChapters(fullText)` — v2 关键点（踩过的坑）
+
+v1 用 `\n\s*(?:Chapter\s+\d+|第[\d...]+章)[^\n]{0,80}\n` 这种形式——**要求 heading 前后都有换行**。真实 PDF 上这个 regex **一条都匹配不到**，整本书塞进一个 fallback Section。原因：unpdf / pdfjs 提取出来的文本是 flat flow（没有源 PDF 里的那些换行），`第1章 务实的哲学 1 人生是你的 ...` 全部挤在一行。
+
+v2 的四个关键设计：
+
+1. **不要求 `\n`**——直接匹配 heading token，把 token 的 `index` 当切分边界。
+2. **多个 pattern 按粗到细依次试**，第一个产出 ≥3 个 chunk 的 pattern 胜出：
+   ```
+   Chapter N  →  CHAPTER N  →  第N章  →  Part I-X  →  第N篇/部  →  话题/Topic/Tip N
+   ```
+3. **TOC / 跨章引用 dedup**：按规范化后的 heading 编号做 key（中文 `一..十 → 1..10`），每个 key 保留**最长**那个 chunk（TOC 条目短、真章节长）。
+4. **Size-based fallback**：所有 pattern 都<3 个 chunk 时，按 ~10k 字切段，最多 50 段，避免"1 个 Section 装全书"。
+
+最后按章节编号排序，保证 `seq` 对得上阅读顺序。完整实现见 `lib/pdf/parser.ts`。
 
 > **章节切分是精度痛点**。规则先粗切，自测真实书发现规则不够再迭代。**不要一开始就用 AI 切分**——太贵太慢，而且 Phase 4 只是为 Phase 6 的三色映射 AI 准备"章节粒度的文本"，切得差一点也能跑。
+>
+> **踩过的具体坑**：《程序员修炼之道》中文版，v1 产出 1 个 18 万字的 "Section 1"；v2 产出 9 个 8k-33k 字的章节（第1章-第9章），顺序正确。
 
 ### 4.3 Admin Client（`lib/supabase/admin.ts`）
 
@@ -854,56 +880,80 @@ export default function MapPage({ params }: { params: Promise<{ bookId: string }
 
 用户在 Screen 3 点击 "Read / Brief" 之前未登录。登录成功后要把 session 书 **认领** 到 user 账户。
 
-### 7.1 Claim API（`app/api/claim/route.ts`）
+### 7.1 共享 helper（`lib/auth/claim.ts`）
+
+把 claim 逻辑抽成 `claimSessionBooks({ userId, sessionId })`，两处调用：
+
+1. `POST /api/claim`（显式 client 调用，fallback path）
+2. `GET /auth/callback`（OAuth 回跳时**内联**调用，让 callback 能直接跳目标页而不必绕 `/map`）
 
 ```typescript
-export async function POST() {
-  const supabase = await createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const sessionId = await getSessionId()
-  if (!sessionId) return NextResponse.json({ claimed: 0 })
-
+// lib/auth/claim.ts
+export async function claimSessionBooks({
+  userId, sessionId
+}: { userId: string; sessionId: string }): Promise<{ claimed: number }> {
   const db = createAdminClient()
-  const { data, error } = await db
+  const { data: claimed } = await db
     .from('books')
-    .update({ owner_id: user.id, session_id: null })
+    .update({ owner_id: userId, session_id: null })
     .eq('session_id', sessionId)
     .is('owner_id', null)
     .select('id, storage_path')
 
-  if (error) throw error
-
-  // 把 Storage 里的 PDF 从 session/xxx 挪到 user/{uid}
-  for (const book of data ?? []) {
-    const newPath = book.storage_path.replace(/^session\/[^/]+\//, `user/${user.id}/`)
-    await db.storage.from('vr-docs').move(book.storage_path, newPath)
+  // 把 Storage blob 从 session/<sid>/ 挪到 user/<uid>/（best-effort，Phase 12 cron 能捡漏）
+  for (const book of claimed ?? []) {
+    const newPath = book.storage_path.replace(/^session\/[^/]+\//, `user/${userId}/`)
+    if (newPath === book.storage_path) continue
+    const { error } = await db.storage.from('vr-docs').move(book.storage_path, newPath)
+    if (error) { console.error('storage move failed', error); continue }
     await db.from('books').update({ storage_path: newPath }).eq('id', book.id)
   }
-
-  return NextResponse.json({ claimed: data?.length ?? 0 })
+  return { claimed: claimed?.length ?? 0 }
 }
 ```
 
-### 7.2 登录 Modal → Callback → Claim 的时序
+### 7.2 `/api/claim` 只是 helper 的薄壳
 
-```
-User on Screen 3 (未登录)
-  ↓ 点击 "Brief Chapter 3"
-LoginModal 弹出
-  ↓ 选 Google
-redirect to Google OAuth
-  ↓ 回到 /auth/callback?next=/b/xxx/map
-Callback exchanges code for session
-  ↓
-NextResponse.redirect('/b/xxx/map')   ← 回到 Screen 3
-  ↓ 页面 onMount 时调用 /api/claim
-Session books → user.id
-  ↓ 跳转到 /b/xxx/brief/chapterId
+```typescript
+// app/api/claim/route.ts
+export async function POST() {
+  const supabase = await createServerSupabaseClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const sessionId = await getSessionId()
+  if (!sessionId) return NextResponse.json({ claimed: 0 })
+  return NextResponse.json(await claimSessionBooks({ userId: user.id, sessionId }))
+}
 ```
 
-重点：**callback 不能直接跳 brief/read**，必须先回 map 页让 claim 跑完。claim 完了前端再跳。
+### 7.3 Callback 内联 claim（一键直达目标页）
+
+`/auth/callback` 在 `exchangeCodeForSession` 之后**顺手**跑 claim，然后跳 `?next=` 指定的目标页：
+
+```typescript
+const { data } = await supabase.auth.exchangeCodeForSession(code)
+const sessionId = await getSessionId()
+if (sessionId) {
+  try { await claimSessionBooks({ userId: data.user.id, sessionId }) } catch (e) {/* 非致命 */}
+}
+return NextResponse.redirect(`${origin}${next}`)
+```
+
+### 7.4 时序（新版）
+
+```
+User on /map (未登录) → 点 "Brief" 按钮
+MapScreen 设 returnTo=/b/xxx/brief/chapterId  ← 直达目标，不是 /map
+LoginModal 弹
+  ↓ Google OAuth
+/auth/callback?next=/b/xxx/brief/chapterId
+  ↓ exchangeCodeForSession
+  ↓ 内联 claimSessionBooks  ← session books 归属已迁
+  ↓ redirect(${origin}${next})
+/b/xxx/brief/chapterId   ← 用户落在目标页，book.owner_id 已经是 user.id
+```
+
+**关键改动（vs 早期方案）**：callback 不再强制跳 `/map`、让前端 `onMount` 调 `/api/claim` 再跳一次。一步到位，少一次点击 + 少一个页面闪烁。`/api/claim` 仍保留作为显式兜底（比如 email 登录不走 callback 路径的场景）。
 
 ---
 
@@ -1332,7 +1382,7 @@ CRON_SECRET=
 ```
 □ npx create-next-app vibe-reading --typescript --tailwind --app
 □ npx shadcn@latest init
-□ npm install @supabase/supabase-js @supabase/ssr pdf-parse react-pdf openai
+□ npm install @supabase/supabase-js @supabase/ssr unpdf react-pdf openai
 □ 复用 launchradar 的 Supabase project —— 从 launchradar/.env.local 复制 URL / anon key / service role key
 □ Supabase Dashboard → Project Settings → API → Exposed schemas 里加 `vr` → Save
 □ Storage bucket：Phase 4 实现上传时再决定
