@@ -1310,29 +1310,42 @@ export async function GET(request: Request) {
 
 ---
 
-## Phase 13 — Vercel 部署
+## Phase 13 — Vercel 部署（一次性，已在 Phase 1 末尾做完）
 
-### 13.1 环境变量
+**照 STANDARD §11 Phase 2 的节奏，Vercel 首次部署在 Phase 1 landing 做出来就触发了，不是等业务写完才部。**之后每次 `git push main` Vercel 自动 redeploy——Phase 2 起的所有代码都是一边写一边上线迭代，不存在"大部署日"。
 
-在 Vercel Dashboard → Settings → Environment Variables 填入（见 Phase 0.4 清单）。
+### 13.1 首次部署（Phase 1 之后 / 业务代码开始之前）
 
-**特别注意**：`NEXT_PUBLIC_APP_URL` 生产要填 `https://vibereading.vercel.app`（或自定义域名）。
+```
+[Human] Vercel Dashboard → New Project → Import Git Repository → vibe-reading
+[Human] Framework: Next.js (自动检测) → Deploy（先失败也没关系，粘 env 后会修复）
+[Human] Settings → Environment Variables → "Paste .env" tab：
+        从本地 .env.local 粘进去（GITHUB_TOKEN 不要粘）
+[Human] 改 NEXT_PUBLIC_APP_URL = 生产 URL（https://<project>.vercel.app）
+[Human] Deployments → 最新 → Redeploy（让 env 生效）
+[Human] 打开线上 URL 验证 landing 渲染 → runtime OK
+```
 
 ### 13.2 Build Command
 
-用 **默认** `next build`。**不需要** `prisma generate`（Supabase-only 模式）。
+用 **默认** `next build`（Supabase-only，无 Prisma）。不用改。
 
-### 13.3 Google OAuth Redirect URL
+### 13.3 OAuth Redirect URL（上线后一次性加）
 
-上线后要在：
-- **Supabase Dashboard → Authentication → URL Configuration**：添加 `https://<your-domain>/auth/callback`
-- **Google Cloud Console → OAuth credentials**：Authorized redirect URIs 加 `https://<supabase-project>.supabase.co/auth/v1/callback`
+生产 URL 确定之后（`https://<project>.vercel.app`）：
 
-### 13.4 Deploy
-
-```bash
-git push   # 推到 main 自动触发 Vercel 部署
 ```
+[Human] Supabase Dashboard → Auth → URL Configuration → Redirect URLs
+        加一条 `https://<your-domain>/auth/callback`
+```
+
+Google Cloud Console 那侧**不用动** —— 我们 OAuth Client 的 Authorized redirect URIs 配的是 `https://<supabase-ref>.supabase.co/auth/v1/callback`（Supabase 侧回调），跟 Vercel 域名无关。
+
+### 13.4 后续每次 push 即部署
+
+`git push main` → Vercel 自动构建 + 替换生产 deployment。不需要额外操作。
+
+Env vars 改了要 **手动 Redeploy**（Dashboard → Deployments → `⋯` → Redeploy 或推一个空 commit），这是 Vercel 的硬约束（STANDARD §5.1.2）。
 
 ---
 
@@ -1384,29 +1397,29 @@ CRON_SECRET=
 □ npx shadcn@latest init
 □ npm install @supabase/supabase-js @supabase/ssr unpdf react-pdf openai
 □ 复用 launchradar 的 Supabase project —— 从 launchradar/.env.local 复制 URL / anon key / service role key
+□ 实现 Phase 1: Landing + UploadDropzone + SessionId cookie + Scaffold §2.5 清理
+□ ✨ 首次 Vercel 部署（Import repo + Paste .env + 生产 URL 实测 landing）—— 早部，后续每 push 自动 redeploy
+□ 配置 Supabase Redirect URLs 白名单加生产 URL（供 OAuth 回跳用）
 □ Supabase Dashboard → Project Settings → API → Exposed schemas 里加 `vr` → Save
-□ Storage bucket：Phase 4 实现上传时再决定
+□ Storage bucket `vr-docs`：Phase 4 实现上传时再建
 □ 跑 Phase 2 的 SQL（在 `vr` schema 下建所有表 + 启用 RLS + policies）
 □ 跑 npm run db:types 生成 TypeScript 类型（记得 `--schema vr`）
 □ 创建 lib/supabase/client.ts + server.ts + admin.ts（照 STANDARD 3.1 + §3.0 的 `db: { schema: 'vr' }` 配置）
 □ 创建 middleware.ts（Phase 3.2 的变体）
 □ 创建 app/auth/login + register + callback（Phase 3.4 + 3.5）
-□ 实现 Phase 1: Landing + UploadDropzone + SessionId cookie
 □ 实现 Phase 4: /api/upload + PDF parser + 章节切分
 □ 实现 Phase 5: Screen 2 goal 输入 + Rule 1 硬卡点
 □ 实现 Phase 6: Screen 3 三色映射 + Rule 2 prompt 约束
-□ 实现 Phase 7: LoginModal + /api/claim
+□ 实现 Phase 7: LoginModal + /api/claim + lib/auth/claim.ts + callback 内联 claim
 □ 实现 Phase 8: Screen 4B Brief + JSON schema 强制
 □ 实现 Phase 9: Screen 5 Restate + 挑错
-□ 自测第一本书：完整走一遍 Upload → Goal → Map → Brief → Restate
-□ 实现 Phase 10: Screen 4A Read 模式（可选，MVP 不强求）
+□ 端到端实测（一次性，批量）：Upload → Goal → Map → Login → Brief → Restate → Library
 □ 实现 Phase 11: /library
-□ 配置 Vercel 环境变量（见清单）
-□ 配置 Phase 12: cron cleanup + vercel.json
-□ 配置 Google OAuth redirect URL（Supabase + Google Console）
-□ 部署 → 生产环境跑一遍完整流程
-□ 复制 sprint-report.yml + notify-playbook.yml → .github/workflows/
-□ 更新 notify-playbook.yml 中的 project_id = "vibe-reading"
+□ 实现 Phase 12: cron cleanup + vercel.json
+□ 实现 Phase 10: Screen 4A Read 模式（可选，MVP 不强求）
+□ （以下三项由 bash stack/new-project.sh 在初始化时自动完成）
+  □ 复制 sprint-report.yml + notify-playbook.yml → .github/workflows/
+  □ 更新 notify-playbook.yml 中的 project_id = "vibe-reading"
 □ GitHub Secrets 加 PLAYBOOK_TOKEN
 ```
 
