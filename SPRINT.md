@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-04-24 05:44 UTC  
+**Generated:** 2026-04-24 05:59 UTC  
 **Showing:** last 1 week(s) of 1 total  
 
 ---
@@ -11,11 +11,11 @@
 |------|-------|
 | Status | ⚠️ Slow |
 | Active days | 3 / 7 |
-| Total commits | 23 |
+| Total commits | 24 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| ⚪ | **2** | **10** | **11** | ⚪ | ⚪ | ⚪ |
+| ⚪ | **2** | **10** | **12** | ⚪ | ⚪ | ⚪ |
 
 **Tue – Tuesday, Apr 21**
 
@@ -37,6 +37,7 @@
 
 **Thu – Thursday, Apr 23**
 
+- `816ebc0` docs: Phase 13 + Checklist — deploy already happened at Phase 1, not last — _dongzhang84_ `2026-04-23 22:59`
 - `5fd644c` docs: align Phase 3.4 / 4 / 7 with what was actually built — _dongzhang84_ `2026-04-23 22:44`
 - `cca4b7f` Phase 12: daily cron cleanup for unclaimed session books — _dongzhang84_ `2026-04-23 18:17`
 - `1aee508` chapter splitter v2: catch real books + dedup TOC + order by number — _dongzhang84_ `2026-04-23 18:17`
