@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-04-24 01:17 UTC  
+**Generated:** 2026-04-24 05:44 UTC  
 **Showing:** last 1 week(s) of 1 total  
 
 ---
@@ -11,11 +11,11 @@
 |------|-------|
 | Status | ⚠️ Slow |
 | Active days | 3 / 7 |
-| Total commits | 22 |
+| Total commits | 23 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| ⚪ | **2** | **10** | **10** | ⚪ | ⚪ | ⚪ |
+| ⚪ | **2** | **10** | **11** | ⚪ | ⚪ | ⚪ |
 
 **Tue – Tuesday, Apr 21**
 
@@ -37,6 +37,7 @@
 
 **Thu – Thursday, Apr 23**
 
+- `5fd644c` docs: align Phase 3.4 / 4 / 7 with what was actually built — _dongzhang84_ `2026-04-23 22:44`
 - `cca4b7f` Phase 12: daily cron cleanup for unclaimed session books — _dongzhang84_ `2026-04-23 18:17`
 - `1aee508` chapter splitter v2: catch real books + dedup TOC + order by number — _dongzhang84_ `2026-04-23 18:17`
 - `0e7b85d` Post-Phase 9 polish: LoginModal clarity, hide Read, auto-claim on OAuth callback, Phase 11 /library — _dongzhang84_ `2026-04-23 15:23`
