@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-04-24 22:53 UTC  
+**Generated:** 2026-04-24 23:13 UTC  
 **Showing:** last 1 week(s) of 1 total  
 
 ---
@@ -11,11 +11,11 @@
 |------|-------|
 | Status | ⚠️ Slow |
 | Active days | 4 / 7 |
-| Total commits | 28 |
+| Total commits | 29 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| ⚪ | **2** | **10** | **13** | **3** | ⚪ | ⚪ |
+| ⚪ | **2** | **10** | **13** | **4** | ⚪ | ⚪ |
 
 **Tue – Tuesday, Apr 21**
 
@@ -53,6 +53,7 @@
 
 **Fri – Friday, Apr 24**
 
+- `282f9bb` docs: move flow diagram below Philosophy in README — _dongzhang84_ `2026-04-24 16:12`
 - `13af82c` docs: add product flow diagram to README — _dongzhang84_ `2026-04-24 15:53`
 - `bfb5267` docs: redesign product spec — question-driven flow (v2) — _dongzhang84_ `2026-04-24 12:34`
 - `c2543fc` Restate: drop ✓/✗ grading; "another reader in the room" tone — _dongzhang84_ `2026-04-24 11:11`
