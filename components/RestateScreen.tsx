@@ -15,6 +15,7 @@ export function RestateScreen({ bookId, chapterId }: Props) {
   const [text, setText] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState<CheckResult | null>(null)
+  const [submittedText, setSubmittedText] = useState('')
   const [error, setError] = useState<string | null>(null)
 
   const tooShort = text.trim().length < MIN_CHARS
@@ -23,11 +24,12 @@ export function RestateScreen({ bookId, chapterId }: Props) {
     if (tooShort || submitting) return
     setSubmitting(true)
     setError(null)
+    const trimmed = text.trim()
     try {
       const res = await fetch('/api/check', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ bookId, chapterId, text: text.trim() }),
+        body: JSON.stringify({ bookId, chapterId, text: trimmed }),
       })
       if (!res.ok) {
         const { error: apiError } = await res
@@ -39,6 +41,7 @@ export function RestateScreen({ bookId, chapterId }: Props) {
       }
       const { result: r } = (await res.json()) as { result: CheckResult }
       setResult(r)
+      setSubmittedText(trimmed)
       setSubmitting(false)
     } catch {
       setError('Network error. Try again.')
@@ -68,7 +71,7 @@ export function RestateScreen({ bookId, chapterId }: Props) {
           disabled={tooShort || submitting}
           className="self-start rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
-          {submitting ? 'Checking…' : 'Check my understanding →'}
+          {submitting ? 'Reading along…' : 'Done — see one more angle →'}
         </button>
       </section>
     )
@@ -76,47 +79,28 @@ export function RestateScreen({ bookId, chapterId }: Props) {
 
   return (
     <section className="flex flex-col gap-10">
-      {result.got_right.length > 0 && (
-        <ResultBlock label="Where you got it right:">
-          <ul className="flex flex-col gap-2 text-base leading-relaxed text-foreground">
-            {result.got_right.map((s, i) => (
-              <li key={i} className="flex gap-3">
-                <span className="text-emerald-600 dark:text-emerald-400">
-                  ✓
-                </span>
-                <span>{s}</span>
-              </li>
-            ))}
-          </ul>
-        </ResultBlock>
-      )}
-
-      {result.missed.length > 0 && (
-        <ResultBlock label="Where you missed something important:">
-          <ul className="flex flex-col gap-2 text-base leading-relaxed text-foreground">
-            {result.missed.map((s, i) => (
-              <li key={i} className="flex gap-3">
-                <span className="text-amber-600 dark:text-amber-400">✗</span>
-                <span>{s}</span>
-              </li>
-            ))}
-          </ul>
-        </ResultBlock>
-      )}
-
-      {result.got_right.length === 0 && result.missed.length === 0 && (
-        <p className="text-sm text-muted-foreground">
-          The model didn&apos;t return specific points. Try a longer
-          restatement — the more you say, the more there is to react to.
+      {/* Echo back what the reader wrote, soft. Not as a "check" — just
+          part of the conversation. */}
+      <Block label="What you wrote">
+        <p className="whitespace-pre-wrap text-base leading-relaxed text-foreground/80">
+          {submittedText}
         </p>
+      </Block>
+
+      {result.angles && (
+        <Block label="Another angle from the chapter">
+          <p className="text-base leading-relaxed text-foreground">
+            {result.angles}
+          </p>
+        </Block>
       )}
 
       {result.follow_up && (
-        <ResultBlock label="Follow-up question to deepen it:">
-          <p className="text-base leading-relaxed text-foreground">
+        <Block label="If you want to push further">
+          <p className="text-base leading-relaxed text-foreground/90">
             {result.follow_up}
           </p>
-        </ResultBlock>
+        </Block>
       )}
 
       <footer className="flex flex-col gap-3 border-t border-border pt-8 sm:flex-row sm:items-center sm:justify-between">
@@ -124,7 +108,7 @@ export function RestateScreen({ bookId, chapterId }: Props) {
           href={`/b/${bookId}/map`}
           className="rounded-md bg-primary px-5 py-2.5 text-center text-sm font-medium text-primary-foreground hover:bg-primary/90"
         >
-          Got it. Next chapter →
+          Next chapter →
         </Link>
         <Link
           href="/library"
@@ -137,7 +121,7 @@ export function RestateScreen({ bookId, chapterId }: Props) {
   )
 }
 
-function ResultBlock({
+function Block({
   label,
   children,
 }: {

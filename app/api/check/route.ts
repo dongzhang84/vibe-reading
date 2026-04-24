@@ -27,7 +27,6 @@ export async function POST(request: Request) {
     )
   }
 
-  // Restate requires an authenticated user.
   const supabase = await createServerSupabaseClient()
   const {
     data: { user },
@@ -38,7 +37,6 @@ export async function POST(request: Request) {
 
   const db = createAdminClient()
 
-  // Book ownership.
   const { data: book } = await db
     .from('books')
     .select('id, owner_id')
@@ -48,7 +46,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  // Chapter belongs to book + fetch content for the AI.
   const { data: chapter } = await db
     .from('chapters')
     .select('id, content, book_id')
@@ -69,19 +66,23 @@ export async function POST(request: Request) {
     )
   }
 
-  // Always persist — restatements is append-only history. One row per
-  // submission, never cached (the text is the user's own).
+  // Schema note: vr.restatements still has the old got_right/missed jsonb
+  // columns from the v1 ✓/✗ design (NOT NULL). We intentionally don't
+  // migrate yet (zero rows, would just churn user). Pack the new "angles"
+  // paragraph into missed[0] for storage; got_right is always [] going
+  // forward. Next time we touch the schema, drop got_right and rename
+  // missed → ai_response.
   const { error: insertError } = await db.from('restatements').insert({
     chapter_id: chapterId,
     user_id: user.id,
     text,
-    got_right: result.got_right,
-    missed: result.missed,
+    got_right: [],
+    missed: result.angles ? [result.angles] : [],
     follow_up: result.follow_up ? result.follow_up : null,
   })
   if (insertError) {
     console.error('restatements insert failed', insertError)
-    // Still return the AI result — the UI is more important than the log.
+    // Still return the AI result — UI matters more than the log.
   }
 
   return NextResponse.json({ result })
