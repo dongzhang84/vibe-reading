@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-04-23 22:23 UTC  
+**Generated:** 2026-04-24 01:17 UTC  
 **Showing:** last 1 week(s) of 1 total  
 
 ---
@@ -11,11 +11,11 @@
 |------|-------|
 | Status | ⚠️ Slow |
 | Active days | 3 / 7 |
-| Total commits | 20 |
+| Total commits | 21 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| ⚪ | **2** | **10** | **8** | ⚪ | ⚪ | ⚪ |
+| ⚪ | **2** | **10** | **9** | ⚪ | ⚪ | ⚪ |
 
 **Tue – Tuesday, Apr 21**
 
@@ -37,6 +37,7 @@
 
 **Thu – Thursday, Apr 23**
 
+- `1aee508` chapter splitter v2: catch real books + dedup TOC + order by number — _dongzhang84_ `2026-04-23 18:17`
 - `0e7b85d` Post-Phase 9 polish: LoginModal clarity, hide Read, auto-claim on OAuth callback, Phase 11 /library — _dongzhang84_ `2026-04-23 15:23`
 - `109212b` Phase 9: Restate + AI check (Rule 4 closure) — _dongzhang84_ `2026-04-23 14:51`
 - `5d741fe` Phase 8: Brief mode (Rule 3 — 4-part structured brief) — _dongzhang84_ `2026-04-23 14:50`
