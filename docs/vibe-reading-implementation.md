@@ -2,39 +2,40 @@
 
 **Product**: Vibe Reading
 **Tagline**: A reading tool that refuses to summarize the book before you tell it why you're reading it.
-**Stack**: Next.js 14 App Router + TypeScript + Tailwind + Shadcn/ui + Supabase (Supabase-only, no Prisma) + OpenAI + Vercel
-**Repo**: `github.com/dongzhang84/vibe-reading` (to be created, open source)
-**Last Updated**: April 2026
+**Stack**: Next.js 16 App Router + TypeScript + Tailwind + Shadcn/ui + Supabase (Supabase-only, no Prisma) + OpenAI + Vercel
+**Repo**: `github.com/dongzhang84/vibe-reading`
+**Last Updated**: 2026-04-24 (v2 redesign — question-driven flow)
 
 > 单一 source of truth。按 Phase 顺序执行，不跳步。标准模块部分严格遵循 `stack/STANDARD.md`，业务逻辑部分在每个 Phase 内定制。
-> **No Stripe**：这是开源项目，MVP 全免费，不写付费相关代码。未来托管商业版再另算。
-> **No Prisma**：采用 STANDARD.md §4.6 的 Supabase-only 方案。所有数据库操作用 `supabase-js` 客户端，schema 在 Supabase Dashboard 管理。
+> **No Stripe**：这是开源项目，MVP 全免费。
+> **No Prisma**：STANDARD.md §4.6 的 Supabase-only 方案。
+> **v2 重设计（2026-04-24）**：5 屏 goal-driven 流改成 4 屏 question-driven。老 Map/Brief/Restate 分页合并为 Question Result 的左右分屏。Restate 代码保留，UI 入口在 v1 隐藏（v1.1 回归）。
 
 ---
 
 ## ⚠️ Golden Rules
 
-四条哲学铁律。写代码过程中不能妥协，review 时也要反复对照。
+四条哲学铁律。与 `docs/vibe-reading.md` §The 4 Design Rules 严格一一对应。写代码过程不能妥协，review 时反复对照。
 
-**Rule 1** — AI 不能在用户表达需求之前输出任何关于书的内容。
-- Upload (Screen 1) 后不能立刻返回任何 AI 摘要
-- 路由层强制 Screen 1 → Screen 2（goal 输入）为硬卡点
-- `/api/map`、`/api/brief` 等所有内容 API 的第一步都要检查 goal 是否存在
+**Rule 1** — AI 不能在用户表达需求之前输出任何**关于章节内容**的东西。
+- Upload 之后可以展示 TOC、生成 book overview 和推荐问题（这些是书的**元信息**，不是内容压缩）
+- 但**必须先有用户提交的 question** 才能触发任何章节级的 relevance 映射或 brief
+- 所有 AI 端点（`/api/question` / `/api/brief` / `/api/ask`）第一步必须确认 `questions.book_id` 存在（brief/ask 还要确认 chapter 属于这本书）
 
-**Rule 2** — Screen 3（三色映射）只做映射，不做内容。
-- Prompt 里明确禁止总结章节内容
-- 输出只能说"Chapter 3 *likely contains* the core definition"，不能说"Chapter 3 *argues that...*"
-- 章节的实际内容必须等用户点击 Read/Brief 才触发
+**Rule 2** — Question Result 的相关章节匹配只做映射，不做内容。
+- `lib/ai/relevance.ts` prompt 严格禁止总结章节
+- 输出 reason 字段只能说 "likely contains X" / "discusses Y"，不能说 "the author argues Z"
+- 章节的实际内容必须等用户点 [Brief] 或 [Read] 才触发
 
-**Rule 3** — Brief 模式（Screen 4B）输出严格 4 段式结构。
+**Rule 3** — Brief 模式输出严格 4 段式结构。
 - 1-sentence version + 3 key claims + 1 example + what author doesn't address
-- AI 调用用 JSON schema 约束，不允许散文
-- 前端按 4 段式渲染，超出 schema 的字段丢弃
+- OpenAI JSON schema strict 约束，不允许散文
+- 前端按 4 段式渲染，超出 schema 字段丢弃
 
-**Rule 4** — Brief 模式必须强制接 Screen 5（restate + check）。
-- Screen 4B 底部**只有一个**按钮：`Now I'll restate this in my own words →`
-- 不提供"返回 library"、"读下一章"、"跳过复述"等逃生门
-- 用户必须在 Screen 5 提交复述后，才能回到 Screen 3 选下一章
+**Rule 4 (Deferred to v1.1)** — 老版本要求 Brief 后强制接复述屏，不允许跳过。
+- 产品转向问题驱动后，"复述章节" 作为强制 gate 不再契合（用户问了一个问题期待的是答案 + 章节，不是又一个写作任务）
+- 复述的**代码 / 表 / API 全部保留**（`vr.restatements` 表、`/api/check`、`lib/ai/checker.ts`、`components/RestateScreen.tsx`），UI 入口在 v1 不可见
+- v1.1 回归时作为「AI-assisted active reading」feature 重做
 
 ---
 
@@ -52,61 +53,67 @@ npm install -D supabase
 
 ### Step 2: Supabase 配置
 
-**按 STANDARD §3.7 Supabase Setup Checklist 执行**，以下是 Vibe Reading 的偏离：
+**按 STANDARD §3.7 Supabase Setup Checklist 执行**，Vibe Reading 偏离：
 
-- **复用 launchradar 的 Supabase project** — 不新建 project。凭据从 `/Users/dong/Projects/launchradar/.env.local` 直接复制
-- **Schema**：`vr`（2-letter 前缀约定；LaunchRadar 在 `public`，GrowPilot 未来 `gp`）
-- **Auth 设置**：launchradar 已配好 Email + Google，无需再动
-- **Storage bucket**：暂缓到 Phase 4（PDF 上传）时再决定用 `vr-pdfs` 还是别的名字
-- **跳过**的 provider：GitHub OAuth / Magic Link / 其他——只保留 Email + Google
+- **复用 launchradar 的 Supabase project** —— 不新建。凭据从 `/Users/dong/Projects/launchradar/.env.local` 复制
+- **Schema**：`vr`（2-letter 前缀约定）
+- **Auth**：launchradar 已配好 Email + Google
+- **Storage bucket**：`vr-docs`（Phase 4 实现上传时再建，不做 `pdfs` 因为留空间给未来非 PDF 文档）
+- **跳过的 provider**：GitHub OAuth / Magic Link / 其他
 
-### Step 3: 目录结构
+### Step 3: 目录结构（v2）
 
 ```
 vibe-reading/
 ├── app/
 │   ├── api/
-│   │   ├── upload/route.ts         ← PDF 解析入口
-│   │   ├── goal/route.ts           ← 存 user goal
-│   │   ├── map/route.ts            ← 三色映射 (AI)
-│   │   ├── brief/route.ts          ← Brief 模式 (AI)
-│   │   ├── check/route.ts          ← Restate 挑错 (AI)
-│   │   ├── ask/route.ts            ← Read 模式 highlight & ask (AI)
-│   │   ├── claim/route.ts          ← session book → user book 迁移
-│   │   └── cron/cleanup/route.ts   ← 24h session PDF 清理
+│   │   ├── upload/route.ts            ← PDF 解析 + intake (overview + 3 questions)
+│   │   ├── question/route.ts          ← 提交 question → 触发 relevance → 写 question_chapters
+│   │   ├── brief/route.ts             ← [Brief] 触发点（chapter-level，缓存）
+│   │   ├── ask/route.ts               ← [Read] pane 里的 Highlight & Ask
+│   │   ├── check/route.ts             ← ⚠️ Reserved v1.1（UI 不调用）
+│   │   ├── claim/route.ts             ← session → user 迁移（登录前上传的书归属）
+│   │   └── cron/cleanup/route.ts      ← 24h 未认领 session book 清理
 │   ├── auth/
 │   │   ├── login/page.tsx
 │   │   ├── register/page.tsx
 │   │   └── callback/route.ts
 │   ├── b/[bookId]/
-│   │   ├── goal/page.tsx           ← Screen 2
-│   │   ├── map/page.tsx            ← Screen 3
-│   │   ├── read/[chapterId]/page.tsx   ← Screen 4A
-│   │   ├── brief/[chapterId]/page.tsx  ← Screen 4B
-│   │   └── restate/[chapterId]/page.tsx ← Screen 5
+│   │   ├── page.tsx                   ← Screen 2: Book Home
+│   │   └── q/[questionId]/page.tsx    ← Screen 3: Question Result (分屏)
 │   ├── library/page.tsx
-│   ├── page.tsx                    ← Screen 1 (Landing + Upload)
+│   ├── page.tsx                       ← Screen 1 (Landing + Upload)
 │   └── layout.tsx
 ├── components/
-│   ├── LoginModal.tsx
 │   ├── UploadDropzone.tsx
-│   ├── PdfViewer.tsx               ← react-pdf 封装
+│   ├── LoginModal.tsx
+│   ├── BookHomeScreen.tsx             ← TOC + question input + suggestions + history
+│   ├── QuestionResultScreen.tsx       ← 左右分屏容器
+│   ├── ChapterListPane.tsx            ← 左栏：AI matched chapters + [Brief]/[Read] 按钮
+│   ├── BriefPane.tsx                  ← 右栏 Brief 内容
+│   ├── ReadPane.tsx                   ← 右栏 PDF viewer + Highlight & Ask
+│   ├── PdfViewer.tsx                  ← react-pdf 封装
+│   ├── RestateScreen.tsx              ← ⚠️ Reserved v1.1（文件保留不挂路由）
 │   └── ui/...
 ├── lib/
 │   ├── supabase/
 │   │   ├── client.ts
 │   │   ├── server.ts
 │   │   └── admin.ts
-│   ├── pdf/parser.ts
+│   ├── pdf/
+│   │   ├── outline.ts                 ← pdfjs.getOutline() 抽 TOC 树
+│   │   └── parser.ts                  ← 全文抽取 + 章节 fallback 切分
 │   ├── ai/
-│   │   ├── mapper.ts
-│   │   ├── briefer.ts
-│   │   ├── checker.ts
-│   │   └── asker.ts
-│   └── session.ts                  ← pre-login session cookie 工具
+│   │   ├── intake.ts                  ← overview + 3 questions（一次 LLM 调用）
+│   │   ├── relevance.ts               ← question → chapter 匹配 (取代老 mapper.ts)
+│   │   ├── briefer.ts                 ← Brief 4 段式
+│   │   ├── asker.ts                   ← Read pane 的 highlight & ask
+│   │   └── checker.ts                 ← ⚠️ Reserved v1.1
+│   ├── auth/claim.ts                  ← session → user book 迁移 helper
+│   └── session.ts                     ← pre-login session cookie 工具
 ├── types/
-│   ├── index.ts
-│   └── db.ts                       ← supabase gen types 输出
+│   ├── index.ts                       ← TocEntry / QuestionMatch 等业务类型
+│   └── db.ts                          ← supabase gen types 输出
 ├── middleware.ts
 ├── vercel.json
 └── .env.local
@@ -114,7 +121,7 @@ vibe-reading/
 
 ### Step 4: 环境变量
 
-`.env.local`（Supabase 凭据直接从 `launchradar/.env.local` 复制——共享同一个 project）：
+`.env.local`：
 
 ```bash
 # Supabase (shared with launchradar; isolated by schema `vr`)
@@ -129,22 +136,19 @@ OPENAI_API_KEY=
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 # Cron
-CRON_SECRET=            # 可复用 launchradar 的，或 openssl rand -base64 32
+CRON_SECRET=
 ```
 
-> 没有 `DATABASE_URL`（Supabase-only 模式）。
-> 没有 Stripe 变量。
+> 没有 `DATABASE_URL`（Supabase-only）。没有 Stripe。
 
 ### Step 5: Supabase TypeScript 类型自动生成
-
-**关键：必须加 `--schema vr`，否则默认只生成 `public`。**
 
 ```bash
 npx supabase login
 npx supabase gen types typescript --project-id myvtqxfcwzrntepcfvkn --schema vr > types/db.ts
 ```
 
-把这行加到 `package.json`:
+`package.json`：
 
 ```json
 "scripts": {
@@ -152,21 +156,19 @@ npx supabase gen types typescript --project-id myvtqxfcwzrntepcfvkn --schema vr 
 }
 ```
 
-每次改 schema 后跑 `npm run db:types` 刷新类型。
+每次改 schema 后跑 `npm run db:types`。
 
 ---
 
 ## Phase 1 — Landing + Upload (Screen 1) + 壳
 
-产品的第一印象屏。要做到打开页面 5 秒内理解：**这个工具不一样，它拒绝偷懒**。
-
-本 Phase **不是只写文案**，要把整个 app 的壳定下来。不能把 landing 设计留给"后面再搞"——Next.js scaffold 的默认 title / favicon / 字体留着就是泄露，视觉第一印象立刻掉价。
+产品第一印象屏。打开 5 秒内读者要理解：**这个工具不一样，它拒绝偷懒**。
 
 ### 1.0 壳基础
 
-**按 STANDARD §2.5 Scaffold 清理执行。** 本项目的定制：
+按 STANDARD §2.5 Scaffold 清理执行。本项目定制：
 - Monogram 用 **V 字形**（`path d="M9.5 9.5 L16 22.5 L22.5 9.5"`）
-- metadata 的 title / description 用本文档顶部的 Product / Tagline
+- metadata 的 title / description 用本文顶部 Product / Tagline
 
 ### 1.1 页面结构（`app/page.tsx`）
 
@@ -193,53 +195,45 @@ npx supabase gen types typescript --project-id myvtqxfcwzrntepcfvkn --schema vr 
 </main>
 ```
 
-- 全英文 UI，不加中文切换
-- **不**放 "Sign in" 按钮在顶部 nav（避免用户焦虑"登录是否解锁什么"）
-- 极简风格，除了 ✅❌⚠️ 三个功能性 emoji，其他不加装饰
+- 全英文 UI
+- **不**放 "Sign in" 按钮在顶部 nav（避免 "登录解锁什么" 的焦虑；登录时机由 upload 后触发）
+- 极简，除 ✅❌⚠️ 三个功能性 emoji 外不加装饰
 
 ### 1.2 Upload Dropzone（`components/UploadDropzone.tsx`）
 
 ```tsx
 'use client'
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 
 export function UploadDropzone() {
-  const [uploading, setUploading] = useState(false)
+  const [state, setState] = useState<'idle' | 'uploading' | 'parsing'>('idle')
 
   async function handleFile(file: File) {
-    if (file.size > 50 * 1024 * 1024) {
-      alert('Max 50MB')
-      return
-    }
-    if (file.type !== 'application/pdf') {
-      alert('PDF only')
-      return
-    }
+    if (file.size > 50 * 1024 * 1024) { alert('Max 50MB'); return }
+    if (file.type !== 'application/pdf') { alert('PDF only'); return }
 
-    setUploading(true)
+    setState('uploading')
     const form = new FormData()
     form.append('file', file)
     const res = await fetch('/api/upload', { method: 'POST', body: form })
+    if (!res.ok) {
+      const { error } = await res.json().catch(() => ({ error: 'Upload failed' }))
+      alert(error); setState('idle'); return
+    }
+    setState('parsing')
     const { bookId } = await res.json()
-    window.location.href = `/b/${bookId}/goal`   // Rule 1 硬卡点
+    // v2: upload 之后立刻走登录 + Book Home (不再是 /goal)
+    // 若已登录 → 直接 /b/[id]；若未登录 → /auth/login?next=/b/[id]（LoginModal 会接管）
+    window.location.href = `/b/${bookId}`
   }
 
-  return (
-    <div onDrop={(e) => {
-      e.preventDefault()
-      const f = e.dataTransfer.files[0]
-      if (f) handleFile(f)
-    }}>
-      {/* drop UI + file input fallback */}
-    </div>
-  )
+  return (/* drop UI + file input fallback + progress */)
 }
 ```
 
 ### 1.3 Session Cookie 工具（`lib/session.ts`）
 
-登录前的用户靠 session cookie 识别。
+Upload API 仍然接受未登录上传（UX 考虑：drop → 立即开始解析 + 并行弹登录，避免先挡 login 再开始上传）。登录前用 session cookie 识别。
 
 ```typescript
 import { cookies } from 'next/headers'
@@ -251,13 +245,9 @@ export async function getOrCreateSessionId(): Promise<string> {
   const jar = await cookies()
   const existing = jar.get(COOKIE_NAME)?.value
   if (existing) return existing
-
   const sid = crypto.randomUUID()
   jar.set(COOKIE_NAME, sid, {
-    httpOnly: true,
-    sameSite: 'lax',
-    maxAge: 60 * 60 * 24,   // 24h
-    path: '/',
+    httpOnly: true, sameSite: 'lax', maxAge: 60 * 60 * 24, path: '/',
   })
   return sid
 }
@@ -268,25 +258,25 @@ export async function getSessionId(): Promise<string | null> {
 }
 ```
 
+> **v2 设计决策**：保留 session-cookie 机制。用户的 journey 是：drop PDF → 并行（后端解析 + 前端弹登录 modal）→ 登录成功 → claim session book → /b/[id]。这样 drop 时不打断，登录时 book 已经 ready。比"先挡 login 再 upload"UX 好。
+
 ---
 
-## Phase 2 — 数据库 Schema
+## Phase 2 — 数据库 Schema (v2)
 
-**在 Supabase Dashboard → SQL Editor 直接跑下面的 SQL。** 不用 migration 工具，改 schema 就直接改。
+**在 Supabase Dashboard → SQL Editor 直接跑下面的 SQL。**
 
-**约定：**（遵循 `stack/STANDARD.md` §4.1）
-- 所有表放在 `vr` schema（不是 `public`）
-- 所有表 **RLS ENABLED** + owner-based policies（Layer 2 防御）
-- API route 第一行仍必须验证 session（Layer 1 防御 — STANDARD §4.1）
-- 后端 admin client（`service_role` key）自动绕过 RLS
-- pre-login session book 场景：`owner_id` 为 null 的行 RLS 不允许前端看到——这没问题，pre-login 流程只通过后端 API（service_role）访问
+**约定（遵循 STANDARD.md §4.1）**：
+- 所有表放在 `vr` schema
+- 所有表 RLS ENABLED + owner-based policies（Layer 2 防御）
+- API route 第一行仍必须验证 auth（Layer 1）
+- 后端 admin client 用 service_role key 绕过 RLS
 
-> 需要推倒重建时：先把下面第一段 `drop schema if exists vr cascade;` 跑一次再跑完整脚本。
+> **v1 → v2 迁移**：老 schema 有 `vr.goals` 和 `vr.chapter_maps`，新 schema 用 `vr.questions` + `vr.question_chapters` 取代。现有 4 本测试书：drop 老表重建即可（反正老 brief 数据也失效了）。生产迁移脚本在 §Phase 2 末尾。
 
 ```sql
--- 如需重置：取消下面两行注释
+-- 重置：线下/测试用
 -- drop schema if exists vr cascade;
--- create schema vr;
 
 create schema if not exists vr;
 
@@ -297,8 +287,8 @@ alter default privileges in schema vr grant all on sequences to service_role;
 alter default privileges in schema vr grant select, insert, update, delete on tables to authenticated;
 alter default privileges in schema vr grant usage, select on sequences to authenticated;
 
--- ─── books ───────────────────────────────────────────────────────────────────
--- pre-login: owner_id=null + session_id；login 后: owner_id=user.id + session_id=null
+-- ─── books ─────────────────────────────────────────────────────────────────
+-- v2: 新加 toc / overview / suggested_questions 三列（元信息，upload 时由 AI 填）
 create table vr.books (
   id uuid primary key default gen_random_uuid(),
   owner_id uuid references auth.users(id) on delete cascade,
@@ -307,6 +297,9 @@ create table vr.books (
   author text,
   storage_path text not null,
   page_count int,
+  toc jsonb,                                -- TocEntry[] (flatten tree)
+  overview text,                            -- 80-120 词客观概述
+  suggested_questions jsonb,                -- string[3]
   created_at timestamptz default now()
 );
 create index on vr.books (owner_id);
@@ -317,7 +310,8 @@ create policy "own books insert" on vr.books for insert with check (auth.uid() =
 create policy "own books update" on vr.books for update using (auth.uid() = owner_id);
 create policy "own books delete" on vr.books for delete using (auth.uid() = owner_id);
 
--- ─── chapters ────────────────────────────────────────────────────────────────
+-- ─── chapters ──────────────────────────────────────────────────────────────
+-- v2: 加 page_start / page_end（Read pane 要跳页）+ level（TOC 层级）
 create table vr.chapters (
   id uuid primary key default gen_random_uuid(),
   book_id uuid not null references vr.books(id) on delete cascade,
@@ -325,7 +319,8 @@ create table vr.chapters (
   title text not null,
   content text not null,
   page_start int,
-  page_end int
+  page_end int,
+  level int default 1                       -- 1=top chapter, 2+=subsection
 );
 create index on vr.chapters (book_id, seq);
 alter table vr.chapters enable row level security;
@@ -333,47 +328,52 @@ create policy "own chapters" on vr.chapters for all
   using (book_id in (select id from vr.books where owner_id = auth.uid()))
   with check (book_id in (select id from vr.books where owner_id = auth.uid()));
 
--- ─── goals ───────────────────────────────────────────────────────────────────
--- 一本书一个 goal；改 goal 会覆盖
-create table vr.goals (
+-- ─── questions (v2 NEW) ───────────────────────────────────────────────────
+-- 用户在 Book Home 提的问题。一本书可以有多个 question。
+create table vr.questions (
   id uuid primary key default gen_random_uuid(),
   book_id uuid not null references vr.books(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
   text text not null,
-  created_at timestamptz default now(),
-  unique (book_id)
+  created_at timestamptz default now()
 );
-alter table vr.goals enable row level security;
-create policy "own goals" on vr.goals for all
-  using (book_id in (select id from vr.books where owner_id = auth.uid()))
-  with check (book_id in (select id from vr.books where owner_id = auth.uid()));
+create index on vr.questions (book_id, created_at desc);
+create index on vr.questions (user_id);
+alter table vr.questions enable row level security;
+create policy "own questions" on vr.questions for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
 
--- ─── chapter_maps (三色映射缓存) ─────────────────────────────────────────────
-create table vr.chapter_maps (
+-- ─── question_chapters (v2 NEW) ───────────────────────────────────────────
+-- AI 产出的 question → chapter 映射 + 一句话理由。缓存永久，没 TTL。
+create table vr.question_chapters (
   id uuid primary key default gen_random_uuid(),
-  book_id uuid not null references vr.books(id) on delete cascade,
-  goal_id uuid not null references vr.goals(id) on delete cascade,
-  chapter_id uuid not null references vr.chapters(id) on delete cascade,
-  verdict text not null check (verdict in ('worth', 'skip', 'unanswered')),
-  reason text not null,
+  question_id uuid not null references vr.questions(id) on delete cascade,
+  chapter_id uuid references vr.chapters(id) on delete cascade,
+  -- chapter_id 可为 null 表示 book-level reason（meta 问题，弥散在全书）
+  reason text not null,                     -- "likely contains X" / "discusses Y"
+  rank int not null,                        -- 1 = most relevant
   created_at timestamptz default now(),
-  unique (goal_id, chapter_id)
+  unique (question_id, chapter_id)
 );
-alter table vr.chapter_maps enable row level security;
-create policy "own chapter_maps" on vr.chapter_maps for all
-  using (book_id in (select id from vr.books where owner_id = auth.uid()))
-  with check (book_id in (select id from vr.books where owner_id = auth.uid()));
+create index on vr.question_chapters (question_id, rank);
+alter table vr.question_chapters enable row level security;
+create policy "own question_chapters" on vr.question_chapters for all
+  using (question_id in (select id from vr.questions where user_id = auth.uid()))
+  with check (question_id in (select id from vr.questions where user_id = auth.uid()));
 
--- ─── briefs (4 段式 Brief 缓存) ──────────────────────────────────────────────
+-- ─── briefs (v2 CHANGED) ──────────────────────────────────────────────────
+-- v1 的 unique 是 (chapter_id, goal_id)。v2 Brief 是章节级客观内容，
+-- 不再绑 question/goal。改成 unique (chapter_id)。
 create table vr.briefs (
   id uuid primary key default gen_random_uuid(),
   chapter_id uuid not null references vr.chapters(id) on delete cascade,
-  goal_id uuid not null references vr.goals(id) on delete cascade,
   one_sentence text not null,
-  key_claims jsonb not null,         -- string[] of length 3
+  key_claims jsonb not null,                -- string[3]
   example text not null,
   not_addressed text not null,
   created_at timestamptz default now(),
-  unique (chapter_id, goal_id)
+  unique (chapter_id)
 );
 alter table vr.briefs enable row level security;
 create policy "own briefs" on vr.briefs for all
@@ -388,14 +388,15 @@ create policy "own briefs" on vr.briefs for all
     where b.owner_id = auth.uid()
   ));
 
--- ─── restatements (用户复述 + AI 挑错结果) ──────────────────────────────────
+-- ─── restatements (⚠️ Reserved for v1.1) ──────────────────────────────────
+-- 表保留，schema 不动。v1 UI 不写入也不读，代码路径 /api/check 可调用但无入口。
 create table vr.restatements (
   id uuid primary key default gen_random_uuid(),
   chapter_id uuid not null references vr.chapters(id) on delete cascade,
   user_id uuid not null references auth.users(id) on delete cascade,
   text text not null,
-  got_right jsonb not null,          -- string[]
-  missed jsonb not null,             -- string[]
+  got_right jsonb not null,
+  missed jsonb not null,                    -- v1 末期改为 "angles" 段落存在 missed[0]
   follow_up text,
   created_at timestamptz default now()
 );
@@ -412,37 +413,52 @@ grant all on all sequences in schema vr to service_role;
 grant select, insert, update, delete on all tables in schema vr to authenticated;
 ```
 
-跑完 SQL 后：
-1. 按 STANDARD §3.7.3 把 `vr` 加到 Exposed Schemas
-2. 按 STANDARD §3.7.5 用探针脚本验证（service_role ✅ / anon blocked）
-3. 生成类型：
+### v1 → v2 迁移（生产环境跑一次）
 
-```bash
-npm run db:types
+```sql
+-- 已有 4 本测试书。把老表 drop，books 加新列。
+alter table vr.books add column if not exists toc jsonb;
+alter table vr.books add column if not exists overview text;
+alter table vr.books add column if not exists suggested_questions jsonb;
+alter table vr.chapters add column if not exists level int default 1;
+
+-- 老 brief 的 goal_id 不再需要。数据量小，全删重生成
+drop table if exists vr.briefs cascade;
+-- (briefs 表用 v2 schema 重建，见上)
+
+-- 老表丢掉
+drop table if exists vr.chapter_maps cascade;
+drop table if exists vr.goals cascade;
+
+-- 建新表
+-- (vr.questions + vr.question_chapters 用 v2 schema 建，见上)
 ```
+
+**运行迁移后**：4 本测试书的 `toc / overview / suggested_questions` 都是 null —— 需要对每本书跑一次 `lib/ai/intake.ts` 回填（写个 `scripts/backfill-intake.ts` 脚本，或让用户重新上传）。最简单：测试书直接 delete 让用户重传。
+
+跑完 SQL 后：
+1. STANDARD §3.7.3 把 `vr` 加到 Exposed Schemas
+2. STANDARD §3.7.5 探针脚本验证（service_role ✅ / anon blocked）
+3. `npm run db:types` 生成类型
 
 ---
 
 ## Phase 3 — Auth（Email/Password + Google）
 
-照 STANDARD.md §3 原样复制 `lib/supabase/client.ts` / `server.ts` / `admin.ts` / `callback/route.ts` / `middleware.ts`。**只有以下偏离：**
+照 STANDARD.md §3 复制 `lib/supabase/{client,server,admin}.ts` / `callback/route.ts` / `middleware.ts`。**偏离**：
 
 ### Ownership at a glance
 
-| Step | Owner | Time | 备注 |
-|---|---|---|---|
-| 写 `lib/supabase/{client,server,admin}.ts` 带 `<Database, 'vr'>` + `db: { schema: 'vr' }` | 🤖 | 2 min | |
-| 写 `middleware.ts`（保护 `/library` + `/b/*/(read\|brief\|restate)`）| 🤖 | 2 min | |
-| 写 `/auth/{login,register,callback}` + `components/LoginModal.tsx` | 🤖 | 8 min | |
-| Google Cloud Console → 新建 OAuth Client `vibe-reading` + redirect URI | 🙋 | 3 min | 复用 `Dong's Indie Project` 的 Consent Screen（已配），不需要重新 10 min |
-| Supabase Dashboard → 开 Google provider + 粘 Client ID/Secret | 🙋 | 2 min | 共用的 Supabase project 里 Google 之前没开过（launchradar 只用 Email），第一次要开 |
-| 浏览器端到端测 Email 注册 / Email 登录 / Google OAuth / middleware redirect | 🙋 | 5 min | 4 条路径全过才算 Phase 3 关闭 |
-
-**总人工时间：约 10-12 min**（如果 Consent Screen 已存在）；首次做 Consent Screen 额外 +10 min。
+| Step | Owner | Time |
+|---|---|---|
+| 写 `lib/supabase/{client,server,admin}.ts` 带 `<Database, 'vr'>` + `db: { schema: 'vr' }` | 🤖 | 2 min |
+| 写 `middleware.ts`（保护 `/library` + 整个 `/b/*`）| 🤖 | 2 min |
+| 写 `/auth/{login,register,callback}` + `components/LoginModal.tsx` | 🤖 | 8 min |
+| Google Cloud Console → 建 OAuth Client + redirect URI | 🙋 | 3 min |
+| Supabase Dashboard → 开 Google + 粘 Client ID/Secret | 🙋 | 2 min |
+| 端到端实测 4 条路径 | 🙋 | 5 min |
 
 ### 3.0 所有 createClient 必须指定 schema + Database 泛型
-
-我们的表在 `vr` schema，不是 `public`。每个 `createClient` 都要传 schema 选项（否则 `.from('books')` 会去查不存在的 `public.books`），并且带上 `<Database, 'vr'>` 泛型把 TypeScript 类型也聚焦到 vr schema：
 
 ```typescript
 import type { Database } from '@/types/db'
@@ -455,94 +471,136 @@ createClient<Database, 'vr'>(url, serviceRoleKey, {
 })
 ```
 
-配完之后，`.from('books')` 自动解析成 `vr.books`，字段名和类型也有完整编译期检查。**不要**写 `.from('vr.books')`。
-
 ### 3.1 砍掉 GitHub
 
-STANDARD §3.2 的 login 页里有 GitHub OAuth，**不要**。只保留 Email/Password 和 Google。
+STANDARD §3.2 login 页里的 GitHub **不要**。只保留 Email/Password + Google。
 
-### 3.2 Middleware 路由保护
-
-`middleware.ts`：
+### 3.2 Middleware 路由保护（v2 改动）
 
 ```typescript
+// v2: Book Home + Question Result 都要登录（整个 /b/* 都保护）
 const PROTECTED_ROUTES = ['/library']
-const CHAPTER_ROUTES = /^\/b\/[^/]+\/(read|brief|restate)/   // Screen 4/5 必须登录
-
-// Screen 1-3 (/ 和 /b/xxx/goal 和 /b/xxx/map) 不要求登录
+const BOOK_ROUTES = /^\/b\/[^/]+/   // /b/:id 和 /b/:id/q/:qid 都要登录
 ```
 
-**注意**：`/b/[bookId]/goal` 和 `/b/[bookId]/map` **不** protected。用户在登录前也能走到这两屏——这是产品设计的核心（spec §Login Strategy）。
+**与 v1 区别**：v1 里 `/b/:id/goal` 和 `/b/:id/map` 是公开的（登录点在 Map → Brief 之间）。v2 里整个 `/b/*` 都挡 —— 登录时机前置到 Upload → Book Home 之间。
 
-### 3.3 Register 后不创建 Profile 表
+### 3.3 不创建 Profile 表
 
-Vibe Reading 的 schema 里**没有 Profile 表**——用户信息直接用 `auth.users` 里的即可。STANDARD §3.3 的 upsert Profile 代码不要复制。
+Vibe Reading schema 没有 Profile 表 —— 用户信息直接用 `auth.users`。STANDARD §3.3 的 upsert Profile 代码不要复制。
 
 ### 3.4 Login Modal（不是 full page）
 
-Screen 3 → Screen 4 之间的登录**是 modal 不是跳转**。组件在 `components/LoginModal.tsx`，提供 Google + Email/Password 两种方式，按 Esc 或点遮罩关闭。点 Google 走 `/auth/callback?next=<returnTo>` 回跳；Email 登录成功调 `onSuccess` 回调（不跳页）。
+Upload 成功后如果未登录：在 landing 上弹 LoginModal，回调 `?next=/b/:id`。登录成功 → callback 内联 claim → 跳 `/b/:id`。
 
-#### 文案必须写清楚"登录 = 创建账号"（踩过的 UX 坑）
-
-默认如果 modal 只说 "Sign in"，新用户会困惑：我没账号怎么办？点 Google 之后虽然自动创建账号登录成功了，但用户不知道"那一下"到底是 sign in 还是 sign up，会觉得流程"奇怪"。
-
-**三条必写的文案**（缺一个都会有用户困惑）：
-
-1. **Subtitle 明说双用途**：`Sign in, or create an account — same modal. This is the only time we'll ask.`
-2. **Google 按钮下方一行小字**：`First time? Continue with Google creates your account automatically.`
-3. **底部给 Email 新用户一条明路**：`No account yet? [Sign up with email →](/auth/register?next=<same returnTo>)` —— Email path 不会自动建账号（`signInWithPassword` 失败会报 "Invalid credentials"），必须明确引导到 `/auth/register`。
+**文案必须写清楚"登录 = 创建账号"**（STANDARD §3.2 UX 铁律）：
+1. Subtitle: `Sign in, or create an account — same modal. This is the only time we'll ask.`
+2. Google 按钮下方: `First time? Continue with Google creates your account automatically.`
+3. 底部: `No account yet? [Sign up with email →](/auth/register?next=<same returnTo>)`
 
 ### 3.5 Callback 支持 next 参数
 
-`app/auth/callback/route.ts` 读 `?next=<path>` 并在 `exchangeCodeForSession` 成功后跳转。**防开放重定向：** 只接受以 `/` 开头且不以 `//` 开头的同源路径；其他一律降级到 `/library`。登录后要回到用户登录前所在的那一屏，不能粗暴跳到 `/library`——否则 Screen 3 的上下文就丢了。
+`/auth/callback` 读 `?next=`，`exchangeCodeForSession` 成功后跳。防开放重定向：只接受 `/` 开头且不以 `//` 开头的同源路径。
 
 ### 3.6 登录后 Session → User 迁移
 
-用户登录成功回到 Screen 3 时，前端调用 `/api/claim` 把 session books 认领到当前 user。详见 Phase 7。
+callback 内联 claim（见 Phase 7）。`/api/claim` 作为 email 登录 path 的兜底。
 
 ---
 
-## Phase 4 — PDF 解析 + 章节切分
+## Phase 4 — PDF 解析 + TOC + Intake AI (v2 重写)
 
-**决策 (2026-04-23)**：PDF 解析用 `unpdf`，不用 `pdf-parse`。
-- 原因：`pdf-parse@2.4.5` 在 Next.js 16 + Turbopack 下 worker 解析失败（先 `fake worker` 找不到 pdf.worker.mjs，后 `DataCloneError`），workaround 都不干净
-- `unpdf` 专为 serverless / edge Node 设计，零配置就跑通
-- 装：`npm install unpdf`（自带 pdfjs-dist 的 serverless build）
+v2 的关键变化：
+- 抓目录用 **`pdfjs.getOutline()`**（unpdf 暴露 pdfjs proxy，直接调原生 API）
+- Upload API 一次性做完：**解析 PDF + 切章 + 生成 overview + 生成 3 推荐问题**
+- 老的正则切章逻辑降级为 fallback（PDF 无 outline metadata 时才用）
 
-**Storage bucket**：`vr-docs`（私有、50MB、`application/pdf` MIME 白名单）。**不用 `pdfs`**——留出空间给未来非 PDF 文档格式。
+**Storage bucket**：`vr-docs`（私有、50MB、`application/pdf` MIME 白名单）。
 
-### 4.1 Upload API（`app/api/upload/route.ts`）
-
-实际实现见 `app/api/upload/route.ts`。关键点：
-
-- `runtime = 'nodejs'` + `maxDuration = 60`（PDF 解析在 Edge runtime 跑不动）
-- validate: 必须是 `application/pdf` + 大小 ≤ 50 MB
-- 解析失败、章节切不出来都返回 422，dropzone 前端会显示 error
-- Storage 路径 `session/${sessionId}/${uuid}.pdf`（cron cleanup 可按 session 前缀批量删）
-- 错误路径做"最优努力"回滚：书写失败时删 Storage blob；章节写失败时删书 + Storage
-- Books insert 先，Chapters insert 后（外键依赖）
-- 成功返回 `{ bookId }`，前端跳 `/b/${bookId}/goal`
-
-### 4.2 PDF Parser（`lib/pdf/parser.ts`）
-
-实际实现用 `unpdf`：
+### 4.1 PDF Outline 抽取（`lib/pdf/outline.ts`）
 
 ```typescript
-import { extractText, getDocumentProxy, getMeta } from 'unpdf'
+import 'server-only'
+import { getDocumentProxy } from 'unpdf'
 
-export async function parsePdf(buffer: Buffer): Promise<ParsedPdf> {
-  const data = new Uint8Array(buffer)
-  const pdf = await getDocumentProxy(data)
+export interface TocEntry {
+  title: string
+  level: number          // 1 = top chapter, 2+ = subsection
+  page: number           // 1-indexed
+}
+
+/**
+ * 从 PDF 的嵌入 outline 抽 TOC 树，flatten 成带 level 的列表。
+ * 返回 null 表示 PDF 没有 outline —— 调用方走 fallback (lib/pdf/parser.ts 的 splitIntoChapters)。
+ */
+export async function extractOutline(buffer: Buffer): Promise<TocEntry[] | null> {
+  const pdf = await getDocumentProxy(new Uint8Array(buffer))
   try {
-    const [{ info }, { totalPages, text }] = await Promise.all([
-      getMeta(pdf),
-      extractText(pdf, { mergePages: true }),
-    ])
+    const outline = await pdf.getOutline()
+    if (!outline || outline.length === 0) return null
+
+    const entries: TocEntry[] = []
+    async function walk(nodes: any[], level: number) {
+      for (const node of nodes) {
+        const page = await resolvePage(pdf, node.dest)
+        if (page !== null) {
+          entries.push({ title: node.title.trim(), level, page })
+        }
+        if (node.items?.length) await walk(node.items, level + 1)
+      }
+    }
+    await walk(outline, 1)
+    return entries.length ? entries : null
+  } finally {
+    await pdf.destroy()
+  }
+}
+
+async function resolvePage(pdf: any, dest: any): Promise<number | null> {
+  try {
+    const explicit = typeof dest === 'string' ? await pdf.getDestination(dest) : dest
+    if (!explicit) return null
+    const pageIndex = await pdf.getPageIndex(explicit[0])
+    return pageIndex + 1
+  } catch {
+    return null
+  }
+}
+```
+
+**已在 Kuhn 《科学革命的结构》 实测通过**：getOutline 正确返回 9 章 + 每章子节，页码解析准确。
+
+### 4.2 PDF 全文 + 章节切分（`lib/pdf/parser.ts`）
+
+老代码沿用。修改点：
+
+- 加一个新 API `extractChaptersWithOutline(buffer, toc: TocEntry[])` —— 给每个 top-level TOC entry 切出 `{ title, content, page_start, page_end }`
+- 老的 `splitIntoChapters(fullText)` 作为 fallback，保留代码
+
+```typescript
+// 高层入口（Upload API 调用）
+export async function parseBookStructure(buffer: Buffer): Promise<ParsedBook> {
+  const pdf = await getDocumentProxy(new Uint8Array(buffer))
+  try {
+    const [{ info }, { totalPages }] = await Promise.all([getMeta(pdf), extractText(pdf)])
+    const toc = await extractOutline(buffer)
+
+    let chapters: RawChapter[]
+    if (toc && toc.length >= 3) {
+      // 主路径：按 outline 页码切
+      chapters = await sliceByOutline(pdf, toc, totalPages)
+    } else {
+      // Fallback: 老正则 v2
+      const { text } = await extractText(pdf, { mergePages: true })
+      chapters = splitIntoChaptersRegex(text as string)
+    }
+
     return {
       title: cleanStr(info?.Title) ?? 'Untitled',
       author: cleanStr(info?.Author) ?? null,
-      text: text as string,
       pageCount: totalPages,
+      toc: toc ?? null,
+      chapters,
     }
   } finally {
     await pdf.destroy()
@@ -550,357 +608,532 @@ export async function parsePdf(buffer: Buffer): Promise<ParsedPdf> {
 }
 ```
 
-#### `splitIntoChapters(fullText)` — v2 关键点（踩过的坑）
+`sliceByOutline`：按 top-level entry 的页码区间，逐页 `pdf.getPage(n).getTextContent()` 拼接正文。子节（level>=2）不单独建 chapter，但保存在 books.toc 里供 Book Home 渲染层级。
 
-v1 用 `\n\s*(?:Chapter\s+\d+|第[\d...]+章)[^\n]{0,80}\n` 这种形式——**要求 heading 前后都有换行**。真实 PDF 上这个 regex **一条都匹配不到**，整本书塞进一个 fallback Section。原因：unpdf / pdfjs 提取出来的文本是 flat flow（没有源 PDF 里的那些换行），`第1章 务实的哲学 1 人生是你的 ...` 全部挤在一行。
+### 4.3 Intake AI（`lib/ai/intake.ts`）
 
-v2 的四个关键设计：
-
-1. **不要求 `\n`**——直接匹配 heading token，把 token 的 `index` 当切分边界。
-2. **多个 pattern 按粗到细依次试**，第一个产出 ≥3 个 chunk 的 pattern 胜出：
-   ```
-   Chapter N  →  CHAPTER N  →  第N章  →  Part I-X  →  第N篇/部  →  话题/Topic/Tip N
-   ```
-3. **TOC / 跨章引用 dedup**：按规范化后的 heading 编号做 key（中文 `一..十 → 1..10`），每个 key 保留**最长**那个 chunk（TOC 条目短、真章节长）。
-4. **Size-based fallback**：所有 pattern 都<3 个 chunk 时，按 ~10k 字切段，最多 50 段，避免"1 个 Section 装全书"。
-
-最后按章节编号排序，保证 `seq` 对得上阅读顺序。完整实现见 `lib/pdf/parser.ts`。
-
-> **章节切分是精度痛点**。规则先粗切，自测真实书发现规则不够再迭代。**不要一开始就用 AI 切分**——太贵太慢，而且 Phase 4 只是为 Phase 6 的三色映射 AI 准备"章节粒度的文本"，切得差一点也能跑。
->
-> **踩过的具体坑**：《程序员修炼之道》中文版，v1 产出 1 个 18 万字的 "Section 1"；v2 产出 9 个 8k-33k 字的章节（第1章-第9章），顺序正确。
-
-### 4.3 Admin Client（`lib/supabase/admin.ts`）
-
-照 STANDARD §3.1 原样。用 `service role key`，绕过任何未来可能加的 RLS。
-
----
-
-## Phase 5 — Screen 2: Goal 输入（Rule 1 的硬卡点）
-
-### 5.1 页面（`app/b/[bookId]/goal/page.tsx`）
-
-```tsx
-'use client'
-import { useState } from 'react'
-
-export default function GoalPage({ params }: { params: Promise<{ bookId: string }> }) {
-  const { bookId } = use(params)
-  const [text, setText] = useState('')
-  const [showExamples, setShowExamples] = useState(false)
-
-  async function submit() {
-    if (text.trim().length < 10) return
-    await fetch('/api/goal', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ bookId, text: text.trim() }),
-    })
-    window.location.href = `/b/${bookId}/map`
-  }
-
-  return (
-    <main>
-      <h1>《{title}》 by {author}</h1>
-
-      <h2>Before we touch this book, tell us:<br />
-          <em>What do you want to take away from it?</em></h2>
-
-      <p>Write 1–3 sentences. Don't overthink.<br />
-         But you have to type something. This is the one thing that
-         makes Vibe Reading different from every other reading tool.</p>
-
-      <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        rows={3}
-        placeholder="..."
-      />
-
-      <button onClick={() => setShowExamples(!showExamples)}>
-        Not sure what to write? See examples ↓
-      </button>
-      {showExamples && (
-        <ul>
-          <li>"I want to understand how the author defines [X]"</li>
-          <li>"I'm working on [Y] project — I want to see if there's a relevant method"</li>
-          <li>"I keep hearing this book quoted — I want to know if I should actually read it"</li>
-          <li>"I want to compare this author's view on [Z] with what I already believe"</li>
-          <li>"I have to discuss this book in a meeting next week — I need the gist"</li>
-        </ul>
-      )}
-
-      <button disabled={text.trim().length < 10} onClick={submit}>
-        Continue →
-      </button>
-    </main>
-  )
-}
-```
-
-### 5.2 Goal API（`app/api/goal/route.ts`）
-
-```typescript
-import { NextResponse } from 'next/server'
-import { createAdminClient } from '@/lib/supabase/admin'
-import { getSessionId } from '@/lib/session'
-import { createServerSupabaseClient } from '@/lib/supabase/server'
-
-export async function POST(request: Request) {
-  const { bookId, text } = await request.json()
-  if (typeof text !== 'string' || text.trim().length < 10) {
-    return NextResponse.json({ error: 'Too short' }, { status: 400 })
-  }
-
-  // 必须证明用户拥有这本书（session 或 登录 user）
-  const db = createAdminClient()
-  const { data: book } = await db.from('books').select('id, session_id, owner_id').eq('id', bookId).single()
-  if (!book) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-
-  const supabase = await createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  const sessionId = await getSessionId()
-
-  const authorized =
-    (user && book.owner_id === user.id) ||
-    (sessionId && book.session_id === sessionId)
-  if (!authorized) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-
-  // upsert goal（一本书一个 goal）
-  await db.from('goals').upsert({ book_id: bookId, text }, { onConflict: 'book_id' })
-  return NextResponse.json({ ok: true })
-}
-```
-
-### 5.3 Rule 1 的技术强制
-
-- `/b/[bookId]/map` 页面第一步：查询 `goals.where(book_id)`。如果没有 goal → 重定向回 `/b/[bookId]/goal`
-- `/api/map`、`/api/brief`、`/api/check`、`/api/ask` 所有 AI 端点的第一步：确认 `goals.book_id` 存在。否则 403。
-
----
-
-## Phase 6 — Screen 3: 三色映射（Rule 2 的核心）
-
-### 6.1 AI Mapper（`lib/ai/mapper.ts`）
+一次 LLM 调用，同时产出 overview + 3 推荐问题。
 
 ```typescript
 import 'server-only'
 import OpenAI from 'openai'
 
-let client: OpenAI | null = null
-function openai() {
-  if (!client) client = new OpenAI()
-  return client
-}
+const INTAKE_SCHEMA = {
+  type: 'object',
+  required: ['overview', 'questions'],
+  additionalProperties: false,
+  properties: {
+    overview: { type: 'string', maxLength: 800 },
+    questions: {
+      type: 'array',
+      minItems: 3, maxItems: 3,
+      items: { type: 'string', maxLength: 160 },
+    },
+  },
+} as const
 
-export interface ChapterInput {
-  id: string
-  seq: number
+export interface IntakeInput {
   title: string
-  firstParagraph: string   // 只给前 500 字，不给全章
+  author: string | null
+  tocTitles: string[]              // flatten 的 TOC 标题（level 1 为主）
+  intro: string                    // 前 ~2000 字
+  conclusion: string               // 末 ~2000 字
 }
 
-export interface MapResult {
-  chapterId: string
-  verdict: 'worth' | 'skip' | 'unanswered'
-  reason: string           // 1 sentence max
+export interface IntakeResult {
+  overview: string
+  questions: [string, string, string]
 }
 
-export async function mapChapters(
-  goal: string,
-  chapters: ChapterInput[],
-): Promise<MapResult[]> {
-  const prompt = `You are a librarian. A reader has a goal and a book's table of contents.
-Your job is to MAP chapters to the goal — NOT to summarize content.
+export async function analyzeBook(input: IntakeInput): Promise<IntakeResult> {
+  const prompt = `Given a non-fiction book, produce an overview and 3 starter questions.
 
-READER'S GOAL:
-"${goal}"
+BOOK:
+Title: ${input.title}
+Author: ${input.author ?? 'Unknown'}
 
-CHAPTERS (title + first paragraph):
-${chapters.map((c) => `[${c.id}] Chapter ${c.seq}: ${c.title}\n${c.firstParagraph}`).join('\n\n')}
+TABLE OF CONTENTS:
+${input.tocTitles.map((t, i) => `${i + 1}. ${t}`).join('\n')}
 
-For each chapter, return ONE of:
-- "worth": this chapter likely contains what the reader wants
-- "skip": this chapter is unrelated to the reader's goal
-- "unanswered": the reader's goal asks about something this book doesn't address (use sparingly, at most 1 chapter)
+INTRODUCTION (first ~2000 chars):
+${input.intro.slice(0, 2000)}
 
-For the reason field:
-- DO: describe what the chapter "likely contains" or "discusses"
-- DO NOT: summarize what the author argues, concludes, or proves
-- DO NOT: state facts from the chapter
+CONCLUSION (last ~2000 chars):
+${input.conclusion.slice(0, 2000)}
 
-Examples of GOOD reasons:
-- "Likely contains the core definition the reader is looking for"
-- "Discusses application scenarios of [goal topic]"
-- "Counter-arguments and limitations section"
+Output two fields:
 
-Examples of BAD reasons (DO NOT DO THIS):
-- "The author argues that X is caused by Y" ← SUMMARIZING
-- "Shows how to implement method Z in 5 steps" ← SUMMARIZING
-- "Explains the three pillars of success" ← SUMMARIZING
+1. overview: 80-120 words, OBJECTIVE description of what this book is about.
+   No evaluation. Not a summary — an orientation. Avoid the word "summary".
+   Describe the subject, the angle, and who the book is for.
 
-Return ONLY valid JSON in this shape:
-{"results":[{"chapterId":"...","verdict":"worth","reason":"..."}]}`
+2. questions: EXACTLY 3 questions a thoughtful reader might bring when picking
+   up this book. Cover these three angles, one each:
+     (a) Claim-level — "what is this book actually arguing?"
+     (b) Stakes — "why does this book matter / how does it compare to X?"
+     (c) Concrete — a specific concept/chapter-level question using a real term
+         from this book's TOC
+
+Each question under 100 characters. Questions should be the ones a skeptical
+reader would actually type, NOT generic "What is [topic]?". Pull specific
+vocabulary from the TOC and intro to make them this-book-specific.
+
+Return ONLY JSON matching the schema.`
 
   const response = await openai().chat.completions.create({
     model: 'gpt-4o-mini',
-    response_format: { type: 'json_object' },
-    temperature: 0.2,
+    response_format: {
+      type: 'json_schema',
+      json_schema: { name: 'intake', strict: true, schema: INTAKE_SCHEMA },
+    },
+    temperature: 0.4,
     messages: [{ role: 'user', content: prompt }],
   })
 
-  const json = JSON.parse(response.choices[0]?.message?.content ?? '{}')
-  return json.results ?? []
+  return JSON.parse(response.choices[0]?.message?.content ?? '{}') as IntakeResult
 }
+
+let client: OpenAI | null = null
+function openai() { if (!client) client = new OpenAI(); return client }
 ```
 
-### 6.2 Map API（`app/api/map/route.ts`）
+### 4.4 Upload API（`app/api/upload/route.ts`）
 
-```typescript
-export async function POST(request: Request) {
-  const { bookId } = await request.json()
+关键点：
 
-  const db = createAdminClient()
-  const { data: goal } = await db.from('goals').select('*').eq('book_id', bookId).single()
-  if (!goal) return NextResponse.json({ error: 'No goal set' }, { status: 403 })  // Rule 1
+- `runtime = 'nodejs'` + `maxDuration = 60`
+- Validate: `application/pdf`, ≤ 50 MB
+- 流程：upload to Storage → parseBookStructure → write books row (with toc + chapter_count) → write chapters → 异步或同步调 `analyzeBook` → update books.overview + suggested_questions → 返回 bookId
+- 错误路径最优努力回滚（Storage blob、books row、chapters row）
+- `analyzeBook` 的失败不应阻断上传成功 —— 没 overview/questions 时 Book Home 仍可工作（只是没推荐问题）
 
-  // 先查缓存
-  const { data: cached } = await db
-    .from('chapter_maps')
-    .select('*')
-    .eq('book_id', bookId)
-    .eq('goal_id', goal.id)
-  if (cached && cached.length > 0) {
-    return NextResponse.json({ results: cached })
-  }
+> **为什么 intake 同步跑**：reader UX 要求进入 Book Home 就看到推荐问题，不能 "parsing..." spin 10 秒再 spin 5 秒。同步跑总时长 ~8-15 秒，给 dropzone 显示 "Analyzing your book..." progress 即可。
 
-  // 调 AI
-  const { data: chapters } = await db
-    .from('chapters')
-    .select('id, seq, title, content')
-    .eq('book_id', bookId)
-    .order('seq')
+### 4.5 Admin Client（`lib/supabase/admin.ts`）
 
-  const results = await mapChapters(
-    goal.text,
-    (chapters ?? []).map((c) => ({
-      id: c.id,
-      seq: c.seq,
-      title: c.title,
-      firstParagraph: c.content.slice(0, 500),
-    })),
-  )
+照 STANDARD §3.1。service_role key，绕过 RLS。
 
-  // 写缓存
-  await db.from('chapter_maps').insert(
-    results.map((r) => ({
-      book_id: bookId,
-      goal_id: goal.id,
-      chapter_id: r.chapterId,
-      verdict: r.verdict,
-      reason: r.reason,
-    })),
-  )
+---
 
-  return NextResponse.json({ results })
-}
-```
+## Phase 5 — Screen 2: Book Home（v2 NEW，取代 Goal 输入）
 
-### 6.3 Screen 3 页面（`app/b/[bookId]/map/page.tsx`）
+这是 v2 的价值兑现点：用户上传之后**第一眼**看到的就是 TOC + 推荐问题 + 输入框。
+
+### 5.1 页面（`app/b/[bookId]/page.tsx`）
+
+Server component 加载 book 数据 + 历史 questions，传给 client component。
 
 ```tsx
-'use client'
-export default function MapPage({ params }: { params: Promise<{ bookId: string }> }) {
-  const { bookId } = use(params)
-  const [goal, setGoal] = useState('')
-  const [results, setResults] = useState<MapResult[] | null>(null)
-  const [showLogin, setShowLogin] = useState(false)
-  const [targetChapter, setTargetChapter] = useState<string | null>(null)
-  const [mode, setMode] = useState<'read' | 'brief' | null>(null)
+// app/b/[bookId]/page.tsx
+import { redirect } from 'next/navigation'
+import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { BookHomeScreen } from '@/components/BookHomeScreen'
 
-  useEffect(() => {
-    // 加载 goal + 章节 + 映射
-    fetch(`/api/map`, {
+export default async function BookHomePage({
+  params,
+}: { params: Promise<{ bookId: string }> }) {
+  const { bookId } = await params
+  const supabase = await createServerSupabaseClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect(`/auth/login?next=/b/${bookId}`)
+
+  const db = createAdminClient()
+  const { data: book } = await db.from('books')
+    .select('id, owner_id, title, author, toc, overview, suggested_questions')
+    .eq('id', bookId).single()
+  if (!book || book.owner_id !== user.id) redirect('/library')
+
+  const { data: questions } = await db.from('questions')
+    .select('id, text, created_at')
+    .eq('book_id', bookId)
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(20)
+
+  return <BookHomeScreen book={book} questionHistory={questions ?? []} />
+}
+```
+
+### 5.2 BookHomeScreen 组件结构
+
+```tsx
+// components/BookHomeScreen.tsx
+'use client'
+
+export function BookHomeScreen({ book, questionHistory }: Props) {
+  const [question, setQuestion] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  async function submit(text: string) {
+    if (submitting || text.trim().length < 3) return
+    setSubmitting(true)
+    const res = await fetch('/api/question', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ bookId }),
-    }).then((r) => r.json()).then(setResults)
-  }, [bookId])
-
-  function handleChapterAction(chapterId: string, chosenMode: 'read' | 'brief') {
-    // 登录闸门
-    setTargetChapter(chapterId)
-    setMode(chosenMode)
-    setShowLogin(true)
+      body: JSON.stringify({ bookId: book.id, text: text.trim() }),
+    })
+    if (!res.ok) {
+      const { error } = await res.json().catch(() => ({ error: 'Failed' }))
+      alert(error); setSubmitting(false); return
+    }
+    const { questionId } = await res.json()
+    window.location.href = `/b/${book.id}/q/${questionId}`
   }
 
   return (
     <main>
-      <p>Based on what you said: "<em>{goal}</em>"</p>
-      <h2>Here's how this book maps to your goal:</h2>
+      <header>
+        <h1>{book.title}</h1>
+        {book.author && <p>by {book.author}</p>}
+      </header>
 
-      <Section title="✅ Worth reading for you">
-        {results?.filter(r => r.verdict === 'worth').map((r) => (
-          <ChapterCard
-            key={r.chapterId}
-            result={r}
-            onRead={() => handleChapterAction(r.chapterId, 'read')}
-            onBrief={() => handleChapterAction(r.chapterId, 'brief')}
-          />
-        ))}
-      </Section>
+      {book.overview && (
+        <section className="overview">
+          <p>{book.overview}</p>
+        </section>
+      )}
 
-      <CollapsibleSection title="❌ Not for your goal — skip these">
-        {results?.filter(r => r.verdict === 'skip').map(/* ... */)}
-      </CollapsibleSection>
+      <section className="ask">
+        <h2>What do you want to know?</h2>
+        <textarea
+          value={question}
+          onChange={(e) => setQuestion(e.target.value)}
+          placeholder="Ask anything about this book..."
+          rows={2}
+        />
+        <button onClick={() => submit(question)} disabled={submitting}>
+          Ask →
+        </button>
 
-      <Section title="⚠️ Your goal — but this book may not answer it">
-        {results?.filter(r => r.verdict === 'unanswered').map(/* ... */)}
-      </Section>
+        {book.suggested_questions && (
+          <div className="suggestions">
+            <p>Or try one of these:</p>
+            {(book.suggested_questions as string[]).map((q) => (
+              <button key={q} onClick={() => submit(q)} disabled={submitting}>
+                {q}
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
 
-      <button onClick={() => history.back()}>✏️ Edit my goal</button>
+      <section className="toc">
+        <h2>Contents</h2>
+        {(book.toc as TocEntry[] | null)?.map((entry, i) => (
+          <div key={i} style={{ paddingLeft: (entry.level - 1) * 16 }}>
+            {entry.title} <span className="page">p.{entry.page}</span>
+          </div>
+        )) ?? <p>TOC unavailable</p>}
+      </section>
 
-      {showLogin && (
-        <LoginModal onSuccess={() => {
-          // Session → User 迁移
-          fetch('/api/claim', { method: 'POST' })
-            .then(() => {
-              window.location.href = `/b/${bookId}/${mode}/${targetChapter}`
-            })
-        }} />
+      {questionHistory.length > 0 && (
+        <section className="history">
+          <h2>Your questions</h2>
+          {questionHistory.map((q) => (
+            <Link key={q.id} href={`/b/${book.id}/q/${q.id}`}>
+              {q.text}
+            </Link>
+          ))}
+        </section>
       )}
     </main>
   )
 }
 ```
 
+### 5.3 POST /api/question（`app/api/question/route.ts`）
+
+```typescript
+export async function POST(request: Request) {
+  const { bookId, text } = await request.json()
+  if (typeof text !== 'string' || text.trim().length < 3) {
+    return NextResponse.json({ error: 'Question too short' }, { status: 400 })
+  }
+
+  const supabase = await createServerSupabaseClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const db = createAdminClient()
+  const { data: book } = await db.from('books')
+    .select('id, owner_id, toc').eq('id', bookId).single()
+  if (!book || book.owner_id !== user.id) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  // 创建 question
+  const { data: question, error } = await db.from('questions')
+    .insert({ book_id: bookId, user_id: user.id, text: text.trim() })
+    .select('id').single()
+  if (error || !question) {
+    return NextResponse.json({ error: 'Insert failed' }, { status: 500 })
+  }
+
+  // 跑 relevance AI（同步，~2-4 秒）
+  try {
+    const { data: chapters } = await db.from('chapters')
+      .select('id, seq, title, content, page_start, level')
+      .eq('book_id', bookId)
+      .order('seq')
+
+    const { matchChapters } = await import('@/lib/ai/relevance')
+    const matches = await matchChapters({
+      question: text.trim(),
+      toc: book.toc as TocEntry[] | null,
+      chapters: (chapters ?? []).map((c) => ({
+        id: c.id, seq: c.seq, title: c.title, level: c.level,
+        firstParagraph: c.content.slice(0, 600),
+      })),
+    })
+
+    if (matches.length > 0) {
+      await db.from('question_chapters').insert(
+        matches.map((m, i) => ({
+          question_id: question.id,
+          chapter_id: m.chapterId,   // 可为 null (book-level)
+          reason: m.reason,
+          rank: i + 1,
+        })),
+      )
+    }
+  } catch (err) {
+    console.error('relevance failed', err)
+    // 不阻断：前端拿到 questionId 后仍可展示 question，question_chapters 为空时显示 fallback
+  }
+
+  return NextResponse.json({ questionId: question.id })
+}
+```
+
+**Rule 1 强制**：`/api/question` 是唯一能触发 question_chapters 写入的端点。`/api/brief` / `/api/ask` 第一步都验 chapter 属于 question owner 的书 + 这本书至少有一个 question（"用户已表达过需求"的硬标志）。
+
 ---
 
-## Phase 7 — 登录 Modal + Session → User 迁移
+## Phase 6 — Screen 3: Question Result + 分屏 (v2 NEW，取代 Map)
 
-用户在 Screen 3 点击 "Read / Brief" 之前未登录。登录成功后要把 session 书 **认领** 到 user 账户。
+左栏：AI 匹配的章节列表；右栏：点击 [Brief] / [Read] 后加载的内容。
+
+### 6.1 AI Relevance（`lib/ai/relevance.ts`）
+
+```typescript
+import 'server-only'
+import OpenAI from 'openai'
+
+const RELEVANCE_SCHEMA = {
+  type: 'object',
+  required: ['matches'],
+  additionalProperties: false,
+  properties: {
+    matches: {
+      type: 'array',
+      maxItems: 6,
+      items: {
+        type: 'object',
+        required: ['chapter_id', 'reason'],
+        additionalProperties: false,
+        properties: {
+          chapter_id: { type: ['string', 'null'] },     // null = book-level
+          reason: { type: 'string', maxLength: 280 },
+        },
+      },
+    },
+  },
+} as const
+
+export interface RelevanceInput {
+  question: string
+  toc: TocEntry[] | null
+  chapters: Array<{
+    id: string
+    seq: number
+    title: string
+    level: number
+    firstParagraph: string
+  }>
+}
+
+export interface ChapterMatch {
+  chapterId: string | null   // null = 全书级（meta 问题）
+  reason: string
+}
+
+export async function matchChapters(input: RelevanceInput): Promise<ChapterMatch[]> {
+  const chapters = input.chapters.filter((c) => c.level <= 1)   // 只对 top chapter 做映射
+
+  const prompt = `A reader is asking a question about a book. Identify which chapters are most likely to answer the question.
+
+QUESTION:
+"${input.question}"
+
+CHAPTERS (id, title, first paragraph):
+${chapters
+  .map((c) => `[id: ${c.id}] Chapter ${c.seq}: ${c.title}\n${c.firstParagraph}`)
+  .join('\n\n---\n\n')}
+
+For each of UP TO 5 chapters that seem relevant, return:
+- chapter_id: the id above (exactly as shown, no modifications)
+- reason: ONE SENTENCE describing what the chapter LIKELY CONTAINS related to
+  the question. Use "likely contains", "discusses", "covers", "introduces".
+  NEVER summarize what the author argues, proves, or concludes.
+
+If the question is META (asks about the book as a whole: "what is this book
+about", "why does this book matter", "how does it compare to X"), return
+ONE entry with chapter_id=null and a reason pointing to the intro + conclusion
+as the answer source ("This is a book-level question — the intro and conclusion
+together carry the core framing").
+
+Rank by relevance. Most relevant first. If fewer than 3 chapters are truly
+relevant, return fewer — do not pad.
+
+BAD reasons (NEVER do this):
+- "The author argues that X causes Y"       ← summarizing
+- "Proves that method Z works in 5 steps"   ← summarizing
+- "The three principles of success"         ← summarizing
+
+GOOD reasons:
+- "Likely contains the author's definition of paradigm shift"
+- "Discusses the historical context the question refers to"
+- "Covers the chapter-end section distinguishing X from Y"
+
+Return ONLY JSON matching the schema.`
+
+  const response = await openai().chat.completions.create({
+    model: 'gpt-4o-mini',
+    response_format: {
+      type: 'json_schema',
+      json_schema: { name: 'relevance', strict: true, schema: RELEVANCE_SCHEMA },
+    },
+    temperature: 0.2,
+    messages: [{ role: 'user', content: prompt }],
+  })
+
+  const json = JSON.parse(response.choices[0]?.message?.content ?? '{}')
+  return (json.matches ?? []).map((m: any) => ({
+    chapterId: m.chapter_id, reason: m.reason,
+  }))
+}
+
+let client: OpenAI | null = null
+function openai() { if (!client) client = new OpenAI(); return client }
+```
+
+### 6.2 Question Result 页面（`app/b/[bookId]/q/[questionId]/page.tsx`）
+
+Server component 加载 question + question_chapters + 每章的 title/seq，传给 client 的 `<QuestionResultScreen>`。
+
+```tsx
+// app/b/[bookId]/q/[questionId]/page.tsx
+export default async function QuestionResultPage({
+  params,
+}: { params: Promise<{ bookId: string; questionId: string }> }) {
+  const { bookId, questionId } = await params
+  const supabase = await createServerSupabaseClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect(`/auth/login?next=/b/${bookId}/q/${questionId}`)
+
+  const db = createAdminClient()
+  const { data: question } = await db.from('questions')
+    .select('id, text, book_id, user_id, books(id, owner_id, title, author, storage_path)')
+    .eq('id', questionId).single()
+  if (!question || question.user_id !== user.id || question.book_id !== bookId) {
+    redirect(`/b/${bookId}`)
+  }
+
+  const { data: matches } = await db.from('question_chapters')
+    .select('chapter_id, reason, rank, chapters(id, seq, title, page_start, page_end)')
+    .eq('question_id', questionId)
+    .order('rank')
+
+  return <QuestionResultScreen
+    bookId={bookId}
+    bookTitle={question.books.title}
+    bookAuthor={question.books.author}
+    storagePath={question.books.storage_path}
+    question={question}
+    matches={matches ?? []}
+  />
+}
+```
+
+### 6.3 分屏组件（`components/QuestionResultScreen.tsx`）
+
+```tsx
+'use client'
+import { useState } from 'react'
+import { ChapterListPane } from './ChapterListPane'
+import { BriefPane } from './BriefPane'
+import { ReadPane } from './ReadPane'
+
+export function QuestionResultScreen({ bookId, ..., matches }: Props) {
+  const [activePane, setActivePane] = useState<
+    | { mode: 'brief'; chapterId: string; chapterTitle: string; chapterSeq: number }
+    | { mode: 'read';  chapterId: string; chapterTitle: string; chapterSeq: number; pageStart: number }
+    | null
+  >(null)
+
+  return (
+    <main className="grid min-h-screen lg:grid-cols-[2fr_3fr] gap-0">
+      <ChapterListPane
+        bookId={bookId}
+        question={question.text}
+        matches={matches}
+        activeChapterId={activePane?.chapterId ?? null}
+        onBrief={(c) => setActivePane({ mode: 'brief', ...c })}
+        onRead={(c) => setActivePane({ mode: 'read', ...c })}
+      />
+      <section className="border-l border-border">
+        {!activePane && <EmptyPaneHint />}
+        {activePane?.mode === 'brief' && (
+          <BriefPane bookId={bookId} chapterId={activePane.chapterId} />
+        )}
+        {activePane?.mode === 'read' && (
+          <ReadPane
+            bookId={bookId}
+            chapterId={activePane.chapterId}
+            chapterTitle={activePane.chapterTitle}
+            pageStart={activePane.pageStart}
+          />
+        )}
+      </section>
+    </main>
+  )
+}
+```
+
+### 6.4 ChapterListPane
+
+渲染 matches 列表。每项：章节编号 + 标题 + AI reason + [Brief] / [Read] 两按钮。支持 `chapter_id === null` 的 book-level 条目（显示为 "📖 Book-level: read intro + conclusion"，点击跳首章）。
+
+头部："← Back to book"（回 `/b/[bookId]`），还有当前 question 文字。
+
+### 6.5 BriefPane
+
+调 `/api/brief` 拿 4 段式结果（缓存 per chapter_id），按 Rule 3 结构化渲染。见 Phase 8。
+
+### 6.6 ReadPane
+
+PDF viewer 从 `pageStart` 开始渲染。右侧小区块："Highlight & Ask" —— 用户在 PDF 里选中文字 → 触发 `/api/ask`。见 Phase 10。
+
+---
+
+## Phase 7 — 登录 Modal + Session → User 迁移（v2 简化）
+
+**v2 关键改动**：登录时机从 Map → Brief 前移到 Upload → Book Home。其余 claim 机制不变。
 
 ### 7.1 共享 helper（`lib/auth/claim.ts`）
 
-把 claim 逻辑抽成 `claimSessionBooks({ userId, sessionId })`，两处调用：
-
-1. `POST /api/claim`（显式 client 调用，fallback path）
-2. `GET /auth/callback`（OAuth 回跳时**内联**调用，让 callback 能直接跳目标页而不必绕 `/map`）
-
 ```typescript
-// lib/auth/claim.ts
 export async function claimSessionBooks({
-  userId, sessionId
+  userId, sessionId,
 }: { userId: string; sessionId: string }): Promise<{ claimed: number }> {
   const db = createAdminClient()
-  const { data: claimed } = await db
-    .from('books')
+  const { data: claimed } = await db.from('books')
     .update({ owner_id: userId, session_id: null })
     .eq('session_id', sessionId)
     .is('owner_id', null)
     .select('id, storage_path')
 
-  // 把 Storage blob 从 session/<sid>/ 挪到 user/<uid>/（best-effort，Phase 12 cron 能捡漏）
   for (const book of claimed ?? []) {
     const newPath = book.storage_path.replace(/^session\/[^/]+\//, `user/${userId}/`)
     if (newPath === book.storage_path) continue
@@ -912,10 +1145,9 @@ export async function claimSessionBooks({
 }
 ```
 
-### 7.2 `/api/claim` 只是 helper 的薄壳
+### 7.2 `/api/claim` 薄壳（兜底 Email 登录路径）
 
 ```typescript
-// app/api/claim/route.ts
 export async function POST() {
   const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -926,67 +1158,59 @@ export async function POST() {
 }
 ```
 
-### 7.3 Callback 内联 claim（一键直达目标页）
-
-`/auth/callback` 在 `exchangeCodeForSession` 之后**顺手**跑 claim，然后跳 `?next=` 指定的目标页：
+### 7.3 Callback 内联 claim
 
 ```typescript
+// app/auth/callback/route.ts
 const { data } = await supabase.auth.exchangeCodeForSession(code)
 const sessionId = await getSessionId()
 if (sessionId) {
-  try { await claimSessionBooks({ userId: data.user.id, sessionId }) } catch (e) {/* 非致命 */}
+  try { await claimSessionBooks({ userId: data.user.id, sessionId }) } catch {}
 }
 return NextResponse.redirect(`${origin}${next}`)
 ```
 
-### 7.4 时序（新版）
+### 7.4 v2 时序
 
 ```
-User on /map (未登录) → 点 "Brief" 按钮
-MapScreen 设 returnTo=/b/xxx/brief/chapterId  ← 直达目标，不是 /map
-LoginModal 弹
-  ↓ Google OAuth
-/auth/callback?next=/b/xxx/brief/chapterId
+Landing (未登录) → drop PDF
+  ↓ /api/upload (session_id 绑定)
+  ↓ 返回 bookId
+Landing → 自动 fetch /b/${bookId} → middleware 拦截 → redirect /auth/login?next=/b/${bookId}
+  ↓ LoginModal 弹 (或 /auth/login 页面)
+  ↓ Google OAuth 或 Email/Password
+/auth/callback?next=/b/${bookId}
   ↓ exchangeCodeForSession
-  ↓ 内联 claimSessionBooks  ← session books 归属已迁
-  ↓ redirect(${origin}${next})
-/b/xxx/brief/chapterId   ← 用户落在目标页，book.owner_id 已经是 user.id
+  ↓ 内联 claimSessionBooks
+  ↓ redirect /b/${bookId}
+Book Home 渲染 ← 用户首次看到 TOC + overview + 3 suggestions + 空历史
 ```
-
-**关键改动（vs 早期方案）**：callback 不再强制跳 `/map`、让前端 `onMount` 调 `/api/claim` 再跳一次。一步到位，少一次点击 + 少一个页面闪烁。`/api/claim` 仍保留作为显式兜底（比如 email 登录不走 callback 路径的场景）。
 
 ---
 
-## Phase 8 — Screen 4B: Brief 模式（Rule 3）
+## Phase 8 — Brief 模式（Rule 3，挂在 QuestionResult 右栏）
 
 ### 8.1 AI Briefer（`lib/ai/briefer.ts`）
 
 ```typescript
-import 'server-only'
-import OpenAI from 'openai'
-
 const BRIEF_SCHEMA = {
   type: 'object',
   required: ['one_sentence', 'key_claims', 'example', 'not_addressed'],
   additionalProperties: false,
   properties: {
-    one_sentence: { type: 'string', maxLength: 200 },
+    one_sentence: { type: 'string', maxLength: 240 },
     key_claims: {
-      type: 'array',
-      minItems: 3,
-      maxItems: 3,
-      items: { type: 'string', maxLength: 180 },
+      type: 'array', minItems: 3, maxItems: 3,
+      items: { type: 'string', maxLength: 200 },
     },
-    example: { type: 'string', maxLength: 400 },
-    not_addressed: { type: 'string', maxLength: 300 },
+    example: { type: 'string', maxLength: 500 },
+    not_addressed: { type: 'string', maxLength: 360 },
   },
 } as const
 
-export async function briefChapter(goal: string, chapterTitle: string, content: string) {
-  const prompt = `You are writing a structured reading note.
-
-READER'S GOAL:
-"${goal}"
+export async function briefChapter(chapterTitle: string, content: string) {
+  // v2: Brief 不再绑 goal / question。Brief 是章节级客观结构化笔记。
+  const prompt = `Produce a structured reading note for a book chapter.
 
 CHAPTER: ${chapterTitle}
 
@@ -996,9 +1220,9 @@ ${content.slice(0, 12000)}
 Output a 4-part brief. STRICT STRUCTURE — NO PROSE:
 
 1. one_sentence: The one-sentence version of this chapter's core claim.
-2. key_claims: Exactly 3 claims the author makes. Each < 180 chars.
-3. example: One concrete example the author uses. < 400 chars.
-4. not_addressed: What the author does NOT address, that the reader might expect. < 300 chars.
+2. key_claims: EXACTLY 3 claims the author makes. Each < 200 chars.
+3. example: One concrete example the author uses. < 500 chars.
+4. not_addressed: What the author does NOT address, that the reader might expect. < 360 chars.
 
 Do not write introductions, summaries, or conclusions.
 Return JSON only.`
@@ -1017,13 +1241,19 @@ Return JSON only.`
 }
 ```
 
-### 8.2 Screen 4B 页面（`app/b/[bookId]/brief/[chapterId]/page.tsx`）
+### 8.2 Brief API（`app/api/brief/route.ts`）
 
-严格渲染 4 段式。**Rule 4**：底部只有一个按钮，不提供返回。
+- 验 auth → 验 chapter 属于 user 的书
+- 查缓存 `vr.briefs.where(chapter_id)`，命中直接返回
+- 否则跑 `briefChapter`，写缓存，返回
+
+### 8.3 BriefPane 组件
+
+按 4 段式渲染。**v2 改动**：底部不再有 "Restate →" 按钮。ResultPane 里只做展示 —— 用户看完可以在左栏切下一章 Brief/Read，或 ← 回 Book Home 问下一个问题。
 
 ```tsx
-<main>
-  <h1>Chapter {seq}: {title}</h1>
+<div className="p-6">
+  <h2>Chapter {seq}: {title}</h2>
 
   <Section label="The one sentence version:">
     <p>{brief.one_sentence}</p>
@@ -1042,191 +1272,73 @@ Return JSON only.`
   <Section label="What the author does NOT address:">
     <p>{brief.not_addressed}</p>
   </Section>
-
-  <Warning>
-    ⚠️ Reading a brief is not understanding. Now you need to do the work.
-  </Warning>
-
-  {/* 只有这一个按钮 */}
-  <Link href={`/b/${bookId}/restate/${chapterId}`}>
-    Now I'll restate this in my own words →
-  </Link>
-</main>
+</div>
 ```
 
 ---
 
-## Phase 9 — Screen 5: Restate + 挑错
+## Phase 9 — ⚠️ Reserved for v1.1: Restate + Check
 
-### 9.1 AI Checker（`lib/ai/checker.ts`）
+> **THIS PHASE IS DEFERRED.** 代码 / 表 / API 全部保留，UI 入口在 v1 不可见。v1.1 重做时作为「AI-assisted active reading」feature。
 
-```typescript
-const CHECK_SCHEMA = {
-  type: 'object',
-  required: ['got_right', 'missed', 'follow_up'],
-  additionalProperties: false,
-  properties: {
-    got_right: { type: 'array', items: { type: 'string' }, maxItems: 5 },
-    missed: { type: 'array', items: { type: 'string' }, maxItems: 5 },
-    follow_up: { type: 'string', maxLength: 200 },
-  },
-} as const
+保留的构件：
+- `vr.restatements` 表（schema 不动）
+- `lib/ai/checker.ts`（"another reader in the room" 版本的 prompt 保留）
+- `app/api/check/route.ts`（端点可调用）
+- `components/RestateScreen.tsx`（文件保留，不挂路由）
 
-export async function checkRestate(
-  chapterContent: string,
-  userRestate: string,
-) {
-  const prompt = `You are a strict but not harsh tutor. A reader has just restated
-a book chapter in their own words. Your job is to check their understanding.
+删除的构件（v2 没有了）：
+- `app/b/[bookId]/restate/[chapterId]/page.tsx`（route 删除）
+- Brief 底部的 "Restate →" 按钮
+- MapScreen / BookHome 里所有指向 restate 的链接
 
-CHAPTER CONTENT:
-${chapterContent.slice(0, 12000)}
-
-READER'S RESTATEMENT:
-${userRestate}
-
-Output:
-1. got_right: Specific points the reader captured correctly (up to 5, each brief)
-2. missed: Important things they missed or misunderstood (up to 5, each 1-2 sentences,
-   be specific — not "you missed some key ideas" but "you didn't mention that the
-   author distinguishes X from Y")
-3. follow_up: ONE optional follow-up question that would deepen understanding,
-   Feynman-style (e.g. "Can you explain X without using the word Y?")
-
-Rules:
-- DO NOT give psychological evaluations ("great try!", "you're doing well")
-- DO NOT paraphrase the chapter — quote or describe specifics
-- If the reader nailed it, got_right can be 3-5 items and missed can be empty[]
-- Be specific. Useless: "you missed some context". Useful: "you didn't mention
-  the author's distinction between observational and experimental data"
-
-Return JSON only.`
-
-  const response = await openai().chat.completions.create({
-    model: 'gpt-4o-mini',
-    response_format: {
-      type: 'json_schema',
-      json_schema: { name: 'check', strict: true, schema: CHECK_SCHEMA },
-    },
-    temperature: 0.3,
-    messages: [{ role: 'user', content: prompt }],
-  })
-
-  return JSON.parse(response.choices[0]?.message?.content ?? '{}')
-}
-```
-
-### 9.2 Screen 5 页面逻辑
-
-```tsx
-'use client'
-export default function RestatePage({ params }: Props) {
-  const [text, setText] = useState('')
-  const [result, setResult] = useState<CheckResult | null>(null)
-
-  async function submit() {
-    if (text.trim().length < 30) return
-    const res = await fetch('/api/check', {
-      method: 'POST',
-      body: JSON.stringify({ chapterId, text }),
-    })
-    setResult(await res.json())
-  }
-
-  if (!result) {
-    return (
-      <main>
-        <h1>Now restate Chapter {seq} in your own words.</h1>
-        <p>Don't paraphrase the AI. Use your own language, your own analogies.</p>
-        <textarea value={text} onChange={(e) => setText(e.target.value)} />
-        <button disabled={text.trim().length < 30} onClick={submit}>
-          Check my understanding →
-        </button>
-      </main>
-    )
-  }
-
-  return (
-    <main>
-      <Section label="Where you got it right:">
-        <ul>{result.got_right.map((s, i) => <li key={i}>✓ {s}</li>)}</ul>
-      </Section>
-      <Section label="Where you missed something important:">
-        <ul>{result.missed.map((s, i) => <li key={i}>✗ {s}</li>)}</ul>
-      </Section>
-      {result.follow_up && (
-        <Section label="Optional follow-up question:">
-          <p>{result.follow_up}</p>
-        </Section>
-      )}
-      <Link href={`/b/${bookId}/map`}>Got it. Next chapter →</Link>
-      <Link href="/library">I'm done with this book</Link>
-    </main>
-  )
-}
-```
+**v1.1 设计预留**：当 restate 回归时，大概率不是强制 gate，而是 BriefPane 底部一个可选 "Restate this" 按钮，进入 restate-in-pane 体验。不是强制跳转。
 
 ---
 
-## Phase 10 — Screen 4A: Read 模式（AI 静默）
-
-**Screen 4A 最后做。** 要写 react-pdf viewer、文字选区监听、侧边栏交互，是整个产品里最复杂的一屏。但优先级最低——因为 Brief + Restate 已经能闭环。
+## Phase 10 — Read 模式（挂在 QuestionResult 右栏）
 
 ### 10.1 PdfViewer 组件
 
 ```tsx
 'use client'
 import { Document, Page, pdfjs } from 'react-pdf'
-pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`
+pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'   // self-hosted in public/
 
-export function PdfViewer({ url, pageRange }: { url: string; pageRange: [number, number] }) {
+export function PdfViewer({ url, initialPage }: { url: string; initialPage: number }) {
   const [numPages, setNumPages] = useState<number>(0)
   return (
-    <div className="pdf-container" onMouseUp={handleSelection}>
-      <Document file={url} onLoadSuccess={({ numPages }) => setNumPages(numPages)}>
-        {Array.from({ length: pageRange[1] - pageRange[0] + 1 }, (_, i) => (
-          <Page key={i} pageNumber={pageRange[0] + i} />
-        ))}
-      </Document>
-    </div>
+    <Document file={url} onLoadSuccess={({ numPages }) => setNumPages(numPages)}>
+      {/* 渲染 initialPage 及之后若干页，用户可滚动 */}
+    </Document>
   )
 }
-
-function handleSelection() {
-  const sel = window.getSelection()?.toString().trim()
-  if (sel && sel.length > 10) {
-    // 通过 context/state 把选中文字传给侧边栏
-    window.dispatchEvent(new CustomEvent('pdf:selection', { detail: sel }))
-  }
-}
 ```
+
+**v2 变化**：Read 不再是独立 page。`<ReadPane>` 拿 chapter 的 page_start，让 PdfViewer 从那一页开始。用户可滚动到相邻章节 —— 不强制限制页码区间。
 
 ### 10.2 Ask API（`app/api/ask/route.ts`）
 
+用户在 Read pane 选中文字 → 右侧 "Highlight & Ask" 按钮激活 → 发 /api/ask。
+
 ```typescript
-// 用户在 Read 模式里选中一段文字 + 点 "Highlight & Ask"
-// 返回 AI 对这一小段的解释
 export async function POST(request: Request) {
-  const { chapterId, selection, question } = await request.json()
-  // ... 检查 auth + goal
-  // prompt: 解释这段话，不要总结整章
-  // return short answer
+  const { bookId, chapterId, selection } = await request.json()
+  // 验 auth + book/chapter 所属
+  // prompt: 解释这段话（只解释选中内容，不总结整章）
+  // 返回短答案
 }
 ```
 
-### 10.3 侧边栏 3 个组件
+### 10.3 ReadPane 组件
 
-- **Highlight & Ask**：用户选中文字 → 显示 inline 按钮 → 点击后发 `/api/ask`
-- **Note to self**：用户写自己的理解，保存到 `notes` 表（新加一张）
-- **Check my understanding**：用户写一段理解 → 发给 `/api/check`（和 Screen 5 共用）
-
-> 为了 MVP 先只做 Highlight & Ask。Note 和 Check 可以放到 v1.1。
+左栏选中、右栏 sidebar 显示历史问答（同现在 v1 的实现）。v2 没变。
 
 ---
 
 ## Phase 11 — /library 页面
 
-登录后用户看自己的书列表。**最简实现**（spec §Login → Library 只要求缩略图 + 标题 + 作者 + 上次进度）。
+登录后用户看书列表。**v2 改动**：链接指向 `/b/[id]`（Book Home），不是老的 `/b/[id]/map`。
 
 ```tsx
 export default async function LibraryPage() {
@@ -1235,11 +1347,10 @@ export default async function LibraryPage() {
   if (!user) redirect('/auth/login')
 
   const db = createAdminClient()
-  const { data: books } = await db
-    .from('books')
+  const { data: books } = await db.from('books')
     .select(`
       id, title, author, page_count, created_at,
-      restatements ( chapter_id, created_at )
+      questions(id, created_at)
     `)
     .eq('owner_id', user.id)
     .order('created_at', { ascending: false })
@@ -1248,11 +1359,11 @@ export default async function LibraryPage() {
     <main>
       <h1>Your Library</h1>
       {books?.map((b) => (
-        <Link key={b.id} href={`/b/${b.id}/map`}>
+        <Link key={b.id} href={`/b/${b.id}`}>
           <div>
             <h3>{b.title}</h3>
             <p>{b.author}</p>
-            <p>Last active: {lastActive(b.restatements)}</p>
+            <p>{b.questions?.length ?? 0} questions asked · last {lastActive(b.questions)}</p>
           </div>
         </Link>
       ))}
@@ -1261,91 +1372,78 @@ export default async function LibraryPage() {
 }
 ```
 
-不做：搜索、标签、筛选、统计图表、分享。
+不做：搜索、标签、筛选、统计、分享。
 
 ---
 
 ## Phase 12 — Session PDF 24h 清理 Cron
 
+**v2 不变**：session book 机制仍在（upload 之前 / claim 之前的 book）。
+
 ### 12.1 `vercel.json`
 
 ```json
 {
-  "crons": [
-    { "path": "/api/cron/cleanup", "schedule": "0 1 * * *" }
-  ]
+  "crons": [{ "path": "/api/cron/cleanup", "schedule": "0 1 * * *" }]
 }
 ```
-
-Hobby plan 只支持每日一次，够用。
 
 ### 12.2 Cleanup Route
 
 ```typescript
-// app/api/cron/cleanup/route.ts
 export async function GET(request: Request) {
   if (request.headers.get('authorization') !== `Bearer ${process.env.CRON_SECRET}`) {
     return new Response('Unauthorized', { status: 401 })
   }
-
   const db = createAdminClient()
   const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
 
-  // 找所有未认领且过期的 session books
-  const { data: orphans } = await db
-    .from('books')
+  const { data: orphans } = await db.from('books')
     .select('id, storage_path')
     .is('owner_id', null)
     .lt('created_at', cutoff)
 
-  // 删 Storage
   if (orphans && orphans.length > 0) {
     await db.storage.from('vr-docs').remove(orphans.map((b) => b.storage_path))
     await db.from('books').delete().in('id', orphans.map((b) => b.id))
   }
-
   return Response.json({ deleted: orphans?.length ?? 0 })
 }
 ```
 
 ---
 
-## Phase 13 — Vercel 部署（一次性，已在 Phase 1 末尾做完）
+## Phase 13 — Vercel 部署
 
-**照 STANDARD §11 Phase 2 的节奏，Vercel 首次部署在 Phase 1 landing 做出来就触发了，不是等业务写完才部。**之后每次 `git push main` Vercel 自动 redeploy——Phase 2 起的所有代码都是一边写一边上线迭代，不存在"大部署日"。
+**v2 不变**。首次部署在 Phase 1 landing 可见就触发，之后每 push 自动 redeploy。
 
-### 13.1 首次部署（Phase 1 之后 / 业务代码开始之前）
+### 13.1 首次部署
 
 ```
 [Human] Vercel Dashboard → New Project → Import Git Repository → vibe-reading
-[Human] Framework: Next.js (自动检测) → Deploy（先失败也没关系，粘 env 后会修复）
-[Human] Settings → Environment Variables → "Paste .env" tab：
-        从本地 .env.local 粘进去（GITHUB_TOKEN 不要粘）
-[Human] 改 NEXT_PUBLIC_APP_URL = 生产 URL（https://<project>.vercel.app）
+[Human] Framework: Next.js → Deploy
+[Human] Settings → Environment Variables → "Paste .env" 粘凭据（GITHUB_TOKEN 除外）
+[Human] NEXT_PUBLIC_APP_URL = 生产 URL
 [Human] Deployments → 最新 → Redeploy（让 env 生效）
-[Human] 打开线上 URL 验证 landing 渲染 → runtime OK
+[Human] 打开线上 URL 实测 landing
 ```
 
 ### 13.2 Build Command
 
-用 **默认** `next build`（Supabase-only，无 Prisma）。不用改。
+默认 `next build`。不改。
 
-### 13.3 OAuth Redirect URL（上线后一次性加）
-
-生产 URL 确定之后（`https://<project>.vercel.app`）：
+### 13.3 OAuth Redirect URL（上线后）
 
 ```
 [Human] Supabase Dashboard → Auth → URL Configuration → Redirect URLs
-        加一条 `https://<your-domain>/auth/callback`
+        加 `https://<your-domain>/auth/callback`
 ```
 
-Google Cloud Console 那侧**不用动** —— 我们 OAuth Client 的 Authorized redirect URIs 配的是 `https://<supabase-ref>.supabase.co/auth/v1/callback`（Supabase 侧回调），跟 Vercel 域名无关。
+Google Cloud Console **不用动** —— redirect URI 配的是 Supabase 侧。
 
 ### 13.4 后续每次 push 即部署
 
-`git push main` → Vercel 自动构建 + 替换生产 deployment。不需要额外操作。
-
-Env vars 改了要 **手动 Redeploy**（Dashboard → Deployments → `⋯` → Redeploy 或推一个空 commit），这是 Vercel 的硬约束（STANDARD §5.1.2）。
+`git push main` → 自动构建 + 部署。Env vars 改了要手动 Redeploy。
 
 ---
 
@@ -1353,16 +1451,19 @@ Env vars 改了要 **手动 Redeploy**（Dashboard → Deployments → `⋯` →
 
 | 坑 | 原因 | 解法 |
 |----|------|------|
-| Supabase Storage bucket 公开了 | 默认 public | 建 bucket 时选 private；用 signed URL 提供访问 |
-| PDF 解析 OOM | 大 PDF 一次加载全部文本 | 限制 50MB，流式解析，章节切分后才存数据库 |
-| 章节切分全炸 | 书没有清晰的"Chapter N" 标题 | 用 fallback split 按段落切；未来用 AI 切分（v1.1） |
-| Screen 3 AI 超时 | 一次把全书内容塞进 prompt | 只传章节标题 + 前 500 字（见 `ChapterInput`） |
-| Rule 1 被绕过 | 用户直接访问 `/b/xxx/map` 跳过 goal | middleware / 页面组件第一步检查 goal，没有就 redirect |
-| Rule 3 Brief 输出散文 | 没用 JSON schema | 用 OpenAI `response_format: json_schema` + strict |
-| Rule 4 用户点浏览器返回逃跑 | 浏览器返回总是能用 | 接受这个——不强行拦浏览器返回，但 UI 不提供按钮 |
-| 登录后丢失 map 上下文 | callback 直接跳 /library | callback 必须用 `?next=` 参数回原路径 |
-| Session book 孤儿堆积 | 24h cron 没跑 | 每周检查一次 Vercel Cron 日志；用 SQL 算孤儿数 |
-| PDF viewer worker 报错 | `pdfjs.GlobalWorkerOptions.workerSrc` 没设 | 用 CDN worker（见 Phase 10.1）|
+| Supabase Storage 公开 | 默认 public | 建 bucket 选 private，用 signed URL |
+| PDF 解析 OOM | 大 PDF 全加载 | 限制 50MB，流式解析 |
+| PDF 没 outline | 老书 / 扫描版 | `extractOutline` 返回 null → 走 splitIntoChaptersRegex fallback |
+| 章节切分 fallback 全炸 | 没 "Chapter N" 标题 | size-based fallback (~10k 字/段，最多 50 段) |
+| Relevance AI 超时 | 把全章内容塞 prompt | 只传 TOC + 每章 600 字 first paragraph |
+| Rule 1 被绕过 | 用户直接访问 `/b/xxx/q/yyy` 跳过 question 输入 | 页面第一步验 question 属于这本书的 user；否则 redirect `/b/xxx` |
+| Rule 2 AI 输出摘要 | prompt 不够狠 | 反复迭代 prompt，加 BAD / GOOD 例子对照 |
+| Rule 3 Brief 散文 | 没用 JSON schema | OpenAI `response_format: json_schema` + strict |
+| Intake AI 卡住整个 upload | 同步跑 | 可接受（总时长 ~10-15s）；若需异步：后续版本切 background job |
+| Meta 问题无章节匹配 | Relevance 强行套章节 | prompt 允许返回 `chapter_id: null`（book-level） |
+| 登录后丢失 book 上下文 | callback 直接跳 `/library` | callback 必须读 `?next=` 参数 |
+| PDF worker 报错 | `workerSrc` 没设 | self-host pdf.worker.min.mjs 在 public/ |
+| Session book 孤儿 | 24h cron 没跑 | 每周查 Vercel Cron 日志 |
 
 ---
 
@@ -1374,7 +1475,7 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 
-# OpenAI (Phase 6, 8, 9, 10)
+# OpenAI (Phase 4, 6, 8, 10)
 OPENAI_API_KEY=
 
 # App
@@ -1384,10 +1485,6 @@ NEXT_PUBLIC_APP_URL=
 CRON_SECRET=
 ```
 
-> 无 `DATABASE_URL`（Supabase-only）
-> 无 Stripe 变量（开源，MVP 全免费）
-> 无 Resend（MVP 不发邮件；未来加 magic link 或 digest 再加）
-
 ---
 
 ## 新项目 Checklist
@@ -1396,87 +1493,89 @@ CRON_SECRET=
 □ npx create-next-app vibe-reading --typescript --tailwind --app
 □ npx shadcn@latest init
 □ npm install @supabase/supabase-js @supabase/ssr unpdf react-pdf openai
-□ 复用 launchradar 的 Supabase project —— 从 launchradar/.env.local 复制 URL / anon key / service role key
-□ 实现 Phase 1: Landing + UploadDropzone + SessionId cookie + Scaffold §2.5 清理
-□ ✨ 首次 Vercel 部署（Import repo + Paste .env + 生产 URL 实测 landing）—— 早部，后续每 push 自动 redeploy
-□ 配置 Supabase Redirect URLs 白名单加生产 URL（供 OAuth 回跳用）
-□ Supabase Dashboard → Project Settings → API → Exposed schemas 里加 `vr` → Save
-□ Storage bucket `vr-docs`：Phase 4 实现上传时再建
-□ 跑 Phase 2 的 SQL（在 `vr` schema 下建所有表 + 启用 RLS + policies）
-□ 跑 npm run db:types 生成 TypeScript 类型（记得 `--schema vr`）
-□ 创建 lib/supabase/client.ts + server.ts + admin.ts（照 STANDARD 3.1 + §3.0 的 `db: { schema: 'vr' }` 配置）
-□ 创建 middleware.ts（Phase 3.2 的变体）
-□ 创建 app/auth/login + register + callback（Phase 3.4 + 3.5）
-□ 实现 Phase 4: /api/upload + PDF parser + 章节切分
-□ 实现 Phase 5: Screen 2 goal 输入 + Rule 1 硬卡点
-□ 实现 Phase 6: Screen 3 三色映射 + Rule 2 prompt 约束
-□ 实现 Phase 7: LoginModal + /api/claim + lib/auth/claim.ts + callback 内联 claim
-□ 实现 Phase 8: Screen 4B Brief + JSON schema 强制
-□ 实现 Phase 9: Screen 5 Restate + 挑错
-□ 端到端实测（一次性，批量）：Upload → Goal → Map → Login → Brief → Restate → Library
-□ 实现 Phase 11: /library
-□ 实现 Phase 12: cron cleanup + vercel.json
-□ 实现 Phase 10: Screen 4A Read 模式（可选，MVP 不强求）
-□ （以下三项由 bash stack/new-project.sh 在初始化时自动完成）
-  □ 复制 sprint-report.yml + notify-playbook.yml → .github/workflows/
-  □ 更新 notify-playbook.yml 中的 project_id = "vibe-reading"
+□ 复用 launchradar Supabase project：从 launchradar/.env.local 复制凭据
+□ Phase 1: Landing + UploadDropzone + SessionId cookie + STANDARD §2.5 清理
+□ ✨ 首次 Vercel 部署（Paste .env + 实测 landing）
+□ Supabase Redirect URLs 加生产 URL
+□ Dashboard → Data API → Exposed schemas 加 `vr` → Save
+□ Storage bucket `vr-docs`：Phase 4 创建时用
+□ Phase 2: SQL 在 vr schema 建表 + RLS + policies
+□ npm run db:types 生成类型
+□ Phase 3: Auth（middleware 保护整个 /b/*）
+□ Phase 4: Upload API + lib/pdf/outline.ts + lib/pdf/parser.ts + lib/ai/intake.ts
+□ Phase 5: Book Home（/b/[id] page + BookHomeScreen + /api/question）
+□ Phase 6: Question Result + QuestionResultScreen + ChapterListPane + lib/ai/relevance.ts
+□ Phase 7: LoginModal + /api/claim + callback 内联 claim
+□ Phase 8: BriefPane + /api/brief + lib/ai/briefer.ts
+□ Phase 10: ReadPane + PdfViewer + /api/ask + lib/ai/asker.ts
+□ 端到端实测：Upload → Login → Book Home → Ask → Result → Brief / Read
+□ Phase 11: /library
+□ Phase 12: cron cleanup + vercel.json
+□ new-project.sh 已处理：sprint-report.yml + notify-playbook.yml
 □ GitHub Secrets 加 PLAYBOOK_TOKEN
 ```
+
+> **Phase 9 (Restate) 跳过** —— Reserved for v1.1。代码 / 表保留，UI 不挂。
 
 ---
 
 ## 成功判定
 
-参照 `ideas/vibe-reading.md` §Success Criteria：
+参照 `docs/vibe-reading.md` §Success Criteria：
 
-**Week 1**：作者自测 — 用这个 MVP 读完 1 本自己真想读的书。如果比 ChatPDF / NotebookLM 差 → MVP 失败，回炉。
+**Week 1**：作者自测 —— 用 MVP 读完 1 本自己真想读的书。比 ChatPDF / NotebookLM 差 → 回炉。
 
-**Week 2-4**：5-10 个朋友试用 — 看他们在 Screen 2 写得出需求吗？在 Screen 5 真的会打字复述吗？如果大部分人跳过 Screen 2 或 Screen 5，说明方法论太理想化，重新设计。
+**Week 2-4**：5-10 个朋友试用 —— 看他们在 Book Home 输入框写得出问题吗？用的是自己的问题还是 AI 推荐的？大部分人卡住 → 方法论太理想化，重新设计。
 
 ---
 
-## Human Work Budget
+## Human Work Budget (v2)
 
-按 STANDARD §11 的 **5-Phase 顺序**排所有 🙋 步骤。**Vercel 首次部署在 Phase 2**（landing 一可见就部），不等 Auth 写完。格式参照 STANDARD §10.5。
+按 STANDARD §11 的 5-Phase 顺序。
 
 | STD Phase | 🙋 Step | Time | 备注 |
 |---|---|---|---|
-| 0 | GitHub repo → Settings → Secrets → 加 `PLAYBOOK_TOKEN` | 30 sec | 一次性；`new-project.sh` 之后 |
-| 0→1 | 从 `launchradar/.env.local` 拷 Supabase / OpenAI / CRON_SECRET 凭据到本 repo 的 `.env.local` | 1 min | 复用现有 Supabase project |
-| 1 | _Phase 1 全 🤖_（scaffold 清理 + landing 都由 Claude 写）| — | |
-| **2** | **Vercel Dashboard → Import repo → "Paste .env" 粘贴 → Deploy** | 3 min | **landing 一可见就部，不等 DB/Auth** |
-| 2 | 打开线上 URL 实测 landing 页渲染（Deploy Ready ≠ runtime OK）| 1 min | 只测 `/`；其他路由暂未写 |
-| 3 | Supabase SQL Editor 粘 `vr` schema SQL → Run and enable RLS | 2 min | 🤖 产出 SQL |
-| 3 | Dashboard → Data API → Exposed schemas 加 `vr` → Save | 1 min | 不加 supabase-js 会 404 |
-| 3 | `npx supabase login`（浏览器 OAuth + terminal verification code）| 2 min | 首次 / token 过期 |
-| 3 | Google Cloud Console → `Dong's Indie Project` 建 OAuth Client `vibe-reading` + redirect URI | 3 min | Consent Screen 已存在，复用 |
-| 3 | Supabase Auth → Providers → Google toggle ON + 粘 Client ID/Secret → Save | 2 min | 本 Supabase project Google 首次启用 |
-| 3 | 浏览器实测 Email 注册 / 登录 / Google OAuth / middleware redirect | 5 min | |
-| 4 | — | 0 | vibe-reading 是开源 MVP，无付费，整个 Phase 4 跳过 |
-| 5-N | 每 Phase 完 `git push` → Vercel 自动 redeploy → 浏览器走本 phase user flow | ~3 min × 业务 phase 数 | 业务 phase 约 8-10 个（Goal/Map/Brief/Restate/...）|
-| 上线后 | Google OAuth Client + Supabase Auth Redirect URLs 加生产 URL | 3 min | 一次性，首次 prod deploy 之后 |
+| 0 | GitHub repo → Secrets 加 `PLAYBOOK_TOKEN` | 30s | |
+| 0→1 | 从 launchradar 拷 Supabase / OpenAI / CRON_SECRET 到 .env.local | 1 min | |
+| 1 | Phase 1 全 🤖 | — | |
+| **2** | Vercel Dashboard → Import repo → Paste .env → Deploy | 3 min | landing 可见就部 |
+| 2 | 线上 URL 实测 landing 渲染 | 1 min | |
+| 3 | Supabase SQL Editor 跑 vr schema SQL | 2 min | 🤖 产出 SQL |
+| 3 | Data API → Exposed schemas 加 `vr` → Save | 1 min | |
+| 3 | `npx supabase login` | 2 min | |
+| 3 | Google Cloud Console → OAuth Client + redirect URI | 3 min | |
+| 3 | Supabase Auth → Google toggle ON + 粘 Client ID/Secret | 2 min | |
+| 3 | 浏览器测 Email / Google / middleware redirect | 5 min | |
+| 4 | — | 0 | 无付费 |
+| 5-N | 每 Phase push → Vercel 自动 redeploy → 浏览器走 user flow | ~3 min × phase | v2 业务 phase 约 7 个 |
+| 上线后 | Google OAuth + Supabase Redirect URL 加生产 URL | 3 min | 首次 prod deploy 后 |
 
-### Total 估算
+### Total 估算 (v2)
 
-- **Setup (Phases 0-3)**：约 **20 min** 人工（基于复用 launchradar Supabase + `Dong's Indie Project` GCP Consent Screen）
-- **Per business phase**：约 **3 min / phase**
-- **全 MVP（假设 10 业务 phases）**：~20 min setup + ~30 min phase testing = **约 50 min 总人工时间**
-- **上线后一次性**：+3 min（生产 URL 添加到 OAuth/Supabase redirect 白名单）
+- **Setup (Phase 0-3)**：~20 min
+- **Per business phase**：~3 min
+- **全 MVP (7 业务 phase)**：~20 min setup + ~21 min phase testing = **~40 min 总人工时间**
+- **上线后一次性**：+3 min
 
-### 全新基础设施的额外成本
+### 全新基础设施额外成本
 
-不复用任何现有 infra 时：
-- 新 Supabase project：+10 min（建 project + 拿 keys）
-- 新 GCP project + OAuth Consent Screen：+10 min
-- 合计额外约 **+20 min**
+新 Supabase project + 新 GCP OAuth：**+20 min**
 
 ### 每次 schema 改动
 
-`git commit` 后你约 2 min（Schema SQL 粘 Editor + `npm run db:types` 让 Claude 跑）。
+~2 min（SQL 粘 Editor + `npm run db:types`）
 
-### 不在预算内
+### v1 → v2 迁移（已做过一次，记录留档）
 
-朋友试用反馈收集、自用时长、bug 修复节奏——这些是运维成本，不是 setup 成本。
+- drop `vr.goals` + `vr.chapter_maps`
+- drop `vr.briefs` 重建（unique 改 chapter_id）
+- 给 `vr.books` 加 toc / overview / suggested_questions
+- 给 `vr.chapters` 加 level
+- 建 `vr.questions` + `vr.question_chapters`
+- 4 本测试书：让用户重新上传（最简单）
+- 删老 page：`/goal`、`/map`、`/brief/[cid]`、`/read/[cid]`、`/restate/[cid]`
+- 删老 API：`/api/goal`、`/api/map`
+- 删老 lib：`lib/ai/mapper.ts`
 
 ---
 
