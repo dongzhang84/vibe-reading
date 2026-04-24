@@ -4,6 +4,8 @@ A reading tool that refuses to summarize the book before you tell it why you're 
 
 一个拒绝替你总结全书的读书工具——除非你先告诉它你为什么要读。
 
+![Vibe Reading product flow](./diagram/product-flow/diagram.svg)
+
 ## Philosophy
 
 > The bottleneck of learning is not information transfer, but information compression. AI cannot do the compression for you — compression must happen in your brain, using your existing cognition as hooks.

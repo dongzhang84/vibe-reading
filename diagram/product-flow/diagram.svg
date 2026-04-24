@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 680 730" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', 'Segoe UI', sans-serif">
+<style>
+:root { --fg: #111827; --fg-muted: #6b7280; --fg-soft: #9ca3af; --bg: #ffffff; --layer-bg: #f9fafb; --layer-stroke: #e5e7eb; --divider: #e5e7eb; --accent: #fb7185; --accent-bg: #fff1f2; --accent-stroke: #fca5b1; }
+@media (prefers-color-scheme: dark) { :root { --fg: #f3f4f6; --fg-muted: #9ca3af; --fg-soft: #6b7280; --bg: #0b0f17; --layer-bg: #1f2937; --layer-stroke: #374151; --divider: #374151; --accent: #fda4af; --accent-bg: #3f1d24; --accent-stroke: #9f1239; } }
+.bg { fill: var(--bg); }
+.layer { fill: var(--layer-bg); stroke: var(--layer-stroke); stroke-width: 1.2; }
+.layer-key { fill: var(--accent-bg); stroke: var(--accent-stroke); stroke-width: 1.4; }
+.layer-dashed { fill: var(--bg); stroke: var(--layer-stroke); stroke-width: 1.2; stroke-dasharray: 6 4; }
+.title { font-size: 18px; font-weight: 600; fill: var(--fg); }
+.subtitle { font-size: 12px; font-weight: 400; fill: var(--fg-muted); }
+.t { font-size: 14px; font-weight: 400; fill: var(--fg); }
+.th { font-size: 14px; font-weight: 600; fill: var(--fg); }
+.ts { font-size: 12px; font-weight: 400; fill: var(--fg-muted); }
+.eyebrow { font-size: 12px; font-weight: 500; fill: var(--fg-soft); letter-spacing: 0.08em; }
+.eyebrow-accent { fill: var(--accent); }
+.caption { font-size: 12px; font-weight: 400; fill: var(--fg-muted); }
+.caption-strong { font-size: 14px; font-weight: 500; fill: var(--fg); }
+.divider { stroke: var(--divider); stroke-width: 1; }
+.divider-accent { stroke: var(--accent-stroke); stroke-width: 1; }
+.arr { stroke: var(--fg-soft); stroke-width: 1.5; fill: none; marker-end: url(#arrow); }
+.arr-accent { stroke: var(--accent-stroke); stroke-width: 1.5; fill: none; marker-end: url(#arrow-accent); }
+.arrow-head { fill: var(--fg-soft); }
+.arrow-head-accent { fill: var(--accent-stroke); }
+</style>
+<defs>
+  <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M 0 0 L 10 5 L 0 10 z" class="arrow-head"/>
+  </marker>
+  <marker id="arrow-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M 0 0 L 10 5 L 0 10 z" class="arrow-head-accent"/>
+  </marker>
+</defs>
+
+<rect class="bg" x="0" y="0" width="680" height="730"/>
+
+<text class="title" x="60" y="42">Vibe Reading — Product Flow</text>
+<text class="subtitle" x="60" y="64">A reading tool that refuses to summarize until you tell it why you are reading</text>
+
+<rect class="layer" x="120" y="100" width="480" height="60" rx="8"/>
+<text class="th" x="360" y="128" text-anchor="middle">1. Upload &amp; Sign in</text>
+<text class="ts" x="360" y="148" text-anchor="middle">PDF in · book is bound to the user account</text>
+
+<line class="arr" x1="360" y1="160" x2="360" y2="240"/>
+<text class="caption" x="360" y="200" text-anchor="middle">Backend builds TOC + overview + 3 starter questions</text>
+
+<rect class="layer-key" x="120" y="240" width="480" height="130" rx="8"/>
+<text class="th" x="142" y="270">2. Book Home</text>
+<text class="ts" x="142" y="290">The gate — content is unlocked only by a question</text>
+<text class="t" x="142" y="320">• Table of contents (the book&#39;s shape)</text>
+<text class="t" x="142" y="342">• “What do you want to know?” input</text>
+<text class="t" x="142" y="364">• 3 AI suggestions · past questions reopenable</text>
+<text class="eyebrow eyebrow-accent" x="578" y="270" text-anchor="end">→ READER MUST ASK FIRST</text>
+
+<line class="arr-accent" x1="360" y1="370" x2="360" y2="410"/>
+<text class="caption" x="368" y="392" text-anchor="start">submit a question</text>
+
+<rect class="layer" x="120" y="410" width="480" height="110" rx="8"/>
+<text class="th" x="142" y="438">3. Question Result</text>
+<text class="ts" x="142" y="458">Map, then content</text>
+<text class="t" x="142" y="486">Left pane: matched chapters + a one-line reason each</text>
+<text class="t" x="142" y="508">Right pane: [Brief] structured summary · [Read] PDF at chapter</text>
+
+<path class="arr" d="M 360 520 V 540 H 90 V 305 H 120" fill="none"/>
+<text class="caption" x="225" y="557" text-anchor="middle">← back to ask another question</text>
+
+<rect class="layer-dashed" x="120" y="575" width="480" height="80" rx="8"/>
+<text class="th" x="142" y="601">(Reserved · v1.1)  Interactive Restate</text>
+<text class="ts" x="142" y="621">Code, schema, API kept · UI hidden in v1</text>
+<text class="t" x="142" y="643">Returning later as “AI-assisted active reading”</text>
+
+<text class="caption-strong" x="60" y="687">Compression must happen in the reader&#39;s head.</text>
+<text class="caption" x="60" y="709">AI maps the chapters and offers angles — it does not compress for you.</text>
+</svg>
