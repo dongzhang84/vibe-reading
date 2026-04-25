@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-04-25 01:52 UTC  
+**Generated:** 2026-04-25 01:56 UTC  
 **Showing:** last 1 week(s) of 1 total  
 
 ---
@@ -11,11 +11,11 @@
 |------|-------|
 | Status | ⚠️ Slow |
 | Active days | 4 / 7 |
-| Total commits | 34 |
+| Total commits | 35 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| ⚪ | **2** | **10** | **13** | **9** | ⚪ | ⚪ |
+| ⚪ | **2** | **10** | **13** | **10** | ⚪ | ⚪ |
 
 **Tue – Tuesday, Apr 21**
 
@@ -53,6 +53,7 @@
 
 **Fri – Friday, Apr 24**
 
+- `8599d0b` chore: add M1 smoke test (curl /api/upload + verify book row shape) — _dongzhang84_ `2026-04-24 18:56`
 - `041c235` M1: schema-aware Upload + Intake AI + Book Home (v2) — _dongzhang84_ `2026-04-24 18:52`
 - `7402289` chore: add v2 schema probe script — _dongzhang84_ `2026-04-24 18:44`
 - `03c92bf` docs: clarify Phase 2 SQL — split into Path A (fresh) and Path B (v1→v2 upgrade) — _dongzhang84_ `2026-04-24 18:40`
