@@ -283,7 +283,12 @@ export async function getSessionId(): Promise<string | null> {
 
 ## Phase 2 — 数据库 Schema (v2)
 
-**在 Supabase Dashboard → SQL Editor 直接跑下面的 SQL。**
+**在 Supabase Dashboard → SQL Editor 跑 SQL。下面有两条互斥路径，按你的状态选 ONE：**
+
+| 你的状态 | 跑哪段 |
+|---|---|
+| 全新 DB，没有 vr schema | **Path A** —— 完整建表脚本 |
+| 已有 v1 schema（goals / chapter_maps / 旧 briefs / 老书数据） | **Path B** —— 升级迁移脚本 |
 
 **约定（遵循 STANDARD.md §4.1）**：
 - 所有表放在 `vr` schema
@@ -291,7 +296,9 @@ export async function getSessionId(): Promise<string | null> {
 - API route 第一行仍必须验证 auth（Layer 1）
 - 后端 admin client 用 service_role key 绕过 RLS
 
-> **v1 → v2 迁移**：老 schema 有 `vr.goals` 和 `vr.chapter_maps`，新 schema 用 `vr.questions` + `vr.question_chapters` 取代。现有 4 本测试书：drop 老表重建即可（反正老 brief 数据也失效了）。生产迁移脚本在 §Phase 2 末尾。
+---
+
+### Path A — Fresh install（没有 vr schema 时用）
 
 ```sql
 -- 重置：线下/测试用
@@ -432,31 +439,107 @@ grant all on all sequences in schema vr to service_role;
 grant select, insert, update, delete on all tables in schema vr to authenticated;
 ```
 
-### v1 → v2 迁移（生产环境跑一次）
+---
+
+### Path B — v1 → v2 upgrade（已有 v1 schema 时用）
+
+**这段 SQL 是完整的 —— 粘贴一次跑完，不用再去看 Path A**：
 
 ```sql
--- 已有 4 本测试书。把老表 drop，books 加新列。
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Vibe Reading v1 → v2 schema migration (single block, runnable as-is)
+-- 在 Supabase Dashboard → SQL Editor 粘贴 → Cmd/Ctrl+Enter
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- 1. books 加 v2 列
 alter table vr.books add column if not exists toc jsonb;
 alter table vr.books add column if not exists overview text;
 alter table vr.books add column if not exists suggested_questions jsonb;
+
+-- 2. chapters 加 level
 alter table vr.chapters add column if not exists level int default 1;
 
--- 老 brief 的 goal_id 不再需要。数据量小，全删重生成
-drop table if exists vr.briefs cascade;
--- (briefs 表用 v2 schema 重建，见上)
-
--- 老表丢掉
+-- 3. drop 老表（cascade 自动清依赖行：briefs.goal_id / chapter_maps.goal_id）
 drop table if exists vr.chapter_maps cascade;
 drop table if exists vr.goals cascade;
+drop table if exists vr.briefs cascade;        -- 老 briefs 用 (chapter_id, goal_id)，要全清重建
 
--- 建新表
--- (vr.questions + vr.question_chapters 用 v2 schema 建，见上)
+-- 4. NEW: questions
+create table vr.questions (
+  id uuid primary key default gen_random_uuid(),
+  book_id uuid not null references vr.books(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  text text not null,
+  created_at timestamptz default now()
+);
+create index on vr.questions (book_id, created_at desc);
+create index on vr.questions (user_id);
+alter table vr.questions enable row level security;
+create policy "own questions" on vr.questions for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+-- 5. NEW: question_chapters
+create table vr.question_chapters (
+  id uuid primary key default gen_random_uuid(),
+  question_id uuid not null references vr.questions(id) on delete cascade,
+  chapter_id uuid references vr.chapters(id) on delete cascade,    -- nullable for book-level
+  reason text not null,
+  rank int not null,
+  created_at timestamptz default now(),
+  unique (question_id, chapter_id)
+);
+create index on vr.question_chapters (question_id, rank);
+alter table vr.question_chapters enable row level security;
+create policy "own question_chapters" on vr.question_chapters for all
+  using (question_id in (select id from vr.questions where user_id = auth.uid()))
+  with check (question_id in (select id from vr.questions where user_id = auth.uid()));
+
+-- 6. RECREATE: briefs (v2 unique 改成 chapter_id，drop 老 goal_id 列)
+create table vr.briefs (
+  id uuid primary key default gen_random_uuid(),
+  chapter_id uuid not null references vr.chapters(id) on delete cascade,
+  one_sentence text not null,
+  key_claims jsonb not null,
+  example text not null,
+  not_addressed text not null,
+  created_at timestamptz default now(),
+  unique (chapter_id)
+);
+alter table vr.briefs enable row level security;
+create policy "own briefs" on vr.briefs for all
+  using (chapter_id in (
+    select c.id from vr.chapters c
+    join vr.books b on b.id = c.book_id
+    where b.owner_id = auth.uid()
+  ))
+  with check (chapter_id in (
+    select c.id from vr.chapters c
+    join vr.books b on b.id = c.book_id
+    where b.owner_id = auth.uid()
+  ));
+
+-- 7. 再保险 grants
+grant all on all tables in schema vr to service_role;
+grant all on all sequences in schema vr to service_role;
+grant select, insert, update, delete on all tables in schema vr to authenticated;
 ```
 
-**运行迁移后**：4 本测试书的 `toc / overview / suggested_questions` 都是 null —— 需要对每本书跑一次 `lib/ai/intake.ts` 回填（写个 `scripts/backfill-intake.ts` 脚本，或让用户重新上传）。最简单：测试书直接 delete 让用户重传。
+**Path B 跑完后再单独跑这段，清掉 v1 的老书数据**（老 books 的 toc/overview/suggested_questions 是 null，新代码渲染会很尴尬；最简单删了让用户重传）：
 
-跑完 SQL 后：
-1. STANDARD §3.7.3 把 `vr` 加到 Exposed Schemas
+```sql
+-- chapters / restatements / questions / question_chapters / briefs
+-- 都靠 books cascade 自动清
+delete from vr.books;
+```
+
+⚠️ **Storage 里的老 PDF 文件 SQL 删不掉**，要去 Supabase Dashboard → Storage → `vr-docs` bucket → 全选 → Delete 手动清。
+
+---
+
+### 跑完 SQL 后（两条 path 共同步骤）
+
+1. STANDARD §3.7.3 把 `vr` 加到 Exposed Schemas（Path A 首次配置时；Path B 一般之前已加过）
 2. STANDARD §3.7.5 探针脚本验证（service_role ✅ / anon blocked）
 3. `npm run db:types` 生成类型
 
