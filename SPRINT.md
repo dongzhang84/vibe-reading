@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-04-25 00:49 UTC  
+**Generated:** 2026-04-25 01:40 UTC  
 **Showing:** last 1 week(s) of 1 total  
 
 ---
@@ -11,11 +11,11 @@
 |------|-------|
 | Status | ⚠️ Slow |
 | Active days | 4 / 7 |
-| Total commits | 31 |
+| Total commits | 32 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| ⚪ | **2** | **10** | **13** | **6** | ⚪ | ⚪ |
+| ⚪ | **2** | **10** | **13** | **7** | ⚪ | ⚪ |
 
 **Tue – Tuesday, Apr 21**
 
@@ -53,6 +53,7 @@
 
 **Fri – Friday, Apr 24**
 
+- `03c92bf` docs: clarify Phase 2 SQL — split into Path A (fresh) and Path B (v1→v2 upgrade) — _dongzhang84_ `2026-04-24 18:40`
 - `6e3579c` docs: add technical pipeline diagram to implementation guide — _dongzhang84_ `2026-04-24 17:48`
 - `cfc070e` docs: rewrite implementation guide for v2 question-driven flow — _dongzhang84_ `2026-04-24 16:43`
 - `282f9bb` docs: move flow diagram below Philosophy in README — _dongzhang84_ `2026-04-24 16:12`
