@@ -19,31 +19,40 @@ export type Database = {
           author: string | null
           created_at: string | null
           id: string
+          overview: string | null
           owner_id: string | null
           page_count: number | null
           session_id: string | null
           storage_path: string
+          suggested_questions: Json | null
           title: string
+          toc: Json | null
         }
         Insert: {
           author?: string | null
           created_at?: string | null
           id?: string
+          overview?: string | null
           owner_id?: string | null
           page_count?: number | null
           session_id?: string | null
           storage_path: string
+          suggested_questions?: Json | null
           title: string
+          toc?: Json | null
         }
         Update: {
           author?: string | null
           created_at?: string | null
           id?: string
+          overview?: string | null
           owner_id?: string | null
           page_count?: number | null
           session_id?: string | null
           storage_path?: string
+          suggested_questions?: Json | null
           title?: string
+          toc?: Json | null
         }
         Relationships: []
       }
@@ -52,7 +61,6 @@ export type Database = {
           chapter_id: string
           created_at: string | null
           example: string
-          goal_id: string
           id: string
           key_claims: Json
           not_addressed: string
@@ -62,7 +70,6 @@ export type Database = {
           chapter_id: string
           created_at?: string | null
           example: string
-          goal_id: string
           id?: string
           key_claims: Json
           not_addressed: string
@@ -72,7 +79,6 @@ export type Database = {
           chapter_id?: string
           created_at?: string | null
           example?: string
-          goal_id?: string
           id?: string
           key_claims?: Json
           not_addressed?: string
@@ -82,67 +88,8 @@ export type Database = {
           {
             foreignKeyName: "briefs_chapter_id_fkey"
             columns: ["chapter_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "chapters"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "briefs_goal_id_fkey"
-            columns: ["goal_id"]
-            isOneToOne: false
-            referencedRelation: "goals"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      chapter_maps: {
-        Row: {
-          book_id: string
-          chapter_id: string
-          created_at: string | null
-          goal_id: string
-          id: string
-          reason: string
-          verdict: string
-        }
-        Insert: {
-          book_id: string
-          chapter_id: string
-          created_at?: string | null
-          goal_id: string
-          id?: string
-          reason: string
-          verdict: string
-        }
-        Update: {
-          book_id?: string
-          chapter_id?: string
-          created_at?: string | null
-          goal_id?: string
-          id?: string
-          reason?: string
-          verdict?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "chapter_maps_book_id_fkey"
-            columns: ["book_id"]
-            isOneToOne: false
-            referencedRelation: "books"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "chapter_maps_chapter_id_fkey"
-            columns: ["chapter_id"]
-            isOneToOne: false
-            referencedRelation: "chapters"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "chapter_maps_goal_id_fkey"
-            columns: ["goal_id"]
-            isOneToOne: false
-            referencedRelation: "goals"
             referencedColumns: ["id"]
           },
         ]
@@ -152,6 +99,7 @@ export type Database = {
           book_id: string
           content: string
           id: string
+          level: number | null
           page_end: number | null
           page_start: number | null
           seq: number
@@ -161,6 +109,7 @@ export type Database = {
           book_id: string
           content: string
           id?: string
+          level?: number | null
           page_end?: number | null
           page_start?: number | null
           seq: number
@@ -170,6 +119,7 @@ export type Database = {
           book_id?: string
           content?: string
           id?: string
+          level?: number | null
           page_end?: number | null
           page_start?: number | null
           seq?: number
@@ -185,30 +135,75 @@ export type Database = {
           },
         ]
       }
-      goals: {
+      question_chapters: {
+        Row: {
+          chapter_id: string | null
+          created_at: string | null
+          id: string
+          question_id: string
+          rank: number
+          reason: string
+        }
+        Insert: {
+          chapter_id?: string | null
+          created_at?: string | null
+          id?: string
+          question_id: string
+          rank: number
+          reason: string
+        }
+        Update: {
+          chapter_id?: string | null
+          created_at?: string | null
+          id?: string
+          question_id?: string
+          rank?: number
+          reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_chapters_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "chapters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_chapters_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      questions: {
         Row: {
           book_id: string
           created_at: string | null
           id: string
           text: string
+          user_id: string
         }
         Insert: {
           book_id: string
           created_at?: string | null
           id?: string
           text: string
+          user_id: string
         }
         Update: {
           book_id?: string
           created_at?: string | null
           id?: string
           text?: string
+          user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "goals_book_id_fkey"
+            foreignKeyName: "questions_book_id_fkey"
             columns: ["book_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "books"
             referencedColumns: ["id"]
           },

@@ -38,7 +38,8 @@ export function UploadDropzone() {
         return
       }
       const { bookId } = await res.json()
-      window.location.href = `/b/${bookId}/goal`
+      // v2: middleware will gate /b/[id] behind login if needed → ?next=/b/[id]
+      window.location.href = `/b/${bookId}`
     } catch {
       setState('error')
       setError('Network error. Try again.')

@@ -27,7 +27,8 @@ export default async function LibraryPage() {
             Your Library
           </h1>
           <p className="text-sm text-muted-foreground">
-            Books you&apos;ve uploaded. Click one to resume from its map.
+            Books you&apos;ve uploaded. Click one to ask a new question or
+            reopen an old one.
           </p>
         </div>
         <Link
@@ -53,7 +54,7 @@ export default async function LibraryPage() {
           {books.map((b) => (
             <li key={b.id}>
               <Link
-                href={`/b/${b.id}/map`}
+                href={`/b/${b.id}`}
                 className="flex flex-col gap-1 rounded-md border border-border bg-background p-4 hover:border-foreground/50"
               >
                 <p className="text-base font-medium text-foreground">

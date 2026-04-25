@@ -1,7 +1,9 @@
 import { createServerClient } from '@supabase/ssr'
 import { type NextRequest, NextResponse } from 'next/server'
 
-const CHAPTER_ROUTES = /^\/b\/[^/]+\/(read|brief|restate)(\/|$)/
+// v2: entire /b/* requires login (Book Home + Question Result + future panes).
+// Login modal is the gate at Upload → Book Home.
+const BOOK_ROUTES = /^\/b\/[^/]+/
 const PROTECTED_PREFIXES = ['/library']
 const AUTH_ROUTES = ['/auth/login', '/auth/register']
 
@@ -35,7 +37,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const needsAuth =
     PROTECTED_PREFIXES.some((p) => pathname.startsWith(p)) ||
-    CHAPTER_ROUTES.test(pathname)
+    BOOK_ROUTES.test(pathname)
 
   if (!user && needsAuth) {
     const redirect = request.nextUrl.clone()

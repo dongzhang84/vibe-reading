@@ -10,7 +10,7 @@ const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000
  * Daily cron (Vercel schedule `0 1 * * *` — see vercel.json). Deletes
  * session books older than 24h that never got claimed (owner_id still
  * null). Cleans up both the Storage PDF and the vr.books row (ON DELETE
- * CASCADE clears chapters / chapter_maps / briefs / restatements).
+ * CASCADE clears chapters / questions / question_chapters / briefs / restatements).
  */
 export async function GET(request: Request) {
   const auth = request.headers.get('authorization')
