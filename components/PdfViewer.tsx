@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
@@ -13,14 +13,38 @@ pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
 interface Props {
   url: string
   width?: number
+  initialPage?: number
 }
 
-export function PdfViewer({ url, width = 720 }: Props) {
+export function PdfViewer({ url, width = 720, initialPage = 1 }: Props) {
   const [numPages, setNumPages] = useState(0)
   const [error, setError] = useState<string | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const scrolledOnceRef = useRef(false)
+
+  // After pages render, scroll to initialPage. Only do this once per mount
+  // so the user can scroll away freely afterwards.
+  useEffect(() => {
+    if (scrolledOnceRef.current) return
+    if (numPages === 0) return
+    if (initialPage <= 1) {
+      scrolledOnceRef.current = true
+      return
+    }
+    const target = containerRef.current?.querySelector(
+      `[data-page-number="${initialPage}"]`,
+    )
+    if (target) {
+      target.scrollIntoView({ behavior: 'auto', block: 'start' })
+      scrolledOnceRef.current = true
+    }
+  }, [numPages, initialPage])
 
   return (
-    <div className="pdf-viewer flex w-full flex-col items-center">
+    <div
+      ref={containerRef}
+      className="pdf-viewer flex w-full flex-col items-center"
+    >
       <Document
         file={url}
         onLoadSuccess={(doc) => {

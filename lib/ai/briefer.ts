@@ -19,12 +19,12 @@ const BRIEF_SCHEMA = {
   required: ['one_sentence', 'key_claims', 'example', 'not_addressed'],
   additionalProperties: false,
   properties: {
-    one_sentence: { type: 'string', maxLength: 220 },
+    one_sentence: { type: 'string', maxLength: 240 },
     key_claims: {
       type: 'array',
       minItems: 3,
       maxItems: 3,
-      items: { type: 'string', maxLength: 200 },
+      items: { type: 'string', maxLength: 220 },
     },
     example: { type: 'string', maxLength: 500 },
     not_addressed: { type: 'string', maxLength: 360 },
@@ -32,35 +32,34 @@ const BRIEF_SCHEMA = {
 } as const
 
 /**
- * Rule 3: 4-part structured brief. No prose, no intro/conclusion. The JSON
- * schema is strict so the model can't add or skip fields.
+ * Rule 3: 4-part structured brief. v2 drops the goal context — Brief is
+ * chapter-level objective content, cached per chapter_id, not per
+ * (chapter_id, goal). The reader's question is answered by relevance
+ * mapping (left pane), not by tailoring the chapter brief.
  */
 export async function briefChapter(
-  goal: string,
   chapterTitle: string,
   chapterContent: string,
 ): Promise<Brief> {
-  const prompt = `You are writing a structured reading note. The reader has a goal and you are looking at one chapter. Return a compact 4-part brief as JSON.
-
-READER'S GOAL:
-"${goal}"
+  const prompt = `You are writing a structured reading note for one chapter of a book.
 
 CHAPTER TITLE: ${chapterTitle}
 
 CHAPTER CONTENT:
 ${chapterContent.slice(0, 12000)}
 
-Output these exact 4 fields, nothing else:
+Output exactly these 4 fields, nothing else:
 
-1. one_sentence: The one-sentence version of this chapter's core claim (<= 220 chars).
-2. key_claims: Exactly 3 claims the author makes. Each <= 200 chars.
-3. example: One concrete example the author uses (<= 500 chars).
-4. not_addressed: What the author does NOT address, that the reader — given the goal — might have expected (<= 360 chars).
+1. one_sentence: The one-sentence version of this chapter's core claim (≤ 240 chars).
+2. key_claims: Exactly 3 claims the author makes. Each ≤ 220 chars.
+3. example: One concrete example the author uses (≤ 500 chars).
+4. not_addressed: What the author does NOT address that a reader might expect (≤ 360 chars).
 
 Hard rules:
-- Do NOT write an introduction, summary wrapper, or conclusion.
-- Do NOT reference the reader or the goal by name ("you", "your goal"). Just state the content.
+- DO NOT write an introduction, summary wrapper, or conclusion.
+- DO NOT reference the reader (no "you", "your", "we").
 - Output exactly 3 items in key_claims, no more, no fewer.
+- Plain language. No academic hedging.
 - Return ONLY valid JSON matching the schema.`
 
   const response = await openai().chat.completions.create({
@@ -78,6 +77,5 @@ Hard rules:
   })
 
   const raw = response.choices[0]?.message?.content ?? '{}'
-  const parsed = JSON.parse(raw) as Brief
-  return parsed
+  return JSON.parse(raw) as Brief
 }
