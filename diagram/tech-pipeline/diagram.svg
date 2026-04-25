@@ -1,0 +1,127 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 680 730" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', 'Segoe UI', sans-serif">
+<style>
+:root { --fg: #111827; --fg-muted: #6b7280; --fg-soft: #9ca3af; --bg: #ffffff; --layer-bg: #f9fafb; --layer-stroke: #e5e7eb; --divider: #e5e7eb; --accent: #fb7185; --accent-bg: #fff1f2; --accent-stroke: #fca5b1; --node-bg: #ffffff; }
+@media (prefers-color-scheme: dark) { :root { --fg: #f3f4f6; --fg-muted: #9ca3af; --fg-soft: #6b7280; --bg: #0b0f17; --layer-bg: #1f2937; --layer-stroke: #374151; --divider: #374151; --accent: #fda4af; --accent-bg: #3f1d24; --accent-stroke: #9f1239; --node-bg: #0b0f17; } }
+.bg { fill: var(--bg); }
+.layer { fill: var(--layer-bg); stroke: var(--layer-stroke); stroke-width: 1.2; }
+.node { fill: var(--node-bg); stroke: var(--layer-stroke); stroke-width: 1.2; }
+.title { font-size: 18px; font-weight: 600; fill: var(--fg); }
+.subtitle { font-size: 12px; font-weight: 400; fill: var(--fg-muted); }
+.t { font-size: 14px; font-weight: 400; fill: var(--fg); }
+.th { font-size: 14px; font-weight: 600; fill: var(--fg); }
+.ts { font-size: 12px; font-weight: 400; fill: var(--fg-muted); }
+.eyebrow { font-size: 12px; font-weight: 500; fill: var(--fg-soft); letter-spacing: 0.08em; }
+.eyebrow-accent { fill: var(--accent); }
+.caption { font-size: 12px; font-weight: 400; fill: var(--fg-muted); }
+.caption-strong { font-size: 14px; font-weight: 500; fill: var(--fg); }
+.arr { stroke: var(--fg-soft); stroke-width: 1.5; fill: none; marker-end: url(#arrow); }
+.arr-dashed { stroke: var(--fg-soft); stroke-width: 1.5; fill: none; stroke-dasharray: 4 3; marker-end: url(#arrow); }
+.arrow-head { fill: var(--fg-soft); }
+</style>
+<defs>
+  <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M 0 0 L 10 5 L 0 10 z" class="arrow-head"/>
+  </marker>
+</defs>
+
+<rect class="bg" x="0" y="0" width="680" height="730"/>
+
+<text class="title" x="60" y="42">Vibe Reading — Technical Pipeline</text>
+<text class="subtitle" x="60" y="64">Where the bytes flow, where the LLM calls happen, where the data lands</text>
+
+<!-- ─── Phase A: Intake ────────────────────────────────────────────────── -->
+<rect class="layer" x="60" y="100" width="580" height="130" rx="8"/>
+<text class="eyebrow" x="82" y="122">PHASE A — INTAKE PIPELINE</text>
+<text class="eyebrow eyebrow-accent" x="618" y="122" text-anchor="end">→ 1 LLM call · per book</text>
+
+<rect class="node" x="80" y="140" width="100" height="48" rx="6"/>
+<text class="th" x="130" y="170" text-anchor="middle">Upload PDF</text>
+<rect class="node" x="220" y="140" width="100" height="48" rx="6"/>
+<text class="th" x="270" y="170" text-anchor="middle">Parse</text>
+<rect class="node" x="360" y="140" width="100" height="48" rx="6"/>
+<text class="th" x="410" y="170" text-anchor="middle">Intake AI</text>
+<rect class="node" x="500" y="140" width="100" height="48" rx="6"/>
+<text class="th" x="550" y="170" text-anchor="middle">Persist</text>
+
+<line class="arr" x1="180" y1="164" x2="220" y2="164"/>
+<line class="arr" x1="320" y1="164" x2="360" y2="164"/>
+<line class="arr" x1="460" y1="164" x2="500" y2="164"/>
+
+<text class="caption" x="130" y="212" text-anchor="middle">/api/upload · 60s</text>
+<text class="caption" x="270" y="212" text-anchor="middle">unpdf · getOutline + text</text>
+<text class="caption" x="410" y="212" text-anchor="middle">gpt-4o-mini · JSON strict</text>
+<text class="caption" x="550" y="212" text-anchor="middle">books + chapters</text>
+
+<!-- ─── Phase B: Question ─────────────────────────────────────────────── -->
+<rect class="layer" x="60" y="240" width="580" height="130" rx="8"/>
+<text class="eyebrow" x="82" y="262">PHASE B — QUESTION PIPELINE</text>
+<text class="eyebrow eyebrow-accent" x="618" y="262" text-anchor="end">→ 1 LLM call · per question</text>
+
+<rect class="node" x="80" y="280" width="100" height="48" rx="6"/>
+<text class="th" x="130" y="310" text-anchor="middle">Submit Q</text>
+<rect class="node" x="220" y="280" width="100" height="48" rx="6"/>
+<text class="th" x="270" y="310" text-anchor="middle">Build context</text>
+<rect class="node" x="360" y="280" width="100" height="48" rx="6"/>
+<text class="th" x="410" y="310" text-anchor="middle">Relevance AI</text>
+<rect class="node" x="500" y="280" width="100" height="48" rx="6"/>
+<text class="th" x="550" y="310" text-anchor="middle">Save matches</text>
+
+<line class="arr" x1="180" y1="304" x2="220" y2="304"/>
+<line class="arr" x1="320" y1="304" x2="360" y2="304"/>
+<line class="arr" x1="460" y1="304" x2="500" y2="304"/>
+
+<text class="caption" x="130" y="352" text-anchor="middle">/api/question · ~3s</text>
+<text class="caption" x="270" y="352" text-anchor="middle">toc + 600 chars per chapter</text>
+<text class="caption" x="410" y="352" text-anchor="middle">gpt-4o-mini · ranks chapters</text>
+<text class="caption" x="550" y="352" text-anchor="middle">questions + question_chapters</text>
+
+<!-- ─── Phase C: Brief ────────────────────────────────────────────────── -->
+<rect class="layer" x="60" y="380" width="580" height="130" rx="8"/>
+<text class="eyebrow" x="82" y="402">PHASE C — BRIEF PIPELINE</text>
+<text class="eyebrow eyebrow-accent" x="618" y="402" text-anchor="end">→ 1 LLM call · per chapter (cached)</text>
+
+<rect class="node" x="80" y="420" width="100" height="48" rx="6"/>
+<text class="th" x="130" y="450" text-anchor="middle">Click [Brief]</text>
+<rect class="node" x="220" y="420" width="100" height="48" rx="6"/>
+<text class="th" x="270" y="450" text-anchor="middle">/api/brief</text>
+<rect class="node" x="360" y="420" width="100" height="48" rx="6"/>
+<text class="th" x="410" y="450" text-anchor="middle">Briefer AI</text>
+<rect class="node" x="500" y="420" width="100" height="48" rx="6"/>
+<text class="th" x="550" y="450" text-anchor="middle">Render</text>
+
+<line class="arr" x1="180" y1="444" x2="220" y2="444"/>
+<line class="arr" x1="320" y1="444" x2="360" y2="444"/>
+<line class="arr" x1="460" y1="444" x2="500" y2="444"/>
+
+<text class="caption" x="130" y="492" text-anchor="middle">from chapter list</text>
+<text class="caption" x="270" y="492" text-anchor="middle">auth + ownership check</text>
+<text class="caption" x="410" y="492" text-anchor="middle">gpt-4o-mini · 4-part schema</text>
+<text class="caption" x="550" y="492" text-anchor="middle">cache vr.briefs · BriefPane</text>
+
+<!-- ─── Phase D: Read ─────────────────────────────────────────────────── -->
+<rect class="layer" x="60" y="520" width="580" height="130" rx="8"/>
+<text class="eyebrow" x="82" y="542">PHASE D — READ PIPELINE</text>
+<text class="eyebrow eyebrow-accent" x="618" y="542" text-anchor="end">→ 0–N LLM calls · per highlight</text>
+
+<rect class="node" x="80" y="560" width="100" height="48" rx="6"/>
+<text class="th" x="130" y="590" text-anchor="middle">Click [Read]</text>
+<rect class="node" x="220" y="560" width="100" height="48" rx="6"/>
+<text class="th" x="270" y="590" text-anchor="middle">PdfViewer</text>
+<rect class="node" x="360" y="560" width="100" height="48" rx="6"/>
+<text class="th" x="410" y="590" text-anchor="middle">Highlight</text>
+<rect class="node" x="500" y="560" width="100" height="48" rx="6"/>
+<text class="th" x="550" y="590" text-anchor="middle">Asker AI</text>
+
+<line class="arr" x1="180" y1="584" x2="220" y2="584"/>
+<line class="arr-dashed" x1="320" y1="584" x2="360" y2="584"/>
+<line class="arr-dashed" x1="460" y1="584" x2="500" y2="584"/>
+
+<text class="caption" x="130" y="632" text-anchor="middle">from chapter list</text>
+<text class="caption" x="270" y="632" text-anchor="middle">react-pdf · jump to page_start</text>
+<text class="caption" x="410" y="632" text-anchor="middle">user selects ≥15 chars</text>
+<text class="caption" x="550" y="632" text-anchor="middle">gpt-4o-mini · /api/ask</text>
+
+<!-- ─── Footer ────────────────────────────────────────────────────────── -->
+<text class="caption-strong" x="60" y="686">All AI calls: gpt-4o-mini with JSON schema strict mode.</text>
+<text class="caption" x="60" y="708">No vector DB, no embeddings, no RAG framework. Just pdfjs + 4 narrow LLM calls.</text>
+</svg>

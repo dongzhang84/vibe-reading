@@ -39,6 +39,25 @@
 
 ---
 
+## Technical Pipeline Overview
+
+整个 v2 系统拆成 4 条独立的技术 pipeline，下面这张图给一个鸟瞰。先看图建立全局心智模型，再往下读 Phase 0-13 的细节实现。
+
+![Vibe Reading technical pipeline](../diagram/tech-pipeline/diagram.svg)
+
+**4 条 pipeline 与 Phase 的对应关系**：
+
+| Pipeline | 何时触发 | 涉及的 Phase | LLM 调用形态 |
+|---|---|---|---|
+| **A · Intake** | 用户上传一本新书 | Phase 4（Upload + intake AI） | 1 次 / 本书 |
+| **B · Question** | 用户在 Book Home 提交一个问题 | Phase 5 + Phase 6 | 1 次 / 问题（~3s） |
+| **C · Brief** | 用户在 Question Result 左栏点 [Brief] | Phase 8 | 1 次 / 章节，cache 永久 |
+| **D · Read** | 用户在 Question Result 左栏点 [Read]（含可选的 Highlight & Ask） | Phase 10 | 0–N 次 / 高亮 |
+
+**核心选型**：所有 LLM 调用都走 OpenAI `gpt-4o-mini` + JSON schema strict 模式。**没有 vector DB、没有 embeddings、没有 RAG 框架**——只有 `pdfjs` 抽结构 + 4 类 narrow LLM call。详细 prompt 设计在各 Phase 内。
+
+---
+
 ## Phase 0 — 项目初始化
 
 ### Step 1: Scaffold
