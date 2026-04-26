@@ -10,10 +10,10 @@ export default function Home() {
         <section className="mx-auto max-w-3xl px-6 pt-16 pb-16 md:pt-24 md:pb-24">
           <div className="mb-12 text-center md:mb-16">
             <h1 className="mb-6 text-balance text-4xl font-semibold leading-tight tracking-tight text-foreground md:text-5xl lg:text-6xl">
-              Don&apos;t read on autopilot.
+              Vibe Reading
               <br />
               <span className="text-muted-foreground">
-                Read with a question.
+                Read with Questions
               </span>
             </h1>
             <p className="mx-auto max-w-xl text-pretty text-lg leading-relaxed text-muted-foreground md:text-xl">
