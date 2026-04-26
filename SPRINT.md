@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-04-26 06:11 UTC  
+**Generated:** 2026-04-26 06:35 UTC  
 **Showing:** last 1 week(s) of 1 total  
 
 ---
@@ -11,11 +11,11 @@
 |------|-------|
 | Status | ✅ Good |
 | Active days | 5 / 7 |
-| Total commits | 40 |
+| Total commits | 41 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| ⚪ | **2** | **10** | **13** | **11** | **4** | ⚪ |
+| ⚪ | **2** | **10** | **13** | **11** | **5** | ⚪ |
 
 **Tue – Tuesday, Apr 21**
 
@@ -67,6 +67,7 @@
 
 **Sat – Saturday, Apr 25**
 
+- `f632cc0` feat: site-wide nav (sticky, auth-aware, pathname-aware self-hide) — _dongzhang84_ `2026-04-25 23:35`
 - `4763446` fix(ui): drop confusing 'Chapter N:' prefix from chapter cards and panes — _dongzhang84_ `2026-04-25 23:11`
 - `164832b` fix: add 'Your library →' link on landing for signed-in users — _dongzhang84_ `2026-04-25 23:02`
 - `30a8e85` fix(relevance): switch chapter_id → short handle to stop AI hallucination — _dongzhang84_ `2026-04-25 18:37`
