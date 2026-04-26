@@ -1,5 +1,6 @@
-import { BookOpen, Brain, Sparkles, Target, Upload } from 'lucide-react'
+import { BookOpen, Brain, Sparkles, Target } from 'lucide-react'
 import { UploadDropzone } from '@/components/UploadDropzone'
+import { UploadCtaButton } from '@/components/UploadCtaButton'
 
 export default function Home() {
   return (
@@ -88,14 +89,7 @@ export default function Home() {
               Drop your first PDF. We&apos;ll extract the table of contents,
               draft an overview, and suggest three starter questions.
             </p>
-            <button
-              type="button"
-              onClick={() => document.getElementById('vr-file-upload')?.click()}
-              className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
-            >
-              <Upload className="h-4 w-4" />
-              Upload Your Book
-            </button>
+            <UploadCtaButton />
           </div>
         </section>
       </main>
