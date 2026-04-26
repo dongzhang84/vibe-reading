@@ -83,14 +83,24 @@ export async function POST(request: Request) {
       })
 
       if (matches.length > 0) {
-        await db.from('question_chapters').insert(
-          matches.map((m, i) => ({
-            question_id: question.id,
-            chapter_id: m.chapterId,
-            reason: m.reason,
-            rank: i + 1,
-          })),
-        )
+        const { error: matchInsertError } = await db
+          .from('question_chapters')
+          .insert(
+            matches.map((m, i) => ({
+              question_id: question.id,
+              chapter_id: m.chapterId,
+              reason: m.reason,
+              rank: i + 1,
+            })),
+          )
+        if (matchInsertError) {
+          // Don't swallow — earlier silent failure (FK violation from
+          // hallucinated chapter_ids) made bugs invisible. We still
+          // return 200 to the user since the question itself is saved.
+          console.error('question_chapters insert failed', matchInsertError)
+        }
+      } else {
+        console.warn('relevance returned 0 matches for question', question.id)
       }
     }
   } catch (err) {
