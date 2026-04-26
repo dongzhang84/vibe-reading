@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-04-25 02:56 UTC  
+**Generated:** 2026-04-26 01:28 UTC  
 **Showing:** last 1 week(s) of 1 total  
 
 ---
@@ -9,13 +9,13 @@
 
 | Stat | Value |
 |------|-------|
-| Status | ⚠️ Slow |
-| Active days | 4 / 7 |
-| Total commits | 36 |
+| Status | ✅ Good |
+| Active days | 5 / 7 |
+| Total commits | 37 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| ⚪ | **2** | **10** | **13** | **11** | ⚪ | ⚪ |
+| ⚪ | **2** | **10** | **13** | **11** | **1** | ⚪ |
 
 **Tue – Tuesday, Apr 21**
 
@@ -64,6 +64,10 @@
 - `13af82c` docs: add product flow diagram to README — _dongzhang84_ `2026-04-24 15:53`
 - `bfb5267` docs: redesign product spec — question-driven flow (v2) — _dongzhang84_ `2026-04-24 12:34`
 - `c2543fc` Restate: drop ✓/✗ grading; "another reader in the room" tone — _dongzhang84_ `2026-04-24 11:11`
+
+**Sat – Saturday, Apr 25**
+
+- `1569205` fix: claim session books on Email login + defensive auto-claim — _dongzhang84_ `2026-04-25 18:27`
 
 ---
 
