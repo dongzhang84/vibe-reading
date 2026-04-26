@@ -1,8 +1,29 @@
+import Link from 'next/link'
 import { UploadDropzone } from '@/components/UploadDropzone'
+import { createServerSupabaseClient } from '@/lib/supabase/server'
 
-export default function Home() {
+export default async function Home() {
+  // Returning users need a way back to their books — without nudging
+  // first-time visitors with a "Sign in" CTA. Compromise: only render the
+  // Library link when there's already a session.
+  const supabase = await createServerSupabaseClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col justify-center gap-14 px-6 py-20">
+      {user && (
+        <nav className="absolute right-6 top-6 text-xs">
+          <Link
+            href="/library"
+            className="text-muted-foreground hover:text-foreground"
+          >
+            Your library →
+          </Link>
+        </nav>
+      )}
+
       <header className="flex flex-col gap-5">
         <h1 className="text-3xl font-medium tracking-tight text-foreground">
           Vibe Reading
