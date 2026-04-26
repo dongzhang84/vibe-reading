@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-04-26 23:44 UTC  
+**Generated:** 2026-04-26 23:51 UTC  
 **Showing:** last 1 week(s) of 1 total  
 
 ---
@@ -11,11 +11,11 @@
 |------|-------|
 | Status | ✅ Good |
 | Active days | 6 / 7 |
-| Total commits | 47 |
+| Total commits | 48 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| ⚪ | **2** | **10** | **13** | **11** | **5** | **6** |
+| ⚪ | **2** | **10** | **13** | **11** | **5** | **7** |
 
 **Tue – Tuesday, Apr 21**
 
@@ -75,6 +75,7 @@
 
 **Sun – Sunday, Apr 26**
 
+- `1f69c33` feat(ui): align /library with landing's Notion-warm pattern — _dongzhang84_ `2026-04-26 16:51`
 - `c8eaa9b` copy: round out hero subtitle with "Ask first. The right chapters find you." — _dongzhang84_ `2026-04-26 16:44`
 - `9480e5c` copy: trim hero subtitle to single sentence — _dongzhang84_ `2026-04-26 13:58`
 - `00a30ed` copy: hero headline → "Vibe Reading / Read with Questions" — _dongzhang84_ `2026-04-26 10:14`
