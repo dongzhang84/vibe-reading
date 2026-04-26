@@ -2,6 +2,8 @@ import { redirect } from 'next/navigation'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { BookHomeScreen } from '@/components/BookHomeScreen'
+import { getSessionId } from '@/lib/session'
+import { claimSessionBooks } from '@/lib/auth/claim'
 import type { TocEntry } from '@/lib/pdf/outline'
 
 export default async function BookHomePage({
@@ -17,12 +19,33 @@ export default async function BookHomePage({
   if (!user) redirect(`/auth/login?next=/b/${bookId}`)
 
   const db = createAdminClient()
-  const { data: book } = await db
+  let { data: book } = await db
     .from('books')
-    .select('id, owner_id, title, author, toc, overview, suggested_questions')
+    .select(
+      'id, owner_id, session_id, title, author, toc, overview, suggested_questions',
+    )
     .eq('id', bookId)
     .single()
-  if (!book || book.owner_id !== user.id) redirect('/library')
+  if (!book) redirect('/library')
+
+  // Defensive claim: an Email-login flow can land here with the book still
+  // bound to the session cookie (Email login skips /auth/callback). If the
+  // book is unowned and our session matches, attach it to this user inline.
+  if (book.owner_id === null) {
+    const sessionId = await getSessionId()
+    if (sessionId && book.session_id === sessionId) {
+      await claimSessionBooks({ userId: user.id, sessionId })
+      const { data: refreshed } = await db
+        .from('books')
+        .select(
+          'id, owner_id, session_id, title, author, toc, overview, suggested_questions',
+        )
+        .eq('id', bookId)
+        .single()
+      if (refreshed) book = refreshed
+    }
+  }
+  if (book.owner_id !== user.id) redirect('/library')
 
   const { data: questions } = await db
     .from('questions')

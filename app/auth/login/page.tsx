@@ -38,6 +38,9 @@ function LoginForm() {
       setLoading(false)
       return
     }
+    // Email path doesn't go through /auth/callback — claim any session books
+    // explicitly so the user lands on /b/[id] as owner.
+    await fetch('/api/claim', { method: 'POST' }).catch(() => {})
     router.push(next)
     router.refresh()
   }

@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { getSessionId } from '@/lib/session'
+import { claimSessionBooks } from '@/lib/auth/claim'
 
 // Middleware already protects /library, but re-check here so this page
 // works even if someone removes the matcher entry later.
@@ -11,6 +13,18 @@ export default async function LibraryPage() {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) redirect('/auth/login?next=/library')
+
+  // Defensive claim — covers the case where the user uploaded pre-login,
+  // signed in via a path that didn't run claim (e.g. Email + earlier bug),
+  // and ended up here with their session book still unowned.
+  const sessionId = await getSessionId()
+  if (sessionId) {
+    try {
+      await claimSessionBooks({ userId: user.id, sessionId })
+    } catch (err) {
+      console.error('library defensive claim failed', err)
+    }
+  }
 
   const db = createAdminClient()
   const { data: books } = await db

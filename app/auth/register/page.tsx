@@ -34,6 +34,10 @@ function RegisterForm() {
       setLoading(false)
       return
     }
+    // Email registration creates the session client-side without going through
+    // /auth/callback — claim explicitly so any pre-login uploaded book gets
+    // attached to the new user.
+    await fetch('/api/claim', { method: 'POST' }).catch(() => {})
     router.push(next)
     router.refresh()
   }
