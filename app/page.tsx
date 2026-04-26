@@ -18,7 +18,7 @@ export default function Home() {
             </h1>
             <p className="mx-auto max-w-xl text-pretty text-lg leading-relaxed text-muted-foreground md:text-xl">
               We won&apos;t summarize your book until you tell us why
-              you&apos;re reading it.
+              you&apos;re reading it. Ask first. The right chapters find you.
             </p>
           </div>
 
