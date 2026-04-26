@@ -42,3 +42,4 @@ yarn-error.log*
 # misc
 Thumbs.db
 coverage/
+ui_design/

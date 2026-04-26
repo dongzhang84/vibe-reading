@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { BookOpen } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 interface NavUser {
@@ -28,13 +29,11 @@ export function Nav({ user }: Props) {
     : ''
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur">
-      <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-6 py-3">
-        <Link
-          href="/"
-          className="text-base font-semibold tracking-tight text-foreground"
-        >
-          Vibe Reading
+    <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-sm">
+      <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between gap-4 px-6">
+        <Link href="/" className="flex items-center gap-2">
+          <BookOpen className="h-5 w-5 text-foreground" />
+          <span className="font-medium text-foreground">Vibe Reading</span>
         </Link>
 
         <nav className="flex items-center gap-2 text-sm">
@@ -42,7 +41,7 @@ export function Nav({ user }: Props) {
             <>
               <Link
                 href="/library"
-                className="rounded-md px-3 py-1.5 text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+                className="rounded-md px-3 py-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
               >
                 Library
               </Link>
@@ -52,13 +51,13 @@ export function Nav({ user }: Props) {
             <>
               <Link
                 href={`/auth/login${nextParam}`}
-                className="rounded-md px-3 py-1.5 text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+                className="rounded-md px-3 py-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
               >
                 Sign in
               </Link>
               <Link
                 href={`/auth/register${nextParam}`}
-                className="rounded-md bg-foreground px-3 py-1.5 text-xs font-medium text-background hover:bg-foreground/90"
+                className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
               >
                 Sign up
               </Link>
@@ -74,15 +73,13 @@ function SignOutButton() {
   async function handleSignOut() {
     const supabase = createClient()
     await supabase.auth.signOut()
-    // Hard reload so the server layout re-fetches user and the nav re-renders
-    // with the signed-out variant.
     window.location.href = '/'
   }
   return (
     <button
       type="button"
       onClick={handleSignOut}
-      className="rounded-md px-3 py-1.5 text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+      className="rounded-md px-3 py-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
     >
       Sign out
     </button>
