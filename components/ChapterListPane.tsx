@@ -15,7 +15,6 @@ export interface ChapterMatchView {
 interface ActiveChapter {
   chapterId: string
   chapterTitle: string
-  chapterSeq: number
   pageStart: number | null
 }
 
@@ -84,7 +83,6 @@ export function ChapterListPane({
                 </p>
               ) : (
                 <p className="text-sm font-medium text-foreground">
-                  Chapter {(m.chapterSeq ?? 0) + 1}:{' '}
                   {m.chapterTitle ?? '(untitled)'}
                 </p>
               )}
@@ -99,7 +97,6 @@ export function ChapterListPane({
                       onBrief({
                         chapterId: m.chapterId!,
                         chapterTitle: m.chapterTitle!,
-                        chapterSeq: m.chapterSeq ?? 0,
                         pageStart: m.pageStart,
                       })
                     }
@@ -117,7 +114,6 @@ export function ChapterListPane({
                       onRead({
                         chapterId: m.chapterId!,
                         chapterTitle: m.chapterTitle!,
-                        chapterSeq: m.chapterSeq ?? 0,
                         pageStart: m.pageStart,
                       })
                     }

@@ -12,7 +12,6 @@ interface ActivePane {
   mode: 'brief' | 'read'
   chapterId: string
   chapterTitle: string
-  chapterSeq: number
   pageStart: number | null
 }
 
@@ -54,7 +53,6 @@ export function QuestionResultScreen({
             bookId={bookId}
             chapterId={active.chapterId}
             chapterTitle={active.chapterTitle}
-            chapterSeq={active.chapterSeq}
           />
         )}
         {active?.mode === 'read' && (
@@ -63,7 +61,6 @@ export function QuestionResultScreen({
             bookId={bookId}
             chapterId={active.chapterId}
             chapterTitle={active.chapterTitle}
-            chapterSeq={active.chapterSeq}
             pdfUrl={pdfUrl}
             pageStart={active.pageStart ?? 1}
           />

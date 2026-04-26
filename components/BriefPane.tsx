@@ -7,7 +7,6 @@ interface Props {
   bookId: string
   chapterId: string
   chapterTitle: string
-  chapterSeq: number
 }
 
 type State =
@@ -19,7 +18,6 @@ export function BriefPane({
   bookId,
   chapterId,
   chapterTitle,
-  chapterSeq,
 }: Props) {
   const [state, setState] = useState<State>({ kind: 'loading' })
 
@@ -56,7 +54,7 @@ export function BriefPane({
     <div className="flex h-full flex-col overflow-y-auto">
       <header className="sticky top-0 z-10 border-b border-border bg-background/95 px-6 py-4 backdrop-blur">
         <p className="text-xs uppercase tracking-wider text-muted-foreground">
-          Brief · Chapter {chapterSeq + 1}
+          Brief
         </p>
         <h2 className="mt-1 text-lg font-medium text-foreground">
           {chapterTitle}

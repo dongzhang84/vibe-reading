@@ -17,7 +17,6 @@ interface Props {
   bookId: string
   chapterId: string
   chapterTitle: string
-  chapterSeq: number
   pdfUrl: string
   pageStart: number
 }
@@ -36,7 +35,6 @@ export function ReadPane({
   bookId,
   chapterId,
   chapterTitle,
-  chapterSeq,
   pdfUrl,
   pageStart,
 }: Props) {
@@ -119,7 +117,7 @@ export function ReadPane({
     <div className="flex h-full flex-col overflow-hidden">
       <header className="border-b border-border bg-background/95 px-6 py-4 backdrop-blur">
         <p className="text-xs uppercase tracking-wider text-muted-foreground">
-          Read · Chapter {chapterSeq + 1}
+          Read
         </p>
         <h2 className="mt-1 text-lg font-medium text-foreground">
           {chapterTitle}
