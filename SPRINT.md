@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-04-26 20:58 UTC  
+**Generated:** 2026-04-26 23:44 UTC  
 **Showing:** last 1 week(s) of 1 total  
 
 ---
@@ -11,11 +11,11 @@
 |------|-------|
 | Status | ✅ Good |
 | Active days | 6 / 7 |
-| Total commits | 46 |
+| Total commits | 47 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| ⚪ | **2** | **10** | **13** | **11** | **5** | **5** |
+| ⚪ | **2** | **10** | **13** | **11** | **5** | **6** |
 
 **Tue – Tuesday, Apr 21**
 
@@ -75,6 +75,7 @@
 
 **Sun – Sunday, Apr 26**
 
+- `c8eaa9b` copy: round out hero subtitle with "Ask first. The right chapters find you." — _dongzhang84_ `2026-04-26 16:44`
 - `9480e5c` copy: trim hero subtitle to single sentence — _dongzhang84_ `2026-04-26 13:58`
 - `00a30ed` copy: hero headline → "Vibe Reading / Read with Questions" — _dongzhang84_ `2026-04-26 10:14`
 - `83fd2f4` fix: extract CTA button to client component (server component crash) — _dongzhang84_ `2026-04-26 10:11`
