@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-04-26 17:14 UTC  
+**Generated:** 2026-04-26 20:58 UTC  
 **Showing:** last 1 week(s) of 1 total  
 
 ---
@@ -11,11 +11,11 @@
 |------|-------|
 | Status | ✅ Good |
 | Active days | 6 / 7 |
-| Total commits | 45 |
+| Total commits | 46 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| ⚪ | **2** | **10** | **13** | **11** | **5** | **4** |
+| ⚪ | **2** | **10** | **13** | **11** | **5** | **5** |
 
 **Tue – Tuesday, Apr 21**
 
@@ -75,6 +75,7 @@
 
 **Sun – Sunday, Apr 26**
 
+- `9480e5c` copy: trim hero subtitle to single sentence — _dongzhang84_ `2026-04-26 13:58`
 - `00a30ed` copy: hero headline → "Vibe Reading / Read with Questions" — _dongzhang84_ `2026-04-26 10:14`
 - `83fd2f4` fix: extract CTA button to client component (server component crash) — _dongzhang84_ `2026-04-26 10:11`
 - `7639f64` feat(ui): adopt v0 landing redesign — Notion-warm tokens + new sections — _dongzhang84_ `2026-04-26 10:05`
