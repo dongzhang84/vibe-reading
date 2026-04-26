@@ -65,22 +65,14 @@ export function BookHomeScreen({
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-12 px-6 py-12">
-      <header className="flex flex-col gap-4">
-        <Link
-          href="/library"
-          className="text-xs text-muted-foreground hover:text-foreground"
-        >
-          ← Library
-        </Link>
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-medium tracking-tight text-foreground">
-            {book.title}
-          </h1>
-          {book.author && (
-            <p className="text-sm text-muted-foreground">by {book.author}</p>
-          )}
-        </div>
+    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-12 px-6 py-12">
+      <header className="flex flex-col gap-1">
+        <h1 className="text-2xl font-medium tracking-tight text-foreground">
+          {book.title}
+        </h1>
+        {book.author && (
+          <p className="text-sm text-muted-foreground">by {book.author}</p>
+        )}
       </header>
 
       {book.overview && (
