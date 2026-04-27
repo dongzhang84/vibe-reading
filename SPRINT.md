@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-04-27 03:21 UTC  
+**Generated:** 2026-04-27 05:02 UTC  
 **Showing:** last 2 week(s) of 2 total  
 
 ---
@@ -25,11 +25,11 @@
 |------|-------|
 | Status | ✅ Good |
 | Active days | 6 / 7 |
-| Total commits | 56 |
+| Total commits | 57 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| ⚪ | **2** | **10** | **13** | **11** | **5** | **15** |
+| ⚪ | **2** | **10** | **13** | **11** | **5** | **16** |
 
 **Tue – Tuesday, Apr 21**
 
@@ -89,6 +89,7 @@
 
 **Sun – Sunday, Apr 26**
 
+- `82bda8d` fix(ui): order matched chapters by book sequence, not AI relevance — _dongzhang84_ `2026-04-26 22:02`
 - `e678603` feat: PDF keyboard shortcuts + Question Result retry on 0 matches — _dongzhang84_ `2026-04-26 20:21`
 - `fd69224` docs: mark auth UI + delete-book as done in todo — _dongzhang84_ `2026-04-26 20:14`
 - `56ca8a1` feat(ui): auth-page redesign + delete-book affordance — _dongzhang84_ `2026-04-26 20:14`
