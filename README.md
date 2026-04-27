@@ -1,3 +1,5 @@
+<sub>**English** · [中文](./README.zh-CN.md)</sub>
+
 # Vibe Reading
 
 **A reading tool that refuses to summarize the book before you tell it why you're reading it.**
