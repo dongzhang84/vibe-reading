@@ -2,7 +2,7 @@
 
 **A reading tool that refuses to summarize the book before you tell it why you're reading it.**
 
-> 一个拒绝替你总结全书的读书工具——除非你先告诉它你为什么要读。
+> A reading tool that refuses to summarize the whole book for you — unless you tell it first why you're reading.
 
 🔗 **Live demo**: [vibe-reading-iota.vercel.app](https://vibe-reading-iota.vercel.app/)
 
