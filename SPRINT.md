@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-04-27 07:22 UTC  
+**Generated:** 2026-04-27 07:35 UTC  
 **Showing:** last 2 week(s) of 2 total  
 
 ---
@@ -11,14 +11,15 @@
 |------|-------|
 | Status | ❌ Stalled |
 | Active days | 1 / 7 |
-| Total commits | 4 |
+| Total commits | 5 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| **4** | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |
+| **5** | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |
 
 **Mon – Monday, Apr 27**
 
+- `e06c6a4` docs: drop <sub> tag on README language switcher (was too small) — _dongzhang84_ `2026-04-27 00:35`
 - `75a9c5f` docs: add Chinese README + language switcher — _dongzhang84_ `2026-04-27 00:22`
 - `9fedfa7` docs: translate the second tagline to English (OSS audience) — _dongzhang84_ `2026-04-27 00:19`
 - `e30724f` docs: rewrite README as a real OSS-project front door — _dongzhang84_ `2026-04-27 00:14`
