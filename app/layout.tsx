@@ -49,6 +49,18 @@ export default async function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        {/* Set the dark/light theme BEFORE React hydrates to avoid a flash
+            of the wrong palette. Reads localStorage('vr-theme'); falls back
+            to the OS prefers-color-scheme on first visit. Wrapped in
+            try/catch so blocked-storage browsers (private mode) silently
+            fall through to the OS preference. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var s=localStorage.getItem('vr-theme');var p=matchMedia('(prefers-color-scheme: dark)').matches;if(s==='dark'||(!s&&p))document.documentElement.classList.add('dark');}catch(e){}})()`,
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col font-sans">
         <Nav user={user ? { email: user.email ?? null } : null} />
         {children}

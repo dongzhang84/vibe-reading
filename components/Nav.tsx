@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { BookOpen } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { ThemeToggle } from './ThemeToggle'
 
 interface NavUser {
   email: string | null
@@ -63,6 +64,7 @@ export function Nav({ user }: Props) {
               </Link>
             </>
           )}
+          <ThemeToggle />
         </nav>
       </div>
     </header>

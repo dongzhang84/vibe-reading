@@ -22,9 +22,11 @@ Each ~15–45 min. None block anything. Pick when you want a clean break.
       (commit 56ca8a1). 3-dot menu → "Delete book" with quoted title
       in confirm dialog. `DELETE /api/books/[id]` cascades all related
       rows + removes Storage blob
-- [ ] **Dark mode toggle in Nav** — `globals.css` already has full dark
-      tokens. Just need a sun/moon button + `localStorage` to persist.
-      Nav is the natural place
+- [x] ~~**Dark mode toggle in Nav**~~ — shipped 2026-04-26. Sun/Moon
+      button at the right of Nav. localStorage key `vr-theme`; first
+      visit follows OS `prefers-color-scheme`, after click locks to
+      user choice. Inline script in `<head>` applies the class before
+      React hydrates → no flash of wrong palette on reload
 - [x] ~~**PDF viewer keyboard shortcuts**~~ — shipped 2026-04-26.
       `+`/`=` zoom in, `-`/`_` zoom out, `0` fit width, `g` focus the
       page-jump input. Skips when typing in any input/textarea/
