@@ -1,4 +1,4 @@
-<sub>**English** · [中文](./README.zh-CN.md)</sub>
+**English** · [中文](./README.zh-CN.md)
 
 # Vibe Reading
 
