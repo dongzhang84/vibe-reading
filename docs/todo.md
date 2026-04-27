@@ -160,6 +160,6 @@ Quick reference of what's been shipped recently. Full history in `git log`.
 - **`docs/ui-design-report.md`** = how the UI is built (tokens, component
   structure, design rules)
 - All schema changes go through `Path B` SQL block in
-  `vibe-reading-implementation.md` Phase 2
+  `vibe-reading-implementation.md` Phase 4A
 - Feature flags / A-B testing not set up; if you need them, add Vercel
   Edge Config or Statsig (cheap on free tier)
