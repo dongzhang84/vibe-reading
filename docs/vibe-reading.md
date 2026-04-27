@@ -107,11 +107,12 @@ Vibe Reading 是一个**反主流**的读书工具。它故意阻止用户做三
 
 **第一版只做：**
 - ✅ PDF 上传 + 解析目录（中英文双语）
-- ✅ 5 屏核心工作流
-- ✅ Google 登录 + magic link
-- ✅ /library 页面（最简版）
+- ✅ 4 屏核心工作流（v2 question-driven）
+- ✅ Google + Email/Password 登录
+- ✅ /library 页面（含删书 affordance）
 - ✅ 英文 UI（只有一种语言）
 - ✅ 桌面 web
+- ✅ Light / Dark 主题切换
 
 **第一版不做（防止 scope creep）：**
 - ❌ 登录前 PDF 永久存储（session 24h 清理）
@@ -153,11 +154,11 @@ Vibe Reading 是一个**反主流**的读书工具。它故意阻止用户做三
 - 标准：比 ChatPDF / NotebookLM 好用。如果自己都觉得"还是 NotebookLM 好用" → MVP 失败，回去改
 
 **Week 2-4: 5-10 个朋友试用**
-- 他们在 Goal 输入屏写得出需求吗？
-- 他们在复述屏真的会打字吗？
-- 还是一进来就想跳过去"一键摘要"？
+- 他们在 Book Home 输入框真的写得出问题吗？还是只点 AI 推荐？
+- 他们点 [Brief] 之后真的会去看 [Read] 原文吗？还是把 4 段式摘要当答案就走？
+- 还是一上传就盯着 dropzone 等"一键摘要"？
 
-**判断标准：** 如果大部分人卡在 Goal 输入或跳过复述 → 方法论太理想化，重新设计。
+**判断标准：** 如果大部分人卡在"想不出问题"、或者把 Brief 当终点不进 Read → 方法论太理想化，重新设计；尤其得反思"问题驱动"是否给非研究者的读者带来过高门槛。
 
 ---
 
@@ -186,11 +187,19 @@ Vibe Reading 是一个**反主流**的读书工具。它故意阻止用户做三
 
 ## Status
 
-**🔄 Redesigned** — 2026-04-24
+**✅ MVP shipped** — 2026-04-27
 
-第一版（5 屏 goal-driven）已实现并上线。2026-04-24 重新设计为 4 屏 question-driven，原因：真实使用中老 goal 模型在评价性问题（"为什么这本书重要"）上无路径回答，且章节切分的质量问题把下游 Map / Brief 变成乱码。新模型以 TOC + 推荐问题 + 问题历史为核心 UX。
+v2（4 屏 question-driven）端到端跑通：上传 → 登录 → Book Home → 提问 → Question Result（左 chapter list + 右 Brief / Read 分屏）。已用真书自测过（《程序员修炼之道》第 2 版、Kuhn《科学革命的结构》等）。
 
-实施中（docs 先行，代码紧随）。
+UI 已过 v0 redesign + Notion-warm token 系统 + light/dark toggle + PDF 缩放 + 键盘快捷键 + 删书 affordance。Live 在 [vibe-reading-iota.vercel.app](https://vibe-reading-iota.vercel.app/)。
+
+**演进史**：
+- 2026-04-21 v1 spec（5 屏 goal-driven）写完
+- 2026-04-23 v1 实现 + 上线，发现真书测试翻车（goal 模型对评价性问题无路径回答；章节切分喂给下游 AI 变乱码）
+- 2026-04-24 redesign 为 v2（4 屏 question-driven），TOC + 推荐问题 + 历史 question 为核心 UX
+- 2026-04-25 ~ 04-27 v2 完整 MVP 上线 + UI overhaul + production polish
+
+**下一步**：rate-limit / Sentry / OpenAI cost ceiling 等生产硬化（详见 `docs/todo.md` bucket B），然后才放给 5-10 个朋友实测。
 
 ---
 
