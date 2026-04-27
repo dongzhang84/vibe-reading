@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-04-27 03:15 UTC  
+**Generated:** 2026-04-27 03:21 UTC  
 **Showing:** last 2 week(s) of 2 total  
 
 ---
@@ -25,11 +25,11 @@
 |------|-------|
 | Status | ✅ Good |
 | Active days | 6 / 7 |
-| Total commits | 55 |
+| Total commits | 56 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| ⚪ | **2** | **10** | **13** | **11** | **5** | **14** |
+| ⚪ | **2** | **10** | **13** | **11** | **5** | **15** |
 
 **Tue – Tuesday, Apr 21**
 
@@ -89,6 +89,7 @@
 
 **Sun – Sunday, Apr 26**
 
+- `e678603` feat: PDF keyboard shortcuts + Question Result retry on 0 matches — _dongzhang84_ `2026-04-26 20:21`
 - `fd69224` docs: mark auth UI + delete-book as done in todo — _dongzhang84_ `2026-04-26 20:14`
 - `56ca8a1` feat(ui): auth-page redesign + delete-book affordance — _dongzhang84_ `2026-04-26 20:14`
 - `0560880` docs: add prioritized TODO list (3 buckets — polish / harden / expand) — _dongzhang84_ `2026-04-26 19:43`
