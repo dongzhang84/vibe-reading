@@ -15,14 +15,13 @@
 
 Each ~15–45 min. None block anything. Pick when you want a clean break.
 
-- [ ] **Auth pages (`/auth/login`, `/auth/register`) UI pass** — currently
-      still raw Tailwind from before the Notion-warm overhaul. Apply the
-      same tokens (warm bg, slate fg, BookOpen brand glyph, primary pill
-      buttons) so they don't feel like a different app
-- [ ] **Delete-book affordance on `/library`** — no way to remove a book
-      once uploaded. Add a 3-dot menu (or simple "×" on hover) per card →
-      confirmation modal → `DELETE /api/books/[id]` route (cascades chapters
-      / questions / briefs / restatements; also removes Storage blob)
+- [x] ~~**Auth pages (`/auth/login`, `/auth/register`) UI pass**~~ —
+      shipped 2026-04-26 (commit 56ca8a1). Notion-warm tokens, BookOpen
+      brand mark, primary pill submit, STANDARD.md §3.2 copy
+- [x] ~~**Delete-book affordance on `/library`**~~ — shipped 2026-04-26
+      (commit 56ca8a1). 3-dot menu → "Delete book" with quoted title
+      in confirm dialog. `DELETE /api/books/[id]` cascades all related
+      rows + removes Storage blob
 - [ ] **Dark mode toggle in Nav** — `globals.css` already has full dark
       tokens. Just need a sun/moon button + `localStorage` to persist.
       Nav is the natural place
