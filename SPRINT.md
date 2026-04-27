@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-04-27 00:09 UTC  
+**Generated:** 2026-04-27 00:18 UTC  
 **Showing:** last 2 week(s) of 2 total  
 
 ---
@@ -25,11 +25,11 @@
 |------|-------|
 | Status | ✅ Good |
 | Active days | 6 / 7 |
-| Total commits | 50 |
+| Total commits | 51 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| ⚪ | **2** | **10** | **13** | **11** | **5** | **9** |
+| ⚪ | **2** | **10** | **13** | **11** | **5** | **10** |
 
 **Tue – Tuesday, Apr 21**
 
@@ -89,6 +89,7 @@
 
 **Sun – Sunday, Apr 26**
 
+- `c206f02` feat(pdf): zoom controls + responsive fit-width in PdfViewer — _dongzhang84_ `2026-04-26 17:17`
 - `6f0b0a5` feat(ui): align Question Result split-pane with Notion-warm pattern — _dongzhang84_ `2026-04-26 17:09`
 - `2985584` feat(ui): align Book Home with landing's Notion-warm pattern — _dongzhang84_ `2026-04-26 17:03`
 - `1f69c33` feat(ui): align /library with landing's Notion-warm pattern — _dongzhang84_ `2026-04-26 16:51`
