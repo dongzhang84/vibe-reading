@@ -337,13 +337,13 @@ Google Cloud Console **不用动** —— OAuth Client 的 Authorized redirect U
 
 > Phase 4B (Auth) 还会再用到这个，那时候已经部署过、生产 URL 已知。
 
-### 2.5 Custom Domain（推迟到 MVP 跑通后再做）
+### 2.5 Custom Domain（推迟到 MVP 跑通 + UAT 通过后再做）
 
-Phase 2 用 Vercel 自动给的 `*.vercel.app` 即可，**不要**这一步就买 / 切自定义域名。理由：产品名 / brand 在写业务代码过程中常会调整，过早绑死 custom domain 会让 brand pivot 时多一遍 DNS + Supabase + OAuth env 的迁移成本。
+Phase 2 用 Vercel 自动给的 `*.vercel.app` 即可，**不要**这一步就买 / 切自定义域名。理由：产品名 / brand 在写业务代码过程中常会调整；UAT 没通过的话产品方向都还可能调；过早绑死 custom domain 会让任何方向调整都多一遍 DNS + Supabase + OAuth env 迁移成本。
 
-等 MVP 上线、brand 定型之后，按 [`STANDARD.md` §5.4](../../indie-product-playbook/stack/STANDARD.md) 的 Vercel + Namecheap + Supabase Auth + Stripe Webhook 全套迁移流程一次性切。该节附带"踩过的坑"清单（www 子域 OAuth 转圈、HTTPS Let's Encrypt 等待、env-without-redeploy、第三方 TOML config 漏改等）。
+等 MVP 上线、§12.A UAT 通过、brand 定型之后，按 [`STANDARD.md` §12.B](../../indie-product-playbook/stack/STANDARD.md) 的 Vercel + Namecheap + Supabase Auth 全套迁移流程一次性切。该节附带"踩过的坑"清单（www 子域 OAuth 转圈、HTTPS Let's Encrypt 等待、env-without-redeploy、第三方 TOML config 漏改等）。
 
-vibe-reading 当前状态：仍在 `vibe-reading-iota.vercel.app`，custom domain TBD。
+vibe-reading 当前状态：仍在 `vibe-reading-iota.vercel.app`，custom domain TBD（等 UAT 通过再切）。
 
 ---
 
