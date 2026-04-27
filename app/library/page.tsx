@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { getSessionId } from '@/lib/session'
 import { claimSessionBooks } from '@/lib/auth/claim'
+import { LibraryList } from '@/components/LibraryList'
 
 // Middleware already protects /library, but re-check here so this page
 // works even if someone removes the matcher entry later.
@@ -73,45 +74,8 @@ export default async function LibraryPage() {
           </Link>
         </section>
       ) : (
-        <ul className="flex flex-col gap-3">
-          {books.map((b) => (
-            <li key={b.id}>
-              <Link
-                href={`/b/${b.id}`}
-                className="group flex items-start gap-4 rounded-xl border border-border bg-card p-5 transition-colors hover:bg-secondary/50"
-              >
-                <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-secondary text-foreground transition-colors group-hover:bg-foreground/5">
-                  <BookOpen className="h-4 w-4" />
-                </div>
-                <div className="flex min-w-0 flex-col gap-1">
-                  <p className="font-medium text-foreground">{b.title}</p>
-                  {b.author && (
-                    <p className="text-sm text-muted-foreground">{b.author}</p>
-                  )}
-                  <p className="mt-1 text-xs text-muted-foreground/70">
-                    {b.page_count ? `${b.page_count} pages · ` : ''}
-                    added {formatDate(b.created_at)}
-                  </p>
-                </div>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <LibraryList books={books} />
       )}
     </main>
   )
-}
-
-function formatDate(v: string | null): string {
-  if (!v) return ''
-  try {
-    const d = new Date(v)
-    return d.toLocaleDateString(undefined, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    })
-  } catch {
-    return ''
-  }
 }

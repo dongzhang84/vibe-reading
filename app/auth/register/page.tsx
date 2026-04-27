@@ -3,6 +3,7 @@
 import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { BookOpen } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 function RegisterForm() {
@@ -44,13 +45,23 @@ function RegisterForm() {
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-sm flex-col justify-center gap-8 px-6 py-20">
+      <Link
+        href="/"
+        className="flex items-center gap-2 self-start text-foreground transition-opacity hover:opacity-80"
+      >
+        <BookOpen className="h-5 w-5" />
+        <span className="font-medium">Vibe Reading</span>
+      </Link>
+
       <header className="flex flex-col gap-2">
-        <h1 className="text-2xl font-medium tracking-tight">Create account</h1>
+        <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+          Create account
+        </h1>
         <p className="text-sm text-muted-foreground">
-          Email + password. Or{' '}
+          Email and password. Or{' '}
           <Link
             href={`/auth/login${next !== '/library' ? `?next=${encodeURIComponent(next)}` : ''}`}
-            className="text-foreground hover:underline"
+            className="text-foreground transition-opacity hover:opacity-80"
           >
             continue with Google
           </Link>
@@ -59,7 +70,7 @@ function RegisterForm() {
       </header>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex flex-col gap-1.5 text-sm">
           <span className="text-foreground">Email</span>
           <input
             type="email"
@@ -67,11 +78,11 @@ function RegisterForm() {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-foreground"
+            className="rounded-lg border border-border bg-card px-3 py-2 text-sm outline-none transition-colors focus:border-foreground/40"
           />
         </label>
 
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex flex-col gap-1.5 text-sm">
           <span className="text-foreground">Password</span>
           <input
             type="password"
@@ -80,26 +91,26 @@ function RegisterForm() {
             minLength={8}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-foreground"
+            className="rounded-lg border border-border bg-card px-3 py-2 text-sm outline-none transition-colors focus:border-foreground/40"
           />
         </label>
 
-        {error && <p className="text-xs text-destructive">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
 
         <button
           type="submit"
           disabled={loading}
-          className="rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          className="rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
         >
           {loading ? 'Creating account…' : 'Create account'}
         </button>
       </form>
 
-      <p className="text-center text-xs text-muted-foreground">
+      <p className="text-center text-sm text-muted-foreground">
         Already have an account?{' '}
         <Link
           href={`/auth/login${next !== '/library' ? `?next=${encodeURIComponent(next)}` : ''}`}
-          className="text-foreground hover:underline"
+          className="text-foreground transition-opacity hover:opacity-80"
         >
           Sign in
         </Link>

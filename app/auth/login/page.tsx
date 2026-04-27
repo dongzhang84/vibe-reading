@@ -3,6 +3,7 @@
 import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { BookOpen } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 function LoginForm() {
@@ -31,7 +32,10 @@ function LoginForm() {
     setLoading(true)
 
     const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
 
     if (error) {
       setError(error.message)
@@ -47,18 +51,34 @@ function LoginForm() {
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-sm flex-col justify-center gap-8 px-6 py-20">
+      <Link
+        href="/"
+        className="flex items-center gap-2 self-start text-foreground transition-opacity hover:opacity-80"
+      >
+        <BookOpen className="h-5 w-5" />
+        <span className="font-medium">Vibe Reading</span>
+      </Link>
+
       <header className="flex flex-col gap-2">
-        <h1 className="text-2xl font-medium tracking-tight">Sign in</h1>
-        <p className="text-sm text-muted-foreground">to continue reading</p>
+        <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+          Sign in
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Sign in, or create an account — same modal. This is the only time
+          we&apos;ll ask.
+        </p>
       </header>
 
       <button
         type="button"
         onClick={handleGoogle}
-        className="w-full rounded-md border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted/40"
+        className="w-full rounded-lg border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
       >
         Continue with Google
       </button>
+      <p className="-mt-5 text-xs text-muted-foreground">
+        First time? Continue with Google creates your account automatically.
+      </p>
 
       <div className="flex items-center gap-3">
         <hr className="flex-1 border-border" />
@@ -67,7 +87,7 @@ function LoginForm() {
       </div>
 
       <form onSubmit={handleEmail} className="flex flex-col gap-4">
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex flex-col gap-1.5 text-sm">
           <span className="text-foreground">Email</span>
           <input
             type="email"
@@ -75,11 +95,11 @@ function LoginForm() {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-foreground"
+            className="rounded-lg border border-border bg-card px-3 py-2 text-sm outline-none transition-colors focus:border-foreground/40"
           />
         </label>
 
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex flex-col gap-1.5 text-sm">
           <span className="text-foreground">Password</span>
           <input
             type="password"
@@ -87,28 +107,28 @@ function LoginForm() {
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-foreground"
+            className="rounded-lg border border-border bg-card px-3 py-2 text-sm outline-none transition-colors focus:border-foreground/40"
           />
         </label>
 
-        {error && <p className="text-xs text-destructive">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
 
         <button
           type="submit"
           disabled={loading}
-          className="rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          className="rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
         >
           {loading ? 'Signing in…' : 'Sign in'}
         </button>
       </form>
 
-      <p className="text-center text-xs text-muted-foreground">
-        Don&apos;t have an account?{' '}
+      <p className="text-center text-sm text-muted-foreground">
+        No account yet?{' '}
         <Link
           href={`/auth/register${next !== '/library' ? `?next=${encodeURIComponent(next)}` : ''}`}
-          className="text-foreground hover:underline"
+          className="text-foreground transition-opacity hover:opacity-80"
         >
-          Sign up
+          Sign up with email →
         </Link>
       </p>
     </main>
