@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-04-27 18:16 UTC  
+**Generated:** 2026-04-27 18:21 UTC  
 **Showing:** last 2 week(s) of 2 total  
 
 ---
@@ -11,14 +11,15 @@
 |------|-------|
 | Status | ❌ Stalled |
 | Active days | 1 / 7 |
-| Total commits | 10 |
+| Total commits | 11 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| **10** | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |
+| **11** | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |
 
 **Mon – Monday, Apr 27**
 
+- `f3773db` docs(impl-guide): align with STANDARD §12 — Phase mapping + checklist + success criteria — _dongzhang84_ `2026-04-27 11:21`
 - `9bb8894` docs(impl-guide): update §2.5 pointer to STANDARD §12.B — _dongzhang84_ `2026-04-27 11:16`
 - `8a2a302` docs(impl-guide): §2.5 — point to STANDARD §5.4 for custom-domain — _dongzhang84_ `2026-04-27 10:51`
 - `a75b4e2` docs(spec): bring vibe-reading.md up to current state — _dongzhang84_ `2026-04-27 10:42`
