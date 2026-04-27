@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-04-27 07:19 UTC  
+**Generated:** 2026-04-27 07:22 UTC  
 **Showing:** last 2 week(s) of 2 total  
 
 ---
@@ -11,14 +11,15 @@
 |------|-------|
 | Status | ❌ Stalled |
 | Active days | 1 / 7 |
-| Total commits | 3 |
+| Total commits | 4 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| **3** | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |
+| **4** | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |
 
 **Mon – Monday, Apr 27**
 
+- `75a9c5f` docs: add Chinese README + language switcher — _dongzhang84_ `2026-04-27 00:22`
 - `9fedfa7` docs: translate the second tagline to English (OSS audience) — _dongzhang84_ `2026-04-27 00:19`
 - `e30724f` docs: rewrite README as a real OSS-project front door — _dongzhang84_ `2026-04-27 00:14`
 - `7eb3be3` docs: refresh todo / README / ui-report / impl-guide for current state — _dongzhang84_ `2026-04-27 00:12`
