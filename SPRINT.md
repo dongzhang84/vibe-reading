@@ -1,21 +1,35 @@
 # Sprint Report
 
-**Generated:** 2026-04-26 23:51 UTC  
-**Showing:** last 1 week(s) of 1 total  
+**Generated:** 2026-04-27 00:03 UTC  
+**Showing:** last 2 week(s) of 2 total  
 
 ---
 
-## Week 1 _(current)_ · 2026-04-20 to 2026-04-26
+## Week 2 _(current)_ · 2026-04-27 to 2026-05-03
+
+| Stat | Value |
+|------|-------|
+| Status | ❌ Stalled |
+| Active days | 0 / 7 |
+| Total commits | 0 |
+
+| Mon | Tue | Wed | Thu | Fri | Sat | Sun |
+|---|---|---|---|---|---|---|
+| ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |
+
+---
+
+## Week 1 · 2026-04-20 to 2026-04-26
 
 | Stat | Value |
 |------|-------|
 | Status | ✅ Good |
 | Active days | 6 / 7 |
-| Total commits | 48 |
+| Total commits | 49 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| ⚪ | **2** | **10** | **13** | **11** | **5** | **7** |
+| ⚪ | **2** | **10** | **13** | **11** | **5** | **8** |
 
 **Tue – Tuesday, Apr 21**
 
@@ -75,6 +89,7 @@
 
 **Sun – Sunday, Apr 26**
 
+- `2985584` feat(ui): align Book Home with landing's Notion-warm pattern — _dongzhang84_ `2026-04-26 17:03`
 - `1f69c33` feat(ui): align /library with landing's Notion-warm pattern — _dongzhang84_ `2026-04-26 16:51`
 - `c8eaa9b` copy: round out hero subtitle with "Ask first. The right chapters find you." — _dongzhang84_ `2026-04-26 16:44`
 - `9480e5c` copy: trim hero subtitle to single sentence — _dongzhang84_ `2026-04-26 13:58`
