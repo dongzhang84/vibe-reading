@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-04-27 17:37 UTC  
+**Generated:** 2026-04-27 17:38 UTC  
 **Showing:** last 2 week(s) of 2 total  
 
 ---
@@ -11,14 +11,15 @@
 |------|-------|
 | Status | ❌ Stalled |
 | Active days | 1 / 7 |
-| Total commits | 6 |
+| Total commits | 7 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| **6** | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |
+| **7** | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |
 
 **Mon – Monday, Apr 27**
 
+- `66ef4d1` docs(impl-guide): §4B.1 — frame GitHub OAuth as a choice, not a default cut — _dongzhang84_ `2026-04-27 10:37`
 - `a267afb` docs(impl-guide): align phases with new STANDARD §11 (model template) — _dongzhang84_ `2026-04-27 10:36`
 - `e06c6a4` docs: drop <sub> tag on README language switcher (was too small) — _dongzhang84_ `2026-04-27 00:35`
 - `75a9c5f` docs: add Chinese README + language switcher — _dongzhang84_ `2026-04-27 00:22`
