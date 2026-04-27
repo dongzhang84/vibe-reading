@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useDeferredValue, useEffect, useRef, useState } from 'react'
 import { Document, Page, pdfjs } from 'react-pdf'
 import { Maximize2, Minus, Plus } from 'lucide-react'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
@@ -20,8 +20,13 @@ const MIN_SCALE = 0.5
 const MAX_SCALE = 3.0
 const SCALE_STEP = 0.1
 const FALLBACK_WIDTH = 720
-// Trim a bit so the page doesn't kiss the scroll-container's edges at scale=1.
 const FIT_WIDTH_MARGIN = 24
+// Letter (8.5×11) ≈ 0.773 — close enough for most non-fiction PDFs.
+// Used to reserve vertical space before the page actually renders, so the
+// layout doesn't collapse → no white-flash during re-render or initial load.
+const PAGE_ASPECT_RATIO = 0.773
+// How far above/below the viewport to pre-mount pages.
+const PRELOAD_MARGIN = '800px 0px'
 
 export function PdfViewer({ url, initialPage = 1 }: Props) {
   const [numPages, setNumPages] = useState(0)
@@ -32,8 +37,6 @@ export function PdfViewer({ url, initialPage = 1 }: Props) {
   const pagesRef = useRef<HTMLDivElement>(null)
   const scrolledOnceRef = useRef(false)
 
-  // Track the container's available width so "fit width" (scale=1) actually
-  // fits whatever pane the viewer ends up in.
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
@@ -48,8 +51,6 @@ export function PdfViewer({ url, initialPage = 1 }: Props) {
     return () => ro.disconnect()
   }, [])
 
-  // Scroll to initialPage once the document is loaded. Only on first mount,
-  // so user scroll / zoom afterward isn't yanked back.
   useEffect(() => {
     if (scrolledOnceRef.current) return
     if (numPages === 0) return
@@ -71,6 +72,9 @@ export function PdfViewer({ url, initialPage = 1 }: Props) {
     (containerWidth ?? FALLBACK_WIDTH) - FIT_WIDTH_MARGIN,
   )
   const pageWidth = Math.round(baseWidth * scale)
+  // Defer width updates: rapid +/− clicks coalesce into a single re-render
+  // instead of triggering one canvas redraw per click.
+  const deferredPageWidth = useDeferredValue(pageWidth)
 
   function zoomOut() {
     setScale((s) => Math.max(MIN_SCALE, +(s - SCALE_STEP).toFixed(2)))
@@ -130,20 +134,87 @@ export function PdfViewer({ url, initialPage = 1 }: Props) {
           }
         >
           {Array.from({ length: numPages }, (_, i) => (
-            <div
+            <PageSlot
               key={i}
-              data-page-number={i + 1}
-              className="mb-4 border border-border bg-card shadow-sm"
-            >
-              <Page
-                pageNumber={i + 1}
-                width={pageWidth}
-                renderAnnotationLayer={false}
-              />
-            </div>
+              pageNumber={i + 1}
+              width={deferredPageWidth}
+            />
           ))}
         </Document>
       </div>
+    </div>
+  )
+}
+
+/**
+ * One page slot. The wrapper's height is RESERVED (via aspect-ratio math)
+ * before the actual <Page> mounts, so the surrounding layout never collapses
+ * — no full-pane white flash during initial load or zoom re-render.
+ *
+ * Lazy-mounts the <Page> when scrolled within 800px of the viewport, so a
+ * 300-page book doesn't try to render every page on initial load and zoom
+ * only invalidates the 1–2 pages currently in view.
+ */
+function PageSlot({
+  pageNumber,
+  width,
+}: {
+  pageNumber: number
+  width: number
+}) {
+  const slotRef = useRef<HTMLDivElement>(null)
+  const [visible, setVisible] = useState(false)
+
+  useEffect(() => {
+    if (visible) return
+    const el = slotRef.current
+    if (!el) return
+    if (typeof IntersectionObserver === 'undefined') {
+      setVisible(true)
+      return
+    }
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true)
+          obs.disconnect()
+        }
+      },
+      { rootMargin: PRELOAD_MARGIN },
+    )
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [visible])
+
+  const reservedHeight = Math.round(width / PAGE_ASPECT_RATIO)
+  const placeholderStyle = { width, minHeight: reservedHeight }
+
+  return (
+    <div
+      ref={slotRef}
+      data-page-number={pageNumber}
+      className="mb-4 flex items-center justify-center overflow-hidden border border-border bg-card shadow-sm"
+      style={placeholderStyle}
+    >
+      {visible ? (
+        <Page
+          pageNumber={pageNumber}
+          width={width}
+          renderAnnotationLayer={false}
+          loading={
+            <div
+              className="flex items-center justify-center text-xs text-muted-foreground"
+              style={placeholderStyle}
+            >
+              Loading page {pageNumber}…
+            </div>
+          }
+        />
+      ) : (
+        <span className="text-xs text-muted-foreground">
+          Page {pageNumber}
+        </span>
+      )}
     </div>
   )
 }
