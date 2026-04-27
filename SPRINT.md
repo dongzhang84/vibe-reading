@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-04-27 02:43 UTC  
+**Generated:** 2026-04-27 03:14 UTC  
 **Showing:** last 2 week(s) of 2 total  
 
 ---
@@ -25,11 +25,11 @@
 |------|-------|
 | Status | ✅ Good |
 | Active days | 6 / 7 |
-| Total commits | 53 |
+| Total commits | 54 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| ⚪ | **2** | **10** | **13** | **11** | **5** | **12** |
+| ⚪ | **2** | **10** | **13** | **11** | **5** | **13** |
 
 **Tue – Tuesday, Apr 21**
 
@@ -89,6 +89,7 @@
 
 **Sun – Sunday, Apr 26**
 
+- `56ca8a1` feat(ui): auth-page redesign + delete-book affordance — _dongzhang84_ `2026-04-26 20:14`
 - `0560880` docs: add prioritized TODO list (3 buckets — polish / harden / expand) — _dongzhang84_ `2026-04-26 19:43`
 - `aacaf7d` fix(pdf): kill the white-flash on load + zoom — _dongzhang84_ `2026-04-26 17:26`
 - `c206f02` feat(pdf): zoom controls + responsive fit-width in PdfViewer — _dongzhang84_ `2026-04-26 17:17`
