@@ -711,9 +711,20 @@ createClient<Database, 'vr'>(url, serviceRoleKey, {
 })
 ```
 
-### 4B.1 砍掉 GitHub
+### 4B.1 OAuth provider 选择（决定要不要砍 GitHub）
 
-STANDARD §3.2 login 页里的 GitHub **不要**。只保留 Email/Password + Google。
+STANDARD §3.2 的 login 页默认提供 **Email/Password + Google + GitHub** 三选一。是否保留 GitHub 取决于**目标用户**：
+
+| 目标用户 | GitHub OAuth | 理由 |
+|---|---|---|
+| 开发者 / 技术 audience（dev tools、API 类、indie hacker 工具） | ✅ **保留** | 开发者已经有 GitHub 账号，用它登录最低摩擦；某些场景（开源贡献流、IDE 集成）后续还需要 GitHub token |
+| 非技术 audience（普通 reader、消费者、creator 工具…） | ❌ **砍掉** | 大部分人没 GitHub 账号，多一个看不懂的按钮 = 多一道流失漏斗 |
+
+**Vibe Reading 的选择**：砍掉 GitHub。读书工具的目标用户是"严肃读者"——研究者 / 产品经理 / 工程师都有，但**也包括非技术读者**。GitHub 按钮对非开发者是认知噪音，所以这个 MVP 只保留 Email/Password + Google。
+
+如果你是用这套 guide 做开发者向工具，**不要砍**：保留 STANDARD §3.2 原样的三按钮 login 页。
+
+---
 
 ### 4B.2 Middleware 路由保护（v2 改动）
 
