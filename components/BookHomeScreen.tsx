@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
+import { ArrowRight, BookOpen, MessageSquare, Sparkles } from 'lucide-react'
 
 interface TocEntry {
   title: string
@@ -65,59 +66,73 @@ export function BookHomeScreen({
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-12 px-6 py-12">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-2xl font-medium tracking-tight text-foreground">
+    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-12 px-6 py-16">
+      {/* Title */}
+      <header className="flex flex-col gap-2">
+        <h1 className="text-balance text-3xl font-semibold leading-tight tracking-tight text-foreground md:text-4xl">
           {book.title}
         </h1>
         {book.author && (
-          <p className="text-sm text-muted-foreground">by {book.author}</p>
+          <p className="text-base text-muted-foreground">by {book.author}</p>
         )}
       </header>
 
+      {/* Overview */}
       {book.overview && (
-        <section className="rounded-md border border-border bg-muted/20 p-4">
-          <p className="text-sm leading-relaxed text-foreground/85">
+        <section className="rounded-xl border border-border bg-card p-6">
+          <h2 className="mb-3 text-xs font-medium uppercase tracking-wider text-accent">
+            Overview
+          </h2>
+          <p className="text-base leading-relaxed text-foreground/85">
             {book.overview}
           </p>
         </section>
       )}
 
-      <section className="flex flex-col gap-4">
+      {/* Ask the book */}
+      <section className="flex flex-col gap-5">
         <div className="flex flex-col gap-1">
-          <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+          <h2 className="text-2xl font-semibold tracking-tight text-foreground">
             Ask the book
           </h2>
-          <p className="text-xs text-muted-foreground/80">
-            Vibe Reading won&apos;t summarize until you ask.
+          <p className="text-base text-muted-foreground">
+            Ask a question, and the right chapters find you.
           </p>
         </div>
 
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          rows={2}
-          placeholder="Ask anything about this book..."
-          className="w-full resize-y rounded-md border border-border bg-background px-3 py-2 text-base outline-none focus:border-foreground"
-          disabled={submitting}
-        />
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-xs text-destructive">{error}</span>
-          <button
-            type="button"
-            onClick={() => submit(text)}
-            disabled={submitting || text.trim().length < 3}
-            className="rounded-md bg-primary px-5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-          >
-            {submitting ? 'Asking…' : 'Ask →'}
-          </button>
+        <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 transition-colors focus-within:border-foreground/40">
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            rows={2}
+            placeholder="Ask anything about this book..."
+            disabled={submitting}
+            className="w-full resize-y border-0 bg-transparent px-1 py-1 text-base leading-relaxed text-foreground outline-none placeholder:text-muted-foreground/60 disabled:opacity-60"
+          />
+          <div className="flex items-center justify-between gap-3 border-t border-border pt-3">
+            <span className="text-xs text-destructive">{error}</span>
+            <button
+              type="button"
+              onClick={() => submit(text)}
+              disabled={submitting || text.trim().length < 3}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
+              {submitting ? 'Asking…' : (
+                <>
+                  Ask
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
         {book.suggestedQuestions && book.suggestedQuestions.length > 0 && (
-          <div className="flex flex-col gap-2 pt-2">
-            <p className="text-xs text-muted-foreground">
-              Or try one of these:
-            </p>
+          <div className="flex flex-col gap-3 pt-2">
+            <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              <Sparkles className="h-3.5 w-3.5" />
+              Or try one of these
+            </div>
             <ul className="flex flex-col gap-2">
               {book.suggestedQuestions.map((q, i) => (
                 <li key={`${q}-${i}`}>
@@ -125,9 +140,10 @@ export function BookHomeScreen({
                     type="button"
                     onClick={() => submit(q)}
                     disabled={submitting}
-                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-left text-sm text-foreground hover:border-foreground/50 disabled:opacity-50"
+                    className="group flex w-full items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 text-left text-sm text-foreground transition-colors hover:bg-secondary/50 disabled:opacity-50"
                   >
-                    {q}
+                    <span>{q}</span>
+                    <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
                   </button>
                 </li>
               ))}
@@ -136,22 +152,26 @@ export function BookHomeScreen({
         )}
       </section>
 
+      {/* Contents */}
       {book.toc && book.toc.length > 0 && (
-        <section className="flex flex-col gap-3">
-          <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
-            Contents
-          </h2>
-          <ul className="flex flex-col gap-1 rounded-md border border-border p-3 text-sm">
+        <section className="flex flex-col gap-4">
+          <div className="flex items-center gap-2">
+            <BookOpen className="h-4 w-4 text-muted-foreground" />
+            <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Contents
+            </h2>
+          </div>
+          <ul className="flex flex-col rounded-xl border border-border bg-card py-2 text-sm">
             {book.toc.map((entry, i) => (
               <li
                 key={`${entry.title}-${i}`}
-                className="flex justify-between gap-3 py-0.5"
-                style={{ paddingLeft: `${(entry.level - 1) * 16}px` }}
+                className="flex justify-between gap-3 px-4 py-1.5"
+                style={{ paddingLeft: `${16 + (entry.level - 1) * 16}px` }}
               >
                 <span
                   className={
                     entry.level === 1
-                      ? 'text-foreground'
+                      ? 'font-medium text-foreground'
                       : 'text-muted-foreground'
                   }
                 >
@@ -166,19 +186,24 @@ export function BookHomeScreen({
         </section>
       )}
 
+      {/* History */}
       {questionHistory.length > 0 && (
-        <section className="flex flex-col gap-3">
-          <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
-            Your questions
-          </h2>
+        <section className="flex flex-col gap-4">
+          <div className="flex items-center gap-2">
+            <MessageSquare className="h-4 w-4 text-muted-foreground" />
+            <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Your questions
+            </h2>
+          </div>
           <ul className="flex flex-col gap-2">
             {questionHistory.map((q) => (
               <li key={q.id}>
                 <Link
                   href={`/b/${book.id}/q/${q.id}`}
-                  className="block rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground hover:border-foreground/50"
+                  className="group flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground transition-colors hover:bg-secondary/50"
                 >
-                  {q.text}
+                  <span>{q.text}</span>
+                  <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
                 </Link>
               </li>
             ))}
