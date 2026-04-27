@@ -130,7 +130,7 @@ export function ReadPane({
 
       <div className="flex flex-1 overflow-hidden">
         <div className="flex-1 overflow-y-auto bg-secondary/20 px-4 py-6">
-          <PdfViewer url={pdfUrl} initialPage={pageStart} width={560} />
+          <PdfViewer url={pdfUrl} initialPage={pageStart} />
         </div>
 
         <aside className="hidden w-[300px] shrink-0 flex-col gap-4 overflow-y-auto border-l border-border p-5 lg:flex">
