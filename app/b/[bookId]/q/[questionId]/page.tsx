@@ -52,31 +52,20 @@ export default async function QuestionResultPage({
     .eq('question_id', questionId)
     .order('rank')
 
-  // Display order: book sequence (chapter seq ascending), with any
-  // book-level match (chapter_id = null) pinned first as the broadest
-  // scope. AI's relevance rank is preserved on the row but not used for
-  // sorting — readers expect their book to flow in chapter order.
-  const matches: ChapterMatchView[] = (rawMatches ?? [])
-    .map((m) => {
-      const ch = (m.chapters ?? null) as
-        | { id: string; seq: number; title: string; page_start: number | null }
-        | null
-      return {
-        questionChapterId: m.id,
-        chapterId: m.chapter_id,
-        chapterTitle: ch?.title ?? null,
-        chapterSeq: ch?.seq ?? null,
-        pageStart: ch?.page_start ?? null,
-        reason: m.reason,
-        rank: m.rank,
-      }
-    })
-    .sort((a, b) => {
-      if (a.chapterId === null && b.chapterId === null) return 0
-      if (a.chapterId === null) return -1
-      if (b.chapterId === null) return 1
-      return (a.chapterSeq ?? 0) - (b.chapterSeq ?? 0)
-    })
+  const matches: ChapterMatchView[] = (rawMatches ?? []).map((m) => {
+    const ch = (m.chapters ?? null) as
+      | { id: string; seq: number; title: string; page_start: number | null }
+      | null
+    return {
+      questionChapterId: m.id,
+      chapterId: m.chapter_id,
+      chapterTitle: ch?.title ?? null,
+      chapterSeq: ch?.seq ?? null,
+      pageStart: ch?.page_start ?? null,
+      reason: m.reason,
+      rank: m.rank,
+    }
+  })
 
   const { data: signed } = await db.storage
     .from('vr-docs')
