@@ -88,30 +88,36 @@ vibe-reading/
 │   ├── api/
 │   │   ├── upload/route.ts            ← PDF 解析 + intake (overview + 3 questions)
 │   │   ├── question/route.ts          ← 提交 question → 触发 relevance → 写 question_chapters
+│   │   ├── question/[id]/retry/      ← 0-match 重试，重跑 relevance 替换 question_chapters
 │   │   ├── brief/route.ts             ← [Brief] 触发点（chapter-level，缓存）
 │   │   ├── ask/route.ts               ← [Read] pane 里的 Highlight & Ask
+│   │   ├── books/[id]/route.ts        ← DELETE：删书 + cascade + Storage 清
 │   │   ├── check/route.ts             ← ⚠️ Reserved v1.1（UI 不调用）
 │   │   ├── claim/route.ts             ← session → user 迁移（登录前上传的书归属）
 │   │   └── cron/cleanup/route.ts      ← 24h 未认领 session book 清理
 │   ├── auth/
-│   │   ├── login/page.tsx
-│   │   ├── register/page.tsx
-│   │   └── callback/route.ts
+│   │   ├── login/page.tsx             ← Notion-warm UI + BookOpen brand
+│   │   ├── register/page.tsx          ← 同上
+│   │   └── callback/route.ts          ← OAuth 回跳 + 内联 claim
 │   ├── b/[bookId]/
 │   │   ├── page.tsx                   ← Screen 2: Book Home
 │   │   └── q/[questionId]/page.tsx    ← Screen 3: Question Result (分屏)
-│   ├── library/page.tsx
+│   ├── library/page.tsx               ← server: 读 books → 喂 LibraryList
 │   ├── page.tsx                       ← Screen 1 (Landing + Upload)
-│   └── layout.tsx
+│   └── layout.tsx                     ← 根 layout：Nav + dark-mode FOUC 脚本
 ├── components/
-│   ├── UploadDropzone.tsx
-│   ├── LoginModal.tsx
+│   ├── Nav.tsx                        ← 全站 sticky nav，pathname 自隐藏
+│   ├── ThemeToggle.tsx                ← Sun/Moon 切换，写 localStorage('vr-theme')
+│   ├── UploadDropzone.tsx             ← drag-drop + Notion-warm 视觉
+│   ├── UploadCtaButton.tsx            ← Landing CTA 按钮（小 client wrapper）
+│   ├── LoginModal.tsx                 ← (Reserved) 登录 modal，v2 没在用
 │   ├── BookHomeScreen.tsx             ← TOC + question input + suggestions + history
 │   ├── QuestionResultScreen.tsx       ← 左右分屏容器
-│   ├── ChapterListPane.tsx            ← 左栏：AI matched chapters + [Brief]/[Read] 按钮
-│   ├── BriefPane.tsx                  ← 右栏 Brief 内容
+│   ├── ChapterListPane.tsx            ← 左栏：matched chapters + [Brief]/[Read] + 0-match Retry
+│   ├── BriefPane.tsx                  ← 右栏 Brief 4 段式
 │   ├── ReadPane.tsx                   ← 右栏 PDF viewer + Highlight & Ask
-│   ├── PdfViewer.tsx                  ← react-pdf 封装
+│   ├── PdfViewer.tsx                  ← react-pdf：zoom + 键盘 + 跳页 + lazy mount
+│   ├── LibraryList.tsx                ← /library 客户端列表 + 删书菜单
 │   ├── RestateScreen.tsx              ← ⚠️ Reserved v1.1（文件保留不挂路由）
 │   └── ui/...
 ├── lib/
@@ -1434,7 +1440,19 @@ export async function POST(request: Request) {
 
 ### 10.3 ReadPane 组件
 
-左栏选中、右栏 sidebar 显示历史问答（同现在 v1 的实现）。v2 没变。
+左栏选中、右栏 sidebar 显示历史问答。v2 视觉沿用 Notion-warm 卡片样式（Sparkles glyph + rounded-xl card）。
+
+### 10.4 PdfViewer 现有功能（2026-04-26 后）
+
+最初的简单封装现在长出了一组小工具，全在 `components/PdfViewer.tsx` 里：
+
+- **Sticky toolbar**：`[ N% ]  [ Page __ / N ]      [−] [⛶] [+]`
+- **缩放**：`50%` 到 `300%`，每次 `±10%`，"⛶" 一键 fit-width（基于 `ResizeObserver` 测的容器实时宽度，所以收侧栏 / 改窗口大小都跟着重算）
+- **页码跳转**：toolbar 里 number input + Enter 平滑 scroll
+- **键盘快捷键**：`+`/`=` 放大、`-`/`_` 缩小、`0` fit-width、`g` 聚焦页码输入框。在 input/textarea/contenteditable 里 typing 时不拦截；按住 Cmd/Ctrl/Alt 时也不拦截（让 browser 自己的快捷键过）
+- **Reserved-space lazy mount**：每页用 `IntersectionObserver`（`rootMargin: '800px 0px'`）按需 mount；未 mount 时 wrapper 用 letter aspect ratio (8.5:11) 预留高度 → 布局不塌、滚动平稳
+- **`useDeferredValue`**：rapid +/− click 合并成一次 re-render，不会触发 N 次画布重建
+- 三件事一起 → load + zoom **不再 white-flash**（这个问题在 2026-04-26 报告并修掉）
 
 ---
 
@@ -1442,37 +1460,60 @@ export async function POST(request: Request) {
 
 登录后用户看书列表。**v2 改动**：链接指向 `/b/[id]`（Book Home），不是老的 `/b/[id]/map`。
 
+### 11.1 拆 server / client
+
+`/library/page.tsx` 是 server component，负责 auth + 防御性 claim + 数据查询，把书列表 props 给 client 的 `LibraryList`。
+
 ```tsx
+// app/library/page.tsx
 export default async function LibraryPage() {
   const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/auth/login')
+  if (!user) redirect('/auth/login?next=/library')
+
+  // 防御性 claim：万一 Email 登录路径漏了，这里再尝试一次
+  const sessionId = await getSessionId()
+  if (sessionId) {
+    try { await claimSessionBooks({ userId: user.id, sessionId }) } catch {}
+  }
 
   const db = createAdminClient()
   const { data: books } = await db.from('books')
-    .select(`
-      id, title, author, page_count, created_at,
-      questions(id, created_at)
-    `)
+    .select('id, title, author, page_count, created_at')
     .eq('owner_id', user.id)
     .order('created_at', { ascending: false })
 
-  return (
-    <main>
-      <h1>Your Library</h1>
-      {books?.map((b) => (
-        <Link key={b.id} href={`/b/${b.id}`}>
-          <div>
-            <h3>{b.title}</h3>
-            <p>{b.author}</p>
-            <p>{b.questions?.length ?? 0} questions asked · last {lastActive(b.questions)}</p>
-          </div>
-        </Link>
-      ))}
-    </main>
-  )
+  return books?.length
+    ? <LibraryList books={books} />
+    : <EmptyState />   // 内联在 page 里的简单 empty state
 }
 ```
+
+### 11.2 LibraryList 客户端列表（删书）
+
+`components/LibraryList.tsx` 是 client。每张卡片右上角有 3-dot menu (`MoreVertical`)：
+
+- 点 `⋮` → 弹出 dropdown，唯一选项 "Delete book"（红色，destructive token）
+- 点 Delete → `window.confirm("Delete \"《书名》\"? Questions, briefs, and the PDF will be removed.")`
+- 确认 → `fetch('/api/books/[id]', { method: 'DELETE' })` → 乐观从列表移除
+- ESC 关菜单；点外面（fixed inset overlay）也关
+- 删除中卡片 50% 透明，菜单按钮 disabled
+
+### 11.3 DELETE /api/books/[id]
+
+```typescript
+// app/api/books/[id]/route.ts
+export async function DELETE(_request, { params }) {
+  const { id } = await params
+  // 验 auth → 验 owner_id 匹配
+  // best-effort 删 Storage blob（vr-docs/...）
+  // 删 books 行 → cascade 自动清掉 chapters / questions /
+  //              question_chapters / briefs / restatements
+  return NextResponse.json({ ok: true })
+}
+```
+
+Cascade 是 v1 → v2 schema 在 ON DELETE CASCADE 已经布好的（Phase 2 Path B 里），所以这里只删一行 books 就完事。
 
 不做：搜索、标签、筛选、统计、分享。
 

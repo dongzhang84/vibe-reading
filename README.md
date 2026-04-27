@@ -13,17 +13,22 @@ A reading tool that refuses to summarize the book before you tell it why you're 
 ## Docs
 
 - [Product Spec](./docs/vibe-reading.md) — what it is, who it's for, the 4 design rules
-- [Implementation Guide](./docs/vibe-reading-implementation.md) — phase-by-phase build instructions (Next.js 14 + Supabase + OpenAI)
+- [Implementation Guide](./docs/vibe-reading-implementation.md) — phase-by-phase build instructions
+- [UI Design Report](./docs/ui-design-report.md) — tokens, components, design rules
+- [TODO](./docs/todo.md) — what's shipped, what's next (3 buckets: polish / harden / expand)
 
 ## Status
 
-💡 Proposal — 2026-04-21. Docs complete, not yet scaffolded.
+✅ **MVP shipped** — 2026-04-27. Question-driven flow live end-to-end (upload → ask → matched chapters with Brief / Read split-pane). Notion-warm UI with light/dark toggle. Self-tested on real books.
+
+Next: production hardening (rate limit + error tracking + cost ceiling) before opening to friends. See [todo.md](./docs/todo.md) bucket B.
 
 ## Stack
 
-- Next.js 14 App Router + TypeScript + Tailwind + Shadcn/ui
+- Next.js 16 App Router + Turbopack + TypeScript + Tailwind v4 + shadcn/ui (used sparingly)
 - Supabase (Auth + Postgres + Storage) — Supabase-only, no Prisma
-- OpenAI (gpt-4o-mini) for chapter mapping, briefs, and understanding checks
+- OpenAI `gpt-4o-mini` for intake (overview + 3 questions), relevance (chapter ranker), briefer (4-part note), asker (passage Q&A) — all with JSON schema strict mode
+- `unpdf` (serverless pdfjs fork) for PDF parsing + outline extraction; `react-pdf` for in-browser viewer
 - Vercel deploy
 - **No Stripe** — this is an open-source project. MVP is free.
 

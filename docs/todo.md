@@ -7,7 +7,8 @@
 > safety net; A is closing-time polish; C is product expansion that needs
 > time and conviction.
 >
-> Last updated: 2026-04-26 (post UI overhaul + PDF zoom + flash-fix).
+> Last updated: 2026-04-27 (post Notion-warm UI overhaul, dark mode,
+> PDF zoom + keyboard, delete-book affordance, auth-page redesign).
 
 ---
 
@@ -16,12 +17,12 @@
 Each ~15–45 min. None block anything. Pick when you want a clean break.
 
 - [x] ~~**Auth pages (`/auth/login`, `/auth/register`) UI pass**~~ —
-      shipped 2026-04-26 (commit 56ca8a1). Notion-warm tokens, BookOpen
-      brand mark, primary pill submit, STANDARD.md §3.2 copy
-- [x] ~~**Delete-book affordance on `/library`**~~ — shipped 2026-04-26
-      (commit 56ca8a1). 3-dot menu → "Delete book" with quoted title
-      in confirm dialog. `DELETE /api/books/[id]` cascades all related
-      rows + removes Storage blob
+      shipped 2026-04-26. Notion-warm tokens, BookOpen brand mark,
+      primary pill submit, STANDARD.md §3.2 copy
+- [x] ~~**Delete-book affordance on `/library`**~~ — shipped 2026-04-26.
+      3-dot menu → "Delete book" with quoted title in confirm dialog.
+      `DELETE /api/books/[id]` cascades all related rows + removes
+      Storage blob
 - [x] ~~**Dark mode toggle in Nav**~~ — shipped 2026-04-26. Sun/Moon
       button at the right of Nav. localStorage key `vr-theme`; first
       visit follows OS `prefers-color-scheme`, after click locks to
@@ -49,10 +50,11 @@ can run up an OpenAI bill, or you'll find out about prod errors only after
 the user complains.
 
 - [ ] **Rate-limit AI endpoints** — `/api/question`, `/api/brief`,
-      `/api/ask` have no caps. One signed-in user could `for i in {1..1000}`
-      a curl loop and burn $50+ in minutes. Suggested: per-user daily caps
-      (e.g. 50 questions, 100 briefs, 200 asks) via Upstash Ratelimit or
-      a simple `vr.usage_log` table + check at API entry
+      `/api/ask`, `/api/question/[id]/retry`, `/api/upload` (intake AI)
+      have no caps. One signed-in user could `for i in {1..1000}` a curl
+      loop and burn $50+ in minutes. Suggested: per-user daily caps
+      (e.g. 50 questions, 100 briefs, 200 asks, 5 uploads) via Upstash
+      Ratelimit or a simple `vr.usage_log` table + check at API entry
 - [ ] **Error tracking (Sentry / Highlight / similar)** — only console.error
       right now; prod errors invisible unless we manually check Vercel logs.
       Free tier is fine for an MVP. Hook it into `app/error.tsx` +
@@ -111,22 +113,42 @@ tried v1.
 
 Quick reference of what's been shipped recently. Full history in `git log`.
 
+**Functional flow (M1–M3, the v2 redesign foundation)**
 - ✅ v1 → v2 schema migration (drop goals/chapter_maps, add questions /
   question_chapters, alter briefs to chapter_id-only)
 - ✅ Question-driven 4-screen flow (Upload → Sign in → Book Home →
   Question Result with split-pane Brief / Read)
 - ✅ AI pipeline: intake (overview + 3 starter questions), relevance
-  (chapter ranking via `H1`/`H2`/...) handles, briefer (4-part), asker
-  (passage-level). All `gpt-4o-mini` + JSON schema strict
+  (chapter ranking via short `H1`/`H2`/... handles + JSON-schema enum
+  to defeat UUID hallucination), briefer (4-part), asker (passage-
+  level). All `gpt-4o-mini` + JSON schema strict mode
 - ✅ Auth flow: Google OAuth + Email/Password, with claim on every login
-  path (callback inline + Email path explicit + defensive in /b/[id] +
-  /library)
+  path (callback inline + Email path explicit + defensive in
+  /b/[id] + /library)
+
+**UI / experience polish (this round)**
 - ✅ Site-wide Nav (sticky, auth-aware, pathname self-hide)
 - ✅ Notion-warm UI overhaul across landing, /library, Book Home, and
-  Question Result split-pane
-- ✅ PDF viewer: zoom controls (50%–300% + Fit width), reserved-space
-  page slots, lazy-mount via IntersectionObserver, `useDeferredValue`
-  to coalesce rapid zoom clicks → no white-flash on load or zoom
+  Question Result split-pane (warm-cream bg, slate-blue fg, single warm
+  orange accent for eyebrows)
+- ✅ Auth pages (login + register) redesigned with the same tokens +
+  BookOpen brand mark
+- ✅ Dark mode toggle in Nav (Sun/Moon icon, localStorage persistence,
+  inline-script FOUC-prevention)
+- ✅ Delete-book affordance: 3-dot menu in /library with confirm dialog,
+  `DELETE /api/books/[id]` cascades + Storage cleanup
+- ✅ Question Result retry on 0 matches: `POST /api/question/[id]/retry`
+  re-runs relevance and replaces matches in place
+
+**PDF viewer (a small product unto itself)**
+- ✅ Zoom controls (50%–300% + Fit width button)
+- ✅ Page-jump input + keyboard shortcuts (`+`/`-`/`0` zoom, `g` page jump)
+- ✅ Reserved-space page slots (letter aspect ratio fallback) so layout
+  doesn't collapse during canvas re-render
+- ✅ Lazy-mount via IntersectionObserver (300-page books no longer
+  re-render every page on each zoom click)
+- ✅ `useDeferredValue` to coalesce rapid zoom clicks → no white-flash
+  on load or zoom
 
 ---
 
