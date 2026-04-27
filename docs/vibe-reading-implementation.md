@@ -62,15 +62,19 @@
 
 本 guide 的 Phase 编号严格对齐 [`indie-product-playbook/stack/STANDARD.md`](../../indie-product-playbook/stack/STANDARD.md) §11 的脚手架。这份文件本身被作为**模板**使用 —— 后续 indie 项目的 implementation-guide 直接 copy 这套结构。
 
-| STANDARD §11           | 本项目对应                                                  |
+| STANDARD §11 / §12     | 本项目对应                                                  |
 |------------------------|-------------------------------------------------------------|
 | Phase 0 Bootstrap      | Phase 0 — 项目初始化                                        |
 | Phase 1 Scaffold       | Phase 1 — Landing + Upload (Screen 1) + 壳                  |
 | Phase 2 Vercel deploy  | Phase 2 — 首次 Vercel 部署                                  |
 | Phase 3 v0 Polish      | Phase 3 — v0 Polish + Token Lockin                          |
 | Phase 4 DB + Auth      | Phase 4 — DB + Auth (4A: Schema · 4B: Auth flow)            |
-| Phase 5 Stripe         | (本项目跳过，open-source MVP 无付费)                          |
+| Phase 5 Stripe (rare)  | (本项目跳过；Day 1 不收费。如未来要收费走 §12.D)              |
 | Phase 6-N Business     | Phase 6-14 (PDF parsing · Book Home · Q Result · Brief · Read · Library · Cron …) |
+| **§12.A UAT (solo)**   | 创始人 dogfood —— 你自己用 MVP 读完一本真想读的书；过 → 进 §12.B |
+| **§12.B Custom Domain**| TBD —— UAT 通过 + brand 定型后再切（vibe-reading 当前在 `*.vercel.app`） |
+| **§12.C Scale-up**     | TBD —— 邀请朋友 / 开放陌生人之前做（rate limit · Sentry · cost cap · Posthog · storage audit） |
+| **§12.D Stripe**       | TBD —— spec 决定 MVP 全免费；如未来引入付费走 §6 Stripe 模块 |
 
 ---
 
@@ -1763,7 +1767,7 @@ CRON_SECRET=
 □ Phase 4A: SQL 在 vr schema 建表 + RLS + policies
 □ npm run db:types 生成类型
 □ Phase 4B: Auth（middleware 保护整个 /b/*）
-□ Phase 5: (skipped — open source MVP, no Stripe)
+□ Phase 5: (skipped — open source MVP, no Stripe; 未来如收费走 §12.D)
 □ Phase 6: Upload API + lib/pdf/outline.ts + lib/pdf/parser.ts + lib/ai/intake.ts
 □ Phase 7: Book Home（/b/[id] page + BookHomeScreen + /api/question）
 □ Phase 8: Question Result + QuestionResultScreen + ChapterListPane + lib/ai/relevance.ts
@@ -1775,6 +1779,13 @@ CRON_SECRET=
 □ Phase 14: cron cleanup + vercel.json
 □ new-project.sh 已处理：sprint-report.yml + notify-playbook.yml
 □ GitHub Secrets 加 PLAYBOOK_TOKEN
+
+—— Build 阶段以上结束。下面是 Post-MVP（按 STANDARD §12 顺序）——
+
+□ §12.A UAT（创始人 dogfood）：自己读完 1 本真书；不通过 → 回 Phase 6-N 改业务
+□ §12.B Custom Domain：UAT 通过 + brand 定型后；走 STANDARD §12.B
+□ §12.C Scale-up：开放陌生人前；rate limit / Sentry / cost cap / Posthog / storage audit
+□ §12.D Stripe：仅当决定收费时；走 STANDARD §6 Stripe 模块
 ```
 
 > **Phase 11 (Restate) 跳过** —— Reserved for v1.1。代码 / 表保留，UI 不挂。
@@ -1783,11 +1794,13 @@ CRON_SECRET=
 
 ## 成功判定
 
-参照 `docs/vibe-reading.md` §Success Criteria：
+参照 `docs/vibe-reading.md` §Success Criteria + STANDARD §12.A UAT 决策 gate：
 
-**Week 1**：作者自测 —— 用 MVP 读完 1 本自己真想读的书。比 ChatPDF / NotebookLM 差 → 回炉。
+**Week 1（§12.A 创始人 dogfood）**：作者自测 —— 用 MVP 读完 1 本自己真想读的书。比 ChatPDF / NotebookLM 差 → 不进 §12.B 域名，回 Phase 6-N 改业务。
 
-**Week 2-4**：5-10 个朋友试用 —— 看他们在 Book Home 输入框写得出问题吗？用的是自己的问题还是 AI 推荐的？大部分人卡住 → 方法论太理想化，重新设计。
+**Week 2-4（§12.A 通过 + §12.B/C 完成后才启动）**：5-10 个朋友试用 —— 看他们在 Book Home 输入框写得出问题吗？用的是自己的问题还是 AI 推荐的？点 [Brief] 后会进 [Read] 吗？大部分人卡住 → 方法论太理想化，重新设计。
+
+> **关键**：朋友试用**不在** §12.A（§12.A 是 solo dogfood）；它发生在 §12.A 通过 + §12.B 域名定型 + §12.C 硬化全做完之后。在 dogfood 没通过就邀请朋友 = 浪费朋友的耐心。
 
 ---
 
