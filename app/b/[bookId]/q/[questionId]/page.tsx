@@ -78,6 +78,7 @@ export default async function QuestionResultPage({
       bookTitle={book.title}
       bookAuthor={book.author}
       pdfUrl={pdfUrl}
+      questionId={questionId}
       questionText={question.text}
       matches={matches}
     />

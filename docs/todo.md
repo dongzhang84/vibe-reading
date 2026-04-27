@@ -25,12 +25,15 @@ Each ~15–45 min. None block anything. Pick when you want a clean break.
 - [ ] **Dark mode toggle in Nav** — `globals.css` already has full dark
       tokens. Just need a sun/moon button + `localStorage` to persist.
       Nav is the natural place
-- [ ] **PDF viewer keyboard shortcuts** — `+` / `−` zoom, `0` reset to 100%,
-      `g` open page-jump input. Heavy readers will love it
-- [ ] **Question Result empty state** — when relevance AI returns 0 matches
-      (rare but happens for nonsense questions), current copy is "AI mapping
-      unavailable". Better: `Try again` button + offer to go back to Book
-      Home
+- [x] ~~**PDF viewer keyboard shortcuts**~~ — shipped 2026-04-26.
+      `+`/`=` zoom in, `-`/`_` zoom out, `0` fit width, `g` focus the
+      page-jump input. Skips when typing in any input/textarea/
+      contenteditable; skips when modifier keys held (so Cmd+0 still
+      zooms the browser). Page input also added to toolbar
+- [x] ~~**Question Result empty state**~~ — shipped 2026-04-26. New copy:
+      "AI couldn't map this question to specific chapters." Two CTAs:
+      Retry (re-runs relevance via `POST /api/question/[id]/retry`,
+      replaces existing `question_chapters`) + Back to book
 - [ ] **`/library` book card metadata** — show "Last asked: 'why X?'" so
       returning users land in context. Requires a quick join from
       `vr.questions ORDER BY created_at DESC LIMIT 1` per book

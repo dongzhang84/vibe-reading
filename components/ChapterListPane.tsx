@@ -1,7 +1,13 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowLeft, ArrowRight, BookOpen } from 'lucide-react'
+import { useState } from 'react'
+import {
+  ArrowLeft,
+  ArrowRight,
+  BookOpen,
+  RefreshCw,
+} from 'lucide-react'
 
 export interface ChapterMatchView {
   questionChapterId: string
@@ -21,6 +27,7 @@ interface ActiveChapter {
 
 interface Props {
   bookId: string
+  questionId: string
   questionText: string
   matches: ChapterMatchView[]
   activeChapterId: string | null
@@ -31,6 +38,7 @@ interface Props {
 
 export function ChapterListPane({
   bookId,
+  questionId,
   questionText,
   matches,
   activeChapterId,
@@ -59,17 +67,7 @@ export function ChapterListPane({
       </header>
 
       {matches.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-xl border-2 border-dashed border-border p-8 text-center">
-          <p className="text-sm text-muted-foreground">
-            AI mapping is unavailable for this question.
-          </p>
-          <Link
-            href={`/b/${bookId}`}
-            className="text-sm text-foreground underline decoration-dotted underline-offset-2 hover:opacity-80"
-          >
-            Browse the book directly →
-          </Link>
-        </div>
+        <EmptyMatches bookId={bookId} questionId={questionId} />
       ) : (
         <ul className="flex flex-col gap-3">
           {matches.map((m) => {
@@ -146,6 +144,76 @@ export function ChapterListPane({
         </ul>
       )}
     </aside>
+  )
+}
+
+function EmptyMatches({
+  bookId,
+  questionId,
+}: {
+  bookId: string
+  questionId: string
+}) {
+  const [retrying, setRetrying] = useState(false)
+  const [retryError, setRetryError] = useState<string | null>(null)
+
+  async function retry() {
+    if (retrying) return
+    setRetrying(true)
+    setRetryError(null)
+    try {
+      const res = await fetch(`/api/question/${questionId}/retry`, {
+        method: 'POST',
+      })
+      if (!res.ok) {
+        const { error } = await res
+          .json()
+          .catch(() => ({ error: 'Retry failed' }))
+        setRetryError(error ?? 'Retry failed')
+        setRetrying(false)
+        return
+      }
+      // Reload to pick up the freshly-saved question_chapters from the
+      // server component on the page.
+      window.location.reload()
+    } catch {
+      setRetryError('Network error.')
+      setRetrying(false)
+    }
+  }
+
+  return (
+    <div className="flex flex-col items-center gap-4 rounded-xl border-2 border-dashed border-border p-8 text-center">
+      <p className="text-sm text-muted-foreground">
+        AI couldn&apos;t map this question to specific chapters.
+      </p>
+      <p className="text-xs text-muted-foreground/80">
+        Try again — the model may give a different read. Or rephrase the
+        question and ask again.
+      </p>
+      <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+        <button
+          type="button"
+          onClick={retry}
+          disabled={retrying}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+        >
+          <RefreshCw
+            className={`h-3.5 w-3.5 ${retrying ? 'animate-spin' : ''}`}
+          />
+          {retrying ? 'Retrying…' : 'Retry'}
+        </button>
+        <Link
+          href={`/b/${bookId}`}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-4 py-2 text-sm text-foreground transition-colors hover:bg-secondary"
+        >
+          Back to book
+        </Link>
+      </div>
+      {retryError && (
+        <p className="text-xs text-destructive">{retryError}</p>
+      )}
+    </div>
   )
 }
 

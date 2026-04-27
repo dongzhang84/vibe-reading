@@ -21,6 +21,7 @@ interface Props {
   bookTitle: string
   bookAuthor: string | null
   pdfUrl: string
+  questionId: string
   questionText: string
   matches: ChapterMatchView[]
 }
@@ -30,6 +31,7 @@ export function QuestionResultScreen({
   bookTitle,
   bookAuthor,
   pdfUrl,
+  questionId,
   questionText,
   matches,
 }: Props) {
@@ -39,6 +41,7 @@ export function QuestionResultScreen({
     <main className="grid h-screen grid-cols-1 lg:grid-cols-[2fr_3fr]">
       <ChapterListPane
         bookId={bookId}
+        questionId={questionId}
         questionText={questionText}
         matches={matches}
         activeChapterId={active?.chapterId ?? null}
