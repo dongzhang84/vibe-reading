@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-04-27 17:42 UTC  
+**Generated:** 2026-04-27 17:51 UTC  
 **Showing:** last 2 week(s) of 2 total  
 
 ---
@@ -11,14 +11,15 @@
 |------|-------|
 | Status | ❌ Stalled |
 | Active days | 1 / 7 |
-| Total commits | 8 |
+| Total commits | 9 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| **8** | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |
+| **9** | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |
 
 **Mon – Monday, Apr 27**
 
+- `8a2a302` docs(impl-guide): §2.5 — point to STANDARD §5.4 for custom-domain — _dongzhang84_ `2026-04-27 10:51`
 - `a75b4e2` docs(spec): bring vibe-reading.md up to current state — _dongzhang84_ `2026-04-27 10:42`
 - `66ef4d1` docs(impl-guide): §4B.1 — frame GitHub OAuth as a choice, not a default cut — _dongzhang84_ `2026-04-27 10:37`
 - `a267afb` docs(impl-guide): align phases with new STANDARD §11 (model template) — _dongzhang84_ `2026-04-27 10:36`
