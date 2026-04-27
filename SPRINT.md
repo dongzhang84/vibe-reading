@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-04-27 06:00 UTC  
+**Generated:** 2026-04-27 06:42 UTC  
 **Showing:** last 2 week(s) of 2 total  
 
 ---
@@ -25,11 +25,11 @@
 |------|-------|
 | Status | ✅ Good |
 | Active days | 6 / 7 |
-| Total commits | 58 |
+| Total commits | 59 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| ⚪ | **2** | **10** | **13** | **11** | **5** | **17** |
+| ⚪ | **2** | **10** | **13** | **11** | **5** | **18** |
 
 **Tue – Tuesday, Apr 21**
 
@@ -89,6 +89,7 @@
 
 **Sun – Sunday, Apr 26**
 
+- `4106ae8` feat(ui): dark/light theme toggle in Nav — _dongzhang84_ `2026-04-26 23:42`
 - `45e357e` Revert "fix(ui): order matched chapters by book sequence, not AI relevance" — _dongzhang84_ `2026-04-26 23:00`
 - `82bda8d` fix(ui): order matched chapters by book sequence, not AI relevance — _dongzhang84_ `2026-04-26 22:02`
 - `e678603` feat: PDF keyboard shortcuts + Question Result retry on 0 matches — _dongzhang84_ `2026-04-26 20:21`
