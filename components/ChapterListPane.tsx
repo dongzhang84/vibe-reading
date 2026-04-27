@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { ArrowLeft, ArrowRight, BookOpen } from 'lucide-react'
 
 export interface ChapterMatchView {
   questionChapterId: string
@@ -38,99 +39,136 @@ export function ChapterListPane({
   onRead,
 }: Props) {
   return (
-    <aside className="flex h-full flex-col gap-6 overflow-y-auto border-r border-border p-6">
-      <header className="flex flex-col gap-3">
+    <aside className="flex h-full flex-col gap-6 overflow-y-auto border-r border-border bg-secondary/30 p-6">
+      <header className="flex flex-col gap-4">
         <Link
           href={`/b/${bookId}`}
-          className="text-xs text-muted-foreground hover:text-foreground"
+          className="inline-flex w-fit items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
         >
-          ← Back to book
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Back to book
         </Link>
-        <p className="text-xs uppercase tracking-wider text-muted-foreground">
-          Your question
-        </p>
-        <p className="text-base leading-relaxed text-foreground">
-          {questionText}
-        </p>
+        <div className="flex flex-col gap-2">
+          <p className="text-xs font-medium uppercase tracking-wider text-accent">
+            Your Question
+          </p>
+          <p className="text-balance text-lg leading-snug text-foreground">
+            {questionText}
+          </p>
+        </div>
       </header>
 
       {matches.length === 0 ? (
-        <p className="rounded-md border border-dashed border-border p-4 text-sm text-muted-foreground">
-          AI mapping is unavailable for this question. You can still browse the
-          book directly from{' '}
+        <div className="flex flex-col items-center gap-3 rounded-xl border-2 border-dashed border-border p-8 text-center">
+          <p className="text-sm text-muted-foreground">
+            AI mapping is unavailable for this question.
+          </p>
           <Link
             href={`/b/${bookId}`}
-            className="underline decoration-dotted underline-offset-2 hover:text-foreground"
+            className="text-sm text-foreground underline decoration-dotted underline-offset-2 hover:opacity-80"
           >
-            Book Home
+            Browse the book directly →
           </Link>
-          .
-        </p>
+        </div>
       ) : (
         <ul className="flex flex-col gap-3">
-          {matches.map((m) => (
-            <li
-              key={m.questionChapterId}
-              className={`flex flex-col gap-2 rounded-md border p-3 ${
-                m.chapterId && m.chapterId === activeChapterId
-                  ? 'border-foreground/60 bg-muted/20'
-                  : 'border-border bg-background'
-              }`}
-            >
-              {m.chapterId === null ? (
-                <p className="text-sm font-medium text-foreground">
-                  📖 Book-level — read intro + conclusion
+          {matches.map((m) => {
+            const isActive =
+              m.chapterId !== null && m.chapterId === activeChapterId
+            return (
+              <li
+                key={m.questionChapterId}
+                className={`flex flex-col gap-3 rounded-xl border p-4 transition-colors ${
+                  isActive
+                    ? 'border-foreground/30 bg-card shadow-sm'
+                    : 'border-border bg-card hover:bg-secondary/60'
+                }`}
+              >
+                {m.chapterId === null ? (
+                  <div className="flex items-start gap-2.5">
+                    <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-secondary text-muted-foreground">
+                      <BookOpen className="h-3.5 w-3.5" />
+                    </div>
+                    <p className="font-medium text-foreground">
+                      Book-level — read intro + conclusion
+                    </p>
+                  </div>
+                ) : (
+                  <p className="font-medium text-foreground">
+                    {m.chapterTitle ?? '(untitled)'}
+                  </p>
+                )}
+
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  {m.reason}
                 </p>
-              ) : (
-                <p className="text-sm font-medium text-foreground">
-                  {m.chapterTitle ?? '(untitled)'}
-                </p>
-              )}
-              <p className="text-xs leading-relaxed text-muted-foreground">
-                {m.reason}
-              </p>
-              {m.chapterId && m.chapterTitle !== null && (
-                <div className="flex items-center gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onBrief({
-                        chapterId: m.chapterId!,
-                        chapterTitle: m.chapterTitle!,
-                        pageStart: m.pageStart,
-                      })
-                    }
-                    className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-                      activeMode === 'brief' && activeChapterId === m.chapterId
-                        ? 'bg-foreground text-background'
-                        : 'border border-border text-foreground hover:border-foreground/60'
-                    }`}
-                  >
-                    Brief
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onRead({
-                        chapterId: m.chapterId!,
-                        chapterTitle: m.chapterTitle!,
-                        pageStart: m.pageStart,
-                      })
-                    }
-                    className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-                      activeMode === 'read' && activeChapterId === m.chapterId
-                        ? 'bg-foreground text-background'
-                        : 'border border-border text-foreground hover:border-foreground/60'
-                    }`}
-                  >
-                    Read
-                  </button>
-                </div>
-              )}
-            </li>
-          ))}
+
+                {m.chapterId && m.chapterTitle !== null && (
+                  <div className="flex items-center gap-2 pt-1">
+                    <PaneButton
+                      label="Brief"
+                      active={
+                        activeMode === 'brief' &&
+                        activeChapterId === m.chapterId
+                      }
+                      onClick={() =>
+                        onBrief({
+                          chapterId: m.chapterId!,
+                          chapterTitle: m.chapterTitle!,
+                          pageStart: m.pageStart,
+                        })
+                      }
+                    />
+                    <PaneButton
+                      label="Read"
+                      active={
+                        activeMode === 'read' &&
+                        activeChapterId === m.chapterId
+                      }
+                      onClick={() =>
+                        onRead({
+                          chapterId: m.chapterId!,
+                          chapterTitle: m.chapterTitle!,
+                          pageStart: m.pageStart,
+                        })
+                      }
+                    />
+                    {isActive && (
+                      <span className="ml-auto inline-flex items-center text-xs text-muted-foreground">
+                        <ArrowRight className="h-3.5 w-3.5" />
+                      </span>
+                    )}
+                  </div>
+                )}
+              </li>
+            )
+          })}
         </ul>
       )}
     </aside>
+  )
+}
+
+function PaneButton({
+  label,
+  active,
+  onClick,
+}: {
+  label: string
+  active: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+        active
+          ? 'bg-primary text-primary-foreground'
+          : 'border border-border bg-background text-foreground hover:bg-secondary'
+      }`}
+    >
+      {label}
+    </button>
   )
 }

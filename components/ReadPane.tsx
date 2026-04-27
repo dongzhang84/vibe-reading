@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import { useEffect, useMemo, useState } from 'react'
+import { ArrowRight, BookOpen, Sparkles } from 'lucide-react'
 
 const PdfViewer = dynamic(
   () => import('@/components/PdfViewer').then((m) => m.PdfViewer),
@@ -115,40 +116,49 @@ export function ReadPane({
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <header className="border-b border-border bg-background/95 px-6 py-4 backdrop-blur">
-        <p className="text-xs uppercase tracking-wider text-muted-foreground">
-          Read
-        </p>
-        <h2 className="mt-1 text-lg font-medium text-foreground">
+      <header className="border-b border-border bg-background/85 px-8 py-5 backdrop-blur">
+        <div className="flex items-center gap-2">
+          <BookOpen className="h-3.5 w-3.5 text-accent" />
+          <p className="text-xs font-medium uppercase tracking-wider text-accent">
+            Read
+          </p>
+        </div>
+        <h2 className="mt-2 text-balance text-xl font-semibold tracking-tight text-foreground">
           {chapterTitle}
         </h2>
       </header>
 
       <div className="flex flex-1 overflow-hidden">
-        <div className="flex-1 overflow-y-auto px-4 py-4">
+        <div className="flex-1 overflow-y-auto bg-secondary/20 px-4 py-6">
           <PdfViewer url={pdfUrl} initialPage={pageStart} width={560} />
         </div>
 
-        <aside className="hidden w-[280px] shrink-0 flex-col gap-3 overflow-y-auto border-l border-border bg-muted/10 p-4 lg:flex">
-          <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            Highlight & Ask
-          </h3>
+        <aside className="hidden w-[300px] shrink-0 flex-col gap-4 overflow-y-auto border-l border-border p-5 lg:flex">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
+            <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Highlight & Ask
+            </h3>
+          </div>
+
           {selection ? (
-            <div className="flex flex-col gap-2 rounded-md border border-foreground/40 bg-background p-3">
-              <p className="text-xs italic text-foreground/80">
+            <div className="flex flex-col gap-3 rounded-xl border border-foreground/30 bg-card p-4 shadow-sm">
+              <p className="text-xs italic leading-relaxed text-foreground/80">
                 &ldquo;{selectionPreview}&rdquo;
               </p>
               <button
                 type="button"
                 onClick={ask}
-                className="self-start rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+                className="inline-flex items-center justify-center gap-1.5 self-start rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
               >
-                Ask about this →
+                Ask about this
+                <ArrowRight className="h-3 w-3" />
               </button>
             </div>
           ) : (
-            <p className="rounded-md border border-dashed border-border p-3 text-xs text-muted-foreground">
-              Highlight ≥ {MIN_SELECTION} chars in the PDF to ask about a passage.
+            <p className="rounded-xl border-2 border-dashed border-border p-4 text-xs leading-relaxed text-muted-foreground">
+              Highlight ≥ {MIN_SELECTION} characters in the PDF to ask about a
+              passage.
             </p>
           )}
 
@@ -156,9 +166,9 @@ export function ReadPane({
             {asks.map((a) => (
               <article
                 key={a.id}
-                className="flex flex-col gap-2 rounded-md border border-border bg-background p-3"
+                className="flex flex-col gap-2.5 rounded-xl border border-border bg-card p-4"
               >
-                <p className="text-xs italic text-muted-foreground">
+                <p className="text-xs italic leading-relaxed text-muted-foreground">
                   &ldquo;
                   {a.selection.length > 100
                     ? a.selection.slice(0, 100) + '…'

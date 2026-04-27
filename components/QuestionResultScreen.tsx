@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Sparkles } from 'lucide-react'
 import {
   ChapterListPane,
   type ChapterMatchView,
@@ -45,8 +46,10 @@ export function QuestionResultScreen({
         onBrief={(c) => setActive({ mode: 'brief', ...c })}
         onRead={(c) => setActive({ mode: 'read', ...c })}
       />
-      <section className="flex h-full flex-col overflow-hidden">
-        {!active && <EmptyHint bookTitle={bookTitle} bookAuthor={bookAuthor} />}
+      <section className="flex h-full flex-col overflow-hidden bg-background">
+        {!active && (
+          <EmptyHint bookTitle={bookTitle} bookAuthor={bookAuthor} />
+        )}
         {active?.mode === 'brief' && (
           <BriefPane
             key={`brief-${active.chapterId}`}
@@ -78,16 +81,23 @@ function EmptyHint({
   bookAuthor: string | null
 }) {
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-3 p-12 text-center">
-      <p className="text-xs uppercase tracking-wider text-muted-foreground">
-        {bookAuthor ? `${bookAuthor} · ` : ''}
-        {bookTitle}
-      </p>
-      <p className="max-w-md text-sm text-muted-foreground/80">
-        Pick a chapter on the left, then choose <strong>Brief</strong> for the
-        4-part structured note, or <strong>Read</strong> to jump into the PDF
-        at that chapter.
-      </p>
+    <div className="flex h-full flex-col items-center justify-center gap-5 p-12 text-center">
+      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-secondary">
+        <Sparkles className="h-5 w-5 text-muted-foreground" />
+      </div>
+      <div className="flex flex-col gap-2">
+        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          {bookAuthor ? `${bookAuthor} · ` : ''}
+          {bookTitle}
+        </p>
+        <p className="max-w-sm text-base leading-relaxed text-muted-foreground/90">
+          Pick a chapter on the left. Tap{' '}
+          <span className="font-medium text-foreground">Brief</span> for the
+          4-part structured note, or{' '}
+          <span className="font-medium text-foreground">Read</span> to jump
+          into the PDF.
+        </p>
+      </div>
     </div>
   )
 }
