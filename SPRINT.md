@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-04-30 16:01 UTC  
+**Generated:** 2026-04-30 16:20 UTC  
 **Showing:** last 2 week(s) of 2 total  
 
 ---
@@ -11,11 +11,11 @@
 |------|-------|
 | Status | ⚠️ Slow |
 | Active days | 3 / 7 |
-| Total commits | 16 |
+| Total commits | 17 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| **11** | ⚪ | **1** | **4** | ⚪ | ⚪ | ⚪ |
+| **11** | ⚪ | **1** | **5** | ⚪ | ⚪ | ⚪ |
 
 **Mon – Monday, Apr 27**
 
@@ -37,6 +37,7 @@
 
 **Thu – Thursday, Apr 30**
 
+- `f790215` fix(outline): slice chapters at the right TOC level + drop front-matter — _dongzhang84_ `2026-04-30 09:20`
 - `b765709` fix(upload): fall back to filename when PDF has no Title metadata — _dongzhang84_ `2026-04-30 09:00`
 - `4fa0fec` copy(v2.1): tighten Orientation helper text — _dongzhang84_ `2026-04-30 01:32`
 - `bf3a062` feat(v2.1): translate Orientation questions to English — _dongzhang84_ `2026-04-30 01:31`
