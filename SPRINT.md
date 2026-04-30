@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-04-30 08:29 UTC  
+**Generated:** 2026-04-30 08:31 UTC  
 **Showing:** last 2 week(s) of 2 total  
 
 ---
@@ -11,11 +11,11 @@
 |------|-------|
 | Status | ⚠️ Slow |
 | Active days | 3 / 7 |
-| Total commits | 13 |
+| Total commits | 14 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| **11** | ⚪ | **1** | **1** | ⚪ | ⚪ | ⚪ |
+| **11** | ⚪ | **1** | **2** | ⚪ | ⚪ | ⚪ |
 
 **Mon – Monday, Apr 27**
 
@@ -37,6 +37,7 @@
 
 **Thu – Thursday, Apr 30**
 
+- `bf3a062` feat(v2.1): translate Orientation questions to English — _dongzhang84_ `2026-04-30 01:31`
 - `57c7e99` feat(v2.1): static Orientation block on Book Home — _dongzhang84_ `2026-04-30 01:10`
 
 ---
