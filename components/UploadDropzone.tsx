@@ -29,20 +29,60 @@ export function UploadDropzone() {
     const form = new FormData()
     form.append('file', file)
 
+    const sizeMB = (file.size / (1024 * 1024)).toFixed(2)
+    const startedAt = Date.now()
     try {
       const res = await fetch('/api/upload', { method: 'POST', body: form })
+      const elapsedSec = ((Date.now() - startedAt) / 1000).toFixed(1)
       if (!res.ok) {
-        const { error: apiError } = await res
-          .json()
-          .catch(() => ({ error: 'Upload failed' }))
-        setState({ kind: 'error', message: apiError ?? 'Upload failed' })
+        const contentType =
+          res.headers.get('content-type') ?? '(no content-type)'
+        let bodyText = ''
+        try {
+          bodyText = await res.text()
+        } catch {
+          bodyText = '(failed to read body)'
+        }
+        // App-level JSON errors stay clean. Otherwise we surface raw
+        // diagnostics: status code + elapsed time + response shape, so
+        // platform-level failures (413 / 504 / edge rejections) don't
+        // disappear behind "Upload failed".
+        let appError: string | null = null
+        if (contentType.includes('application/json')) {
+          try {
+            appError = (JSON.parse(bodyText) as { error?: string }).error ?? null
+          } catch {
+            /* fall through to raw diagnostics */
+          }
+        }
+        const diag = `HTTP ${res.status} ${res.statusText} · ${sizeMB}MB · ${elapsedSec}s · ${contentType} · ${bodyText.slice(0, 240).replace(/\s+/g, ' ').trim()}`
+        // eslint-disable-next-line no-console
+        console.error('[upload] failed', {
+          status: res.status,
+          statusText: res.statusText,
+          contentType,
+          elapsedSec,
+          sizeMB,
+          bodySnippet: bodyText.slice(0, 1000),
+        })
+        setState({
+          kind: 'error',
+          message: appError ?? diag,
+        })
         return
       }
       const { bookId } = await res.json()
       // Middleware gates /b/[id] behind login → ?next= flow
       window.location.href = `/b/${bookId}`
-    } catch {
-      setState({ kind: 'error', message: 'Network error. Try again.' })
+    } catch (err) {
+      const elapsedSec = ((Date.now() - startedAt) / 1000).toFixed(1)
+      const reason = err instanceof Error ? err.message : String(err)
+      // eslint-disable-next-line no-console
+      console.error('[upload] network error', { elapsedSec, sizeMB, reason })
+      setState({
+        kind: 'error',
+        message: `Network error · ${sizeMB}MB · ${elapsedSec}s · ${reason}`,
+      })
     }
   }, [])
 
