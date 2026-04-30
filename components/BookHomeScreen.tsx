@@ -103,10 +103,10 @@ export function BookHomeScreen({
           point. Read, think, then ask below.
         </p>
         <ol className="flex flex-col gap-2 text-base leading-relaxed text-foreground/85">
-          <li>① 这本书写的是什么样的主题？</li>
-          <li>② 作者是谁，什么背景？</li>
-          <li>③ 这本书是写给谁的？</li>
-          <li>④ 你希望从这本书 take away 什么？</li>
+          <li>① What is this book about?</li>
+          <li>② Who wrote it, and what&apos;s their background?</li>
+          <li>③ Who is it written for?</li>
+          <li>④ What do you want to take away from it?</li>
         </ol>
       </section>
 
