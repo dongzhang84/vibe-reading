@@ -26,15 +26,9 @@ interface NormalizedChapter {
 }
 
 export async function POST(request: Request) {
-  const t0 = Date.now()
-  const lap = (label: string) =>
-    console.log(`[upload] ${label} +${Date.now() - t0}ms`)
-
   const sessionId = await getOrCreateSessionId()
-  lap('session ready')
 
   const form = await request.formData()
-  lap('formData parsed')
   const file = form.get('file')
   if (!(file instanceof File)) {
     return NextResponse.json({ error: 'Missing file' }, { status: 400 })
@@ -45,20 +39,13 @@ export async function POST(request: Request) {
   if (file.size > MAX_BYTES) {
     return NextResponse.json({ error: 'Max 50MB' }, { status: 400 })
   }
-  console.log(
-    `[upload] file received name=${file.name} size=${(file.size / 1024 / 1024).toFixed(2)}MB`,
-  )
 
   const buffer = Buffer.from(await file.arrayBuffer())
-  lap('buffer ready')
 
   // Try PDF outline first; fall back to regex chapter splitter when missing.
   let outline: OutlineResult | null = null
   try {
     outline = await extractOutlineAndChapters(buffer)
-    lap(
-      `outline extracted (chapters=${outline?.chapters.length ?? 0}, toc=${outline?.toc.length ?? 0})`,
-    )
   } catch (err) {
     console.error('outline extraction failed (non-fatal)', err)
   }
@@ -66,7 +53,6 @@ export async function POST(request: Request) {
   let parsed
   try {
     parsed = await parsePdf(buffer, file.name)
-    lap(`pdf parsed (pages=${parsed.pageCount})`)
   } catch (err) {
     console.error('pdf parse failed', err)
     return NextResponse.json(
@@ -104,7 +90,6 @@ export async function POST(request: Request) {
       pageEnd: null,
     }))
   }
-  lap(`chapters ready (count=${chapters.length})`)
 
   const db = createAdminClient()
 
@@ -122,7 +107,6 @@ export async function POST(request: Request) {
       { status: 500 },
     )
   }
-  lap('storage upload done')
 
   // Intake AI: overview + 3 starter questions. Non-fatal on failure — Book Home
   // can render a TOC-only page when these are null.
@@ -140,10 +124,8 @@ export async function POST(request: Request) {
       intro,
       conclusion,
     })
-    lap('intake AI done')
   } catch (err) {
     console.error('intake AI failed (non-fatal)', err)
-    lap('intake AI failed')
   }
 
   const { data: book, error: bookError } = await db
@@ -189,7 +171,6 @@ export async function POST(request: Request) {
       { status: 500 },
     )
   }
-  lap(`chapters inserted (rows=${chapters.length}) — done`)
 
   return NextResponse.json({ bookId: book.id })
 }
