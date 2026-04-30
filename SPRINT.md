@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-04-27 18:21 UTC  
+**Generated:** 2026-04-30 06:50 UTC  
 **Showing:** last 2 week(s) of 2 total  
 
 ---
@@ -10,12 +10,12 @@
 | Stat | Value |
 |------|-------|
 | Status | ❌ Stalled |
-| Active days | 1 / 7 |
-| Total commits | 11 |
+| Active days | 2 / 7 |
+| Total commits | 12 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| **11** | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |
+| **11** | ⚪ | **1** | ⚪ | ⚪ | ⚪ | ⚪ |
 
 **Mon – Monday, Apr 27**
 
@@ -30,6 +30,10 @@
 - `9fedfa7` docs: translate the second tagline to English (OSS audience) — _dongzhang84_ `2026-04-27 00:19`
 - `e30724f` docs: rewrite README as a real OSS-project front door — _dongzhang84_ `2026-04-27 00:14`
 - `7eb3be3` docs: refresh todo / README / ui-report / impl-guide for current state — _dongzhang84_ `2026-04-27 00:12`
+
+**Wed – Wednesday, Apr 29**
+
+- `c317805` spec(v2.1): add Orientation ritual to Book Home — _dongzhang84_ `2026-04-29 23:50`
 
 ---
 
