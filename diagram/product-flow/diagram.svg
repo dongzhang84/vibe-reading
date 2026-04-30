@@ -45,11 +45,11 @@
 
 <rect class="layer-key" x="120" y="240" width="480" height="130" rx="8"/>
 <text class="th" x="142" y="270">2. Book Home</text>
-<text class="ts" x="142" y="290">The gate — content is unlocked only by a question</text>
-<text class="t" x="142" y="320">• Table of contents (the book&#39;s shape)</text>
-<text class="t" x="142" y="342">• “What do you want to know?” input</text>
-<text class="t" x="142" y="364">• 3 AI suggestions · past questions reopenable</text>
-<text class="eyebrow eyebrow-accent" x="578" y="270" text-anchor="end">→ READER MUST ASK FIRST</text>
+<text class="ts" x="142" y="290">The gate — orient before asking</text>
+<text class="t" x="142" y="320">① Orient: 4 self-typed Qs (topic · author · audience · take-away)</text>
+<text class="t" x="142" y="342">② Ask: free-form input · 3 AI suggestions · history reopenable</text>
+<text class="t" x="142" y="364">Take-away pinned + injected to relevance AI as context</text>
+<text class="eyebrow eyebrow-accent" x="578" y="270" text-anchor="end">→ ORIENT, THEN ASK</text>
 
 <line class="arr-accent" x1="360" y1="370" x2="360" y2="410"/>
 <text class="caption" x="368" y="392" text-anchor="start">submit a question</text>

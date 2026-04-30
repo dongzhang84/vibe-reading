@@ -40,7 +40,7 @@
 整套 4 屏流程，从头到尾：
 
 1. **Upload（上传）** —— 拖一个 PDF。登录。书绑到你的账户。
-2. **Book Home（书的主页）** —— 看到这本书的目录、一段 AI 写的客观 overview、3 个 AI 推荐的起手问题。可以输入自己的问题，也可以一键点推荐。
+2. **Book Home（书的主页）** —— 先 **Orient yourself**：自答 4 个问题（主题 · 作者背景 · 目标读者 · 你想 take away 什么）。**这一步 AI 不替你写一个字** —— 答案来自你自己的脑子、书的前言、封底。take-away 答完才解锁下方 Ask 区：TOC、overview、3 个 AI 推荐起手问题、自由输入框。take-away 之后会 pinned 在顶部，并作为 context 注入下游 relevance AI 提升匹配精度。
 3. **Question Result（问题结果页）** —— 左侧：AI 觉得最可能回答你问题的章节，每条带一句话理由（"likely contains…"、"discusses…"）。右侧分屏，点击章节卡上的按钮：**Brief**（4 段式结构化笔记）或者 **Read**（PDF 跳到那一章，支持划词提问）。
 4. **(预留 v1.1)** —— 互动复述 / 费曼检验。代码 / schema / API 全部保留，UI 入口在 v1 不可见。
 
