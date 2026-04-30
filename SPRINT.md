@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-04-30 21:42 UTC  
+**Generated:** 2026-04-30 21:46 UTC  
 **Showing:** last 2 week(s) of 2 total  
 
 ---
@@ -11,11 +11,11 @@
 |------|-------|
 | Status | ⚠️ Slow |
 | Active days | 3 / 7 |
-| Total commits | 20 |
+| Total commits | 21 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| **11** | ⚪ | **1** | **8** | ⚪ | ⚪ | ⚪ |
+| **11** | ⚪ | **1** | **9** | ⚪ | ⚪ | ⚪ |
 
 **Mon – Monday, Apr 27**
 
@@ -37,6 +37,7 @@
 
 **Thu – Thursday, Apr 30**
 
+- `4824f24` fix(upload): raise Next.js proxy body limit from 10MB → 50MB — _dongzhang84_ `2026-04-30 14:46`
 - `587e5a5` diag(upload): surface real status code + per-step server timing — _dongzhang84_ `2026-04-30 14:41`
 - `5a00b85` ux(question-result): turn the back link into a clear "Ask another question" CTA — _dongzhang84_ `2026-04-30 12:38`
 - `2632ede` docs(v2.1): align spec with shipped Orientation + parser fixes — _dongzhang84_ `2026-04-30 12:09`
