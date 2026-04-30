@@ -40,7 +40,7 @@ The full philosophy and design rules live in [`docs/vibe-reading.md`](./docs/vib
 A 4-screen flow, end-to-end:
 
 1. **Upload** — drop a PDF. Sign in. The book is bound to your account.
-2. **Book Home** — first **orient yourself**: type 4 short answers (topic · author · audience · take-away). **No AI writes for you here** — the answers come from your own brain, the book's preface / back cover / etc. Once your take-away is in, the Ask area unlocks: TOC, overview, three AI-suggested starter questions, and a free-form input. Your take-away pins at the top and gets injected into chapter ranking as context.
+2. **Book Home** — first, **orient yourself**. Four questions sit at the top of the page as a static cognitive prompt — *no input field, no AI, no DB*. Read them, think them through silently (use the book's preface, back cover, or what you already know), then ask below: ① What is this book about? ② Who wrote it, and what's their background? ③ Who is it written for? ④ What do you want to take away from it? Below that: TOC, overview, three AI-suggested starter questions, free-form input, and the history of past questions on this book.
 3. **Question Result** — left side: the chapters most likely to answer your question, each with a one-sentence reason ("likely contains…", "discusses…"). Right side, on click: **Brief** (4-part structured note) or **Read** (PDF jump to that chapter, with highlight & ask).
 4. **(Reserved for v1.1)** — interactive restate / Feynman check. Code preserved, UI hidden in v1.
 

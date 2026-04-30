@@ -833,6 +833,19 @@ async function resolvePage(pdf: any, dest: any): Promise<number | null> {
 
 **已在 Kuhn 《科学革命的结构》 实测通过**：getOutline 正确返回 9 章 + 每章子节，页码解析准确。
 
+#### 6.1.1 Chapter source level + front-matter filter（2026-04-30 patch）
+
+实际部署后发现两类书 outline 切片会翻车，落地代码 `lib/pdf/outline.ts` 在 flatten 之后多两步处理（本节为代码现状，比上面这版 sketch 更精确）：
+
+**Front-matter 过滤** —— 标题匹配下列模式的 entry 仍保留在 `book.toc`（Book Home 渲染 TOC 用），但**不进 `chapters` 表**（不喂给 relevance AI）：
+`Cover · Title Page · Half Title · Copyright · Dedication · About the Author · Praise · Reviews · Acknowledgments · Bibliography · Glossary · Index · Notes · Colophon · 封面 · 版权 · 致谢 · 索引`。Preface / Foreword / Introduction / Epilogue **保留**——这些经常有真内容（Kuhn 的 Introduction 就是核心论点的延伸）。
+
+**Chapter source level picker** —— 默认 level 1 当章节切片层级。但当 ≥60% 的"非 front-matter level-1 entry"匹配 Part divider 模式（`/^Part\s+[IVX\d]+/` 或 `/^第\d+(篇|部)/`）且 level-2 至少 3 条时，**descend 到 level 2**。下沉后非 Part 的 level-1 entry（比如 Preface）也会作为 chapter 一并保留，不丢内容。
+
+**Boundary 计算** —— 切片用所有非 front-matter entry 的页码作为 boundary（不只 chosen-level）。一章在下一个 boundary 的前一页结束，所以下沉到 level 2 时一个 chapter 不会意外把下一个 Part divider 页吞进去。
+
+**修这个的真实事件**：_Beyond Vibe Coding_（Addy Osmani）outline 是 `Cover / Preface / Part I. Foundations / [Ch1, Ch2, ...] / Part II / ...`。原代码只取 level-1 → "Part I" 一个 chapter 包含 80+ 页全部 Part 内容 → relevance AI 看每个 Part 都 "likely contains" 任何问题相关内容 → 返回 5 条全选（Part I/II/III + Cover + Preface）。Patch 后切出真正的 Chapter 1/2/3...，front-matter 不再污染候选。
+
 ### 6.2 PDF 全文 + 章节切分（`lib/pdf/parser.ts`）
 
 老代码沿用。修改点：
@@ -859,8 +872,8 @@ export async function parseBookStructure(buffer: Buffer): Promise<ParsedBook> {
     }
 
     return {
-      title: cleanStr(info?.Title) ?? 'Untitled',
-      author: cleanStr(info?.Author) ?? null,
+      title: cleanStr(info?.Title) ?? deriveFromFilename(filename)?.title ?? 'Untitled',
+      author: cleanStr(info?.Author) ?? deriveFromFilename(filename)?.author ?? null,
       pageCount: totalPages,
       toc: toc ?? null,
       chapters,
@@ -872,6 +885,8 @@ export async function parseBookStructure(buffer: Buffer): Promise<ParsedBook> {
 ```
 
 `sliceByOutline`：按 top-level entry 的页码区间，逐页 `pdf.getPage(n).getTextContent()` 拼接正文。子节（level>=2）不单独建 chapter，但保存在 books.toc 里供 Book Home 渲染层级。
+
+> **2026-04-30 patch — title fallback**：很多 PDF 的 metadata 没 Title，原代码直接 fallback 到字符串 `'Untitled'`。新版本加一层文件名兜底（`parsePdf(buffer, file.name)`）：去 `.pdf` 后缀、`_/-` 转空格、合并空白；如果文件名末尾有 `(Author Name)` 段且看起来像人名（≥3 字符、含空格、Unicode letter pattern），抽出来作为 author 候选。链路：`metadata.Title → 文件名头 → "Untitled"`，author 同理。
 
 ### 6.3 Intake AI（`lib/ai/intake.ts`）
 
