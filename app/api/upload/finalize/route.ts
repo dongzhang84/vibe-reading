@@ -25,24 +25,59 @@ interface NormalizedChapter {
   pageEnd: number | null
 }
 
+/**
+ * Phase 2 of the upload flow. The client has already PUT the PDF to
+ * Supabase Storage at `storagePath`. This route pulls it back, parses,
+ * runs intake AI, and writes the books + chapters rows.
+ *
+ * Body never crosses a Vercel function — the download from Storage is
+ * function-internal egress, not subject to the inbound HTTP body limit.
+ */
 export async function POST(request: Request) {
   const sessionId = await getOrCreateSessionId()
 
-  const form = await request.formData()
-  const file = form.get('file')
-  if (!(file instanceof File)) {
-    return NextResponse.json({ error: 'Missing file' }, { status: 400 })
+  const body = (await request.json().catch(() => null)) as {
+    storagePath?: unknown
+    filename?: unknown
+  } | null
+  if (
+    !body ||
+    typeof body.storagePath !== 'string' ||
+    typeof body.filename !== 'string'
+  ) {
+    return NextResponse.json({ error: 'Bad request' }, { status: 400 })
   }
-  if (file.type !== 'application/pdf') {
-    return NextResponse.json({ error: 'PDF only' }, { status: 400 })
+
+  // Storage path must belong to the current session — prevents picking up
+  // someone else's blob even if the path leaks.
+  const expectedPrefix = `session/${sessionId}/`
+  if (
+    !body.storagePath.startsWith(expectedPrefix) ||
+    !body.storagePath.endsWith('.pdf') ||
+    body.storagePath.includes('..')
+  ) {
+    return NextResponse.json(
+      { error: 'Invalid storage path' },
+      { status: 403 },
+    )
   }
-  if (file.size > MAX_BYTES) {
+
+  const db = createAdminClient()
+
+  const { data: blob, error: dlErr } = await db.storage
+    .from(STORAGE_BUCKET)
+    .download(body.storagePath)
+  if (dlErr || !blob) {
+    console.error('storage download failed', dlErr)
+    return NextResponse.json({ error: 'Upload not found' }, { status: 404 })
+  }
+  if (blob.size > MAX_BYTES) {
+    await db.storage.from(STORAGE_BUCKET).remove([body.storagePath])
     return NextResponse.json({ error: 'Max 50MB' }, { status: 400 })
   }
 
-  const buffer = Buffer.from(await file.arrayBuffer())
+  const buffer = Buffer.from(await blob.arrayBuffer())
 
-  // Try PDF outline first; fall back to regex chapter splitter when missing.
   let outline: OutlineResult | null = null
   try {
     outline = await extractOutlineAndChapters(buffer)
@@ -52,9 +87,10 @@ export async function POST(request: Request) {
 
   let parsed
   try {
-    parsed = await parsePdf(buffer, file.name)
+    parsed = await parsePdf(buffer, body.filename)
   } catch (err) {
     console.error('pdf parse failed', err)
+    await db.storage.from(STORAGE_BUCKET).remove([body.storagePath])
     return NextResponse.json(
       { error: 'Could not parse PDF' },
       { status: 422 },
@@ -76,6 +112,7 @@ export async function POST(request: Request) {
   } else {
     const fallback = splitIntoChapters(parsed.text)
     if (fallback.length === 0) {
+      await db.storage.from(STORAGE_BUCKET).remove([body.storagePath])
       return NextResponse.json(
         { error: 'Could not detect any chapters or sections in this PDF' },
         { status: 422 },
@@ -89,23 +126,6 @@ export async function POST(request: Request) {
       pageStart: null,
       pageEnd: null,
     }))
-  }
-
-  const db = createAdminClient()
-
-  const storagePath = `session/${sessionId}/${crypto.randomUUID()}.pdf`
-  const { error: uploadError } = await db.storage
-    .from(STORAGE_BUCKET)
-    .upload(storagePath, buffer, {
-      contentType: 'application/pdf',
-      upsert: false,
-    })
-  if (uploadError) {
-    console.error('storage upload failed', uploadError)
-    return NextResponse.json(
-      { error: 'Storage upload failed' },
-      { status: 500 },
-    )
   }
 
   // Intake AI: overview + 3 starter questions. Non-fatal on failure — Book Home
@@ -134,7 +154,7 @@ export async function POST(request: Request) {
       session_id: sessionId,
       title: parsed.title,
       author: parsed.author,
-      storage_path: storagePath,
+      storage_path: body.storagePath,
       page_count: parsed.pageCount,
       toc: (toc ?? null) as Json | null,
       overview: intake?.overview ?? null,
@@ -144,7 +164,7 @@ export async function POST(request: Request) {
     .single()
   if (bookError || !book) {
     console.error('book insert failed', bookError)
-    await db.storage.from(STORAGE_BUCKET).remove([storagePath])
+    await db.storage.from(STORAGE_BUCKET).remove([body.storagePath])
     return NextResponse.json(
       { error: 'Failed to save book' },
       { status: 500 },
@@ -165,7 +185,7 @@ export async function POST(request: Request) {
   if (chaptersError) {
     console.error('chapters insert failed', chaptersError)
     await db.from('books').delete().eq('id', book.id)
-    await db.storage.from(STORAGE_BUCKET).remove([storagePath])
+    await db.storage.from(STORAGE_BUCKET).remove([body.storagePath])
     return NextResponse.json(
       { error: 'Failed to save chapters' },
       { status: 500 },

@@ -2,12 +2,16 @@
 
 import { useCallback, useRef, useState } from 'react'
 import { FileText, Upload } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 const MAX_BYTES = 50 * 1024 * 1024
+const STORAGE_BUCKET = 'vr-docs'
+
+type Phase = 'starting' | 'transferring' | 'analyzing'
 
 type State =
   | { kind: 'idle' }
-  | { kind: 'uploading'; file: File }
+  | { kind: 'uploading'; file: File; phase: Phase }
   | { kind: 'error'; message: string }
 
 export function UploadDropzone() {
@@ -25,65 +29,116 @@ export function UploadDropzone() {
       return
     }
 
-    setState({ kind: 'uploading', file })
-    const form = new FormData()
-    form.append('file', file)
-
     const sizeMB = (file.size / (1024 * 1024)).toFixed(2)
     const startedAt = Date.now()
-    try {
-      const res = await fetch('/api/upload', { method: 'POST', body: form })
-      const elapsedSec = ((Date.now() - startedAt) / 1000).toFixed(1)
-      if (!res.ok) {
-        const contentType =
-          res.headers.get('content-type') ?? '(no content-type)'
-        let bodyText = ''
-        try {
-          bodyText = await res.text()
-        } catch {
-          bodyText = '(failed to read body)'
-        }
-        // App-level JSON errors stay clean. Otherwise we surface raw
-        // diagnostics: status code + elapsed time + response shape, so
-        // platform-level failures (413 / 504 / edge rejections) don't
-        // disappear behind "Upload failed".
-        let appError: string | null = null
-        if (contentType.includes('application/json')) {
-          try {
-            appError = (JSON.parse(bodyText) as { error?: string }).error ?? null
-          } catch {
-            /* fall through to raw diagnostics */
-          }
-        }
-        const diag = `HTTP ${res.status} ${res.statusText} · ${sizeMB}MB · ${elapsedSec}s · ${contentType} · ${bodyText.slice(0, 240).replace(/\s+/g, ' ').trim()}`
-        // eslint-disable-next-line no-console
-        console.error('[upload] failed', {
-          status: res.status,
-          statusText: res.statusText,
-          contentType,
-          elapsedSec,
-          sizeMB,
-          bodySnippet: bodyText.slice(0, 1000),
-        })
-        setState({
-          kind: 'error',
-          message: appError ?? diag,
-        })
-        return
+    const elapsed = () => ((Date.now() - startedAt) / 1000).toFixed(1)
+
+    const reportFailure = async (
+      label: string,
+      res: Response,
+    ): Promise<void> => {
+      const contentType =
+        res.headers.get('content-type') ?? '(no content-type)'
+      let bodyText = ''
+      try {
+        bodyText = await res.text()
+      } catch {
+        bodyText = '(failed to read body)'
       }
-      const { bookId } = await res.json()
-      // Middleware gates /b/[id] behind login → ?next= flow
-      window.location.href = `/b/${bookId}`
-    } catch (err) {
-      const elapsedSec = ((Date.now() - startedAt) / 1000).toFixed(1)
-      const reason = err instanceof Error ? err.message : String(err)
+      let appError: string | null = null
+      if (contentType.includes('application/json')) {
+        try {
+          appError =
+            (JSON.parse(bodyText) as { error?: string }).error ?? null
+        } catch {
+          /* fall through to raw diagnostics */
+        }
+      }
+      const diag = `${label} · HTTP ${res.status} ${res.statusText} · ${sizeMB}MB · ${elapsed()}s · ${contentType} · ${bodyText.slice(0, 240).replace(/\s+/g, ' ').trim()}`
       // eslint-disable-next-line no-console
-      console.error('[upload] network error', { elapsedSec, sizeMB, reason })
+      console.error(`[upload] ${label} failed`, {
+        status: res.status,
+        statusText: res.statusText,
+        contentType,
+        elapsedSec: elapsed(),
+        sizeMB,
+        bodySnippet: bodyText.slice(0, 1000),
+      })
+      setState({ kind: 'error', message: appError ?? diag })
+    }
+
+    setState({ kind: 'uploading', file, phase: 'starting' })
+
+    // Phase 1 — ask server for a signed upload URL bound to this session.
+    let initRes: Response
+    try {
+      initRes = await fetch('/api/upload/init', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ filename: file.name, size: file.size }),
+      })
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err)
       setState({
         kind: 'error',
-        message: `Network error · ${sizeMB}MB · ${elapsedSec}s · ${reason}`,
+        message: `Network error · ${sizeMB}MB · ${elapsed()}s · ${reason}`,
       })
+      return
     }
+    if (!initRes.ok) {
+      await reportFailure('init', initRes)
+      return
+    }
+    const { storagePath, token } = (await initRes.json()) as {
+      storagePath: string
+      uploadUrl: string
+      token: string
+    }
+
+    // Phase 2 — client uploads the PDF directly to Supabase Storage,
+    // bypassing Vercel's function payload limit entirely.
+    setState({ kind: 'uploading', file, phase: 'transferring' })
+    const supabase = createClient()
+    const { error: putErr } = await supabase.storage
+      .from(STORAGE_BUCKET)
+      .uploadToSignedUrl(storagePath, token, file, {
+        contentType: 'application/pdf',
+      })
+    if (putErr) {
+      // eslint-disable-next-line no-console
+      console.error('[upload] storage PUT failed', putErr)
+      setState({
+        kind: 'error',
+        message: `Storage upload failed · ${sizeMB}MB · ${elapsed()}s · ${putErr.message}`,
+      })
+      return
+    }
+
+    // Phase 3 — server pulls the file back, parses, runs intake AI, writes
+    // book + chapters rows.
+    setState({ kind: 'uploading', file, phase: 'analyzing' })
+    let finalizeRes: Response
+    try {
+      finalizeRes = await fetch('/api/upload/finalize', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ storagePath, filename: file.name }),
+      })
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err)
+      setState({
+        kind: 'error',
+        message: `Network error · ${sizeMB}MB · ${elapsed()}s · ${reason}`,
+      })
+      return
+    }
+    if (!finalizeRes.ok) {
+      await reportFailure('finalize', finalizeRes)
+      return
+    }
+    const { bookId } = (await finalizeRes.json()) as { bookId: string }
+    // Middleware gates /b/[id] behind login → ?next= flow
+    window.location.href = `/b/${bookId}`
   }, [])
 
   const onDragOver = (e: React.DragEvent) => {
@@ -107,6 +162,15 @@ export function UploadDropzone() {
 
   const isUploading = state.kind === 'uploading'
   const hasError = state.kind === 'error'
+
+  const phaseLabel =
+    state.kind === 'uploading'
+      ? state.phase === 'starting'
+        ? 'Preparing upload…'
+        : state.phase === 'transferring'
+          ? 'Uploading to storage…'
+          : 'Analyzing your book…'
+      : ''
 
   return (
     <div className="mx-auto w-full max-w-xl">
@@ -143,8 +207,7 @@ export function UploadDropzone() {
             <div className="text-center">
               <p className="font-medium text-foreground">{state.file.name}</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                {(state.file.size / (1024 * 1024)).toFixed(2)} MB · Analyzing
-                your book…
+                {(state.file.size / (1024 * 1024)).toFixed(2)} MB · {phaseLabel}
               </p>
             </div>
           </div>
