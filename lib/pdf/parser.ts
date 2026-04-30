@@ -8,7 +8,10 @@ export interface ParsedPdf {
   pageCount: number
 }
 
-export async function parsePdf(buffer: Buffer): Promise<ParsedPdf> {
+export async function parsePdf(
+  buffer: Buffer,
+  filename?: string,
+): Promise<ParsedPdf> {
   const data = new Uint8Array(buffer)
   const pdf = await getDocumentProxy(data)
   try {
@@ -16,9 +19,14 @@ export async function parsePdf(buffer: Buffer): Promise<ParsedPdf> {
       getMeta(pdf),
       extractText(pdf, { mergePages: true }),
     ])
+    const fromMetaTitle =
+      cleanStr(info?.Title) ?? cleanStr(info?.title) ?? null
+    const fromMetaAuthor =
+      cleanStr(info?.Author) ?? cleanStr(info?.author) ?? null
+    const fromFilename = filename ? deriveFromFilename(filename) : null
     return {
-      title: cleanStr(info?.Title) ?? cleanStr(info?.title) ?? 'Untitled',
-      author: cleanStr(info?.Author) ?? cleanStr(info?.author) ?? null,
+      title: fromMetaTitle ?? fromFilename?.title ?? 'Untitled',
+      author: fromMetaAuthor ?? fromFilename?.author ?? null,
       text: text as string,
       pageCount: totalPages,
     }
@@ -31,6 +39,39 @@ function cleanStr(v: unknown): string | null {
   if (typeof v !== 'string') return null
   const trimmed = v.trim()
   return trimmed.length > 0 ? trimmed : null
+}
+
+/**
+ * Many PDFs ship with no Title metadata, so "Untitled" is a common UX hit.
+ * Filename is usually the next-best signal — most users name files like
+ * `Beyond Vibe Coding (Addy Osmani).pdf` or `kuhn_structure-of-revolutions.pdf`.
+ * Strip the extension, normalize separators, and try to peel off a trailing
+ * `(Author Name)` group if it looks like a person's name.
+ */
+function deriveFromFilename(
+  filename: string,
+): { title: string; author: string | null } | null {
+  const base = filename
+    .replace(/\.pdf$/i, '')
+    .replace(/[_\-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (base.length === 0) return null
+
+  const parens = base.match(/^(.+?)\s*\(([^)]+)\)\s*$/)
+  if (parens) {
+    const inner = parens[2].trim()
+    const looksLikeName =
+      inner.length >= 3 &&
+      inner.length <= 60 &&
+      inner.includes(' ') &&
+      /^[\p{L}][\p{L}\s.'-]+$/u.test(inner)
+    return {
+      title: parens[1].trim(),
+      author: looksLikeName ? inner : null,
+    }
+  }
+  return { title: base, author: null }
 }
 
 export interface ChapterChunk {

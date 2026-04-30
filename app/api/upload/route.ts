@@ -52,7 +52,7 @@ export async function POST(request: Request) {
 
   let parsed
   try {
-    parsed = await parsePdf(buffer)
+    parsed = await parsePdf(buffer, file.name)
   } catch (err) {
     console.error('pdf parse failed', err)
     return NextResponse.json(
