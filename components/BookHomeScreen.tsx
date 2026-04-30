@@ -89,6 +89,27 @@ export function BookHomeScreen({
         </section>
       )}
 
+      {/* Orient yourself — Rule 1 cognitive prompt. No input, no AI. The
+          reader thinks through these silently before asking. */}
+      <section className="rounded-xl border border-border bg-card p-6">
+        <div className="mb-3 flex items-center gap-2">
+          <Sparkles className="h-3.5 w-3.5 text-accent" />
+          <h2 className="text-xs font-medium uppercase tracking-wider text-accent">
+            Orient yourself · before you ask
+          </h2>
+        </div>
+        <p className="mb-4 text-sm text-muted-foreground">
+          Take 30 seconds. AI doesn&apos;t answer these — that&apos;s the
+          point. Read, think, then ask below.
+        </p>
+        <ol className="flex flex-col gap-2 text-base leading-relaxed text-foreground/85">
+          <li>① 这本书写的是什么样的主题？</li>
+          <li>② 作者是谁，什么背景？</li>
+          <li>③ 这本书是写给谁的？</li>
+          <li>④ 你希望从这本书 take away 什么？</li>
+        </ol>
+      </section>
+
       {/* Ask the book */}
       <section className="flex flex-col gap-5">
         <div className="flex flex-col gap-1">
