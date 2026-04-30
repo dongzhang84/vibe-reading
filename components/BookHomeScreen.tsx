@@ -99,8 +99,7 @@ export function BookHomeScreen({
           </h2>
         </div>
         <p className="mb-4 text-sm text-muted-foreground">
-          Take 30 seconds. AI doesn&apos;t answer these — that&apos;s the
-          point. Read, think, then ask below.
+          Read, think, then ask below before you ask other questions.
         </p>
         <ol className="flex flex-col gap-2 text-base leading-relaxed text-foreground/85">
           <li>① What is this book about?</li>
