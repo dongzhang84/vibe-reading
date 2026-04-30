@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-04-30 06:50 UTC  
+**Generated:** 2026-04-30 08:29 UTC  
 **Showing:** last 2 week(s) of 2 total  
 
 ---
@@ -9,13 +9,13 @@
 
 | Stat | Value |
 |------|-------|
-| Status | ❌ Stalled |
-| Active days | 2 / 7 |
-| Total commits | 12 |
+| Status | ⚠️ Slow |
+| Active days | 3 / 7 |
+| Total commits | 13 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| **11** | ⚪ | **1** | ⚪ | ⚪ | ⚪ | ⚪ |
+| **11** | ⚪ | **1** | **1** | ⚪ | ⚪ | ⚪ |
 
 **Mon – Monday, Apr 27**
 
@@ -34,6 +34,10 @@
 **Wed – Wednesday, Apr 29**
 
 - `c317805` spec(v2.1): add Orientation ritual to Book Home — _dongzhang84_ `2026-04-29 23:50`
+
+**Thu – Thursday, Apr 30**
+
+- `57c7e99` feat(v2.1): static Orientation block on Book Home — _dongzhang84_ `2026-04-30 01:10`
 
 ---
 
