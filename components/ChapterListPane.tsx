@@ -2,12 +2,7 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import {
-  ArrowLeft,
-  ArrowRight,
-  BookOpen,
-  RefreshCw,
-} from 'lucide-react'
+import { ArrowRight, BookOpen, RefreshCw } from 'lucide-react'
 
 export interface ChapterMatchView {
   questionChapterId: string
@@ -51,10 +46,10 @@ export function ChapterListPane({
       <header className="flex flex-col gap-4">
         <Link
           href={`/b/${bookId}`}
-          className="inline-flex w-fit items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+          className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-border bg-card px-3.5 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary/60"
         >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Back to book
+          Ask another question
+          <ArrowRight className="h-3.5 w-3.5" />
         </Link>
         <div className="flex flex-col gap-2">
           <p className="text-xs font-medium uppercase tracking-wider text-accent">
@@ -207,7 +202,8 @@ function EmptyMatches({
           href={`/b/${bookId}`}
           className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-4 py-2 text-sm text-foreground transition-colors hover:bg-secondary"
         >
-          Back to book
+          Ask another question
+          <ArrowRight className="h-3.5 w-3.5" />
         </Link>
       </div>
       {retryError && (
