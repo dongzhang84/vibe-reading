@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { FileText, Upload } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -11,13 +11,27 @@ type Phase = 'starting' | 'transferring' | 'analyzing'
 
 type State =
   | { kind: 'idle' }
-  | { kind: 'uploading'; file: File; phase: Phase }
+  | {
+      kind: 'uploading'
+      file: File
+      phase: Phase
+      phaseStartedAt: number
+    }
   | { kind: 'error'; message: string }
 
 export function UploadDropzone() {
   const [state, setState] = useState<State>({ kind: 'idle' })
   const [isDragging, setIsDragging] = useState(false)
+  const [now, setNow] = useState(() => Date.now())
   const inputRef = useRef<HTMLInputElement>(null)
+
+  // Tick `now` once a second while uploading so the elapsed-seconds counter
+  // and the cycling phase label below update on time.
+  useEffect(() => {
+    if (state.kind !== 'uploading') return
+    const id = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [state.kind])
 
   const handleFile = useCallback(async (file: File) => {
     if (file.type !== 'application/pdf') {
@@ -67,7 +81,12 @@ export function UploadDropzone() {
       setState({ kind: 'error', message: appError ?? diag })
     }
 
-    setState({ kind: 'uploading', file, phase: 'starting' })
+    setState({
+      kind: 'uploading',
+      file,
+      phase: 'starting',
+      phaseStartedAt: Date.now(),
+    })
 
     // Phase 1 — ask server for a signed upload URL bound to this session.
     let initRes: Response
@@ -97,7 +116,12 @@ export function UploadDropzone() {
 
     // Phase 2 — client uploads the PDF directly to Supabase Storage,
     // bypassing Vercel's function payload limit entirely.
-    setState({ kind: 'uploading', file, phase: 'transferring' })
+    setState({
+      kind: 'uploading',
+      file,
+      phase: 'transferring',
+      phaseStartedAt: Date.now(),
+    })
     const supabase = createClient()
     const { error: putErr } = await supabase.storage
       .from(STORAGE_BUCKET)
@@ -116,7 +140,12 @@ export function UploadDropzone() {
 
     // Phase 3 — server pulls the file back, parses, runs intake AI, writes
     // book + chapters rows.
-    setState({ kind: 'uploading', file, phase: 'analyzing' })
+    setState({
+      kind: 'uploading',
+      file,
+      phase: 'analyzing',
+      phaseStartedAt: Date.now(),
+    })
     let finalizeRes: Response
     try {
       finalizeRes = await fetch('/api/upload/finalize', {
@@ -163,14 +192,29 @@ export function UploadDropzone() {
   const isUploading = state.kind === 'uploading'
   const hasError = state.kind === 'error'
 
-  const phaseLabel =
+  // Phase label cycles inside `analyzing` based on elapsed seconds — the
+  // server pipeline is opaque (single fetch), so we sync the wording to
+  // its actual order: outline parse → chapter slice → intake AI. Even
+  // without server events, the perceived progress matches reality.
+  const phaseElapsedSec =
     state.kind === 'uploading'
-      ? state.phase === 'starting'
-        ? 'Preparing upload…'
-        : state.phase === 'transferring'
-          ? 'Uploading to storage…'
-          : 'Analyzing your book…'
-      : ''
+      ? Math.max(0, Math.floor((now - state.phaseStartedAt) / 1000))
+      : 0
+
+  const phaseLabel = (() => {
+    if (state.kind !== 'uploading') return ''
+    if (state.phase === 'starting') return 'Preparing upload…'
+    if (state.phase === 'transferring') return 'Uploading to storage…'
+    // analyzing
+    if (phaseElapsedSec < 4) return 'Reading the book outline…'
+    if (phaseElapsedSec < 10) return 'Mapping chapter boundaries…'
+    if (phaseElapsedSec < 20) return 'Drafting your starter questions…'
+    return 'Almost done…'
+  })()
+
+  const showElapsed =
+    state.kind === 'uploading' &&
+    (state.phase !== 'starting' || phaseElapsedSec >= 1)
 
   return (
     <div className="mx-auto w-full max-w-xl">
@@ -202,12 +246,17 @@ export function UploadDropzone() {
         {isUploading ? (
           <div className="flex flex-col items-center gap-3 p-6">
             <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-accent/10">
-              <FileText className="h-6 w-6 text-accent" />
+              <FileText className="h-6 w-6 animate-pulse text-accent" />
             </div>
             <div className="text-center">
               <p className="font-medium text-foreground">{state.file.name}</p>
               <p className="mt-1 text-sm text-muted-foreground">
                 {(state.file.size / (1024 * 1024)).toFixed(2)} MB · {phaseLabel}
+                {showElapsed && (
+                  <span className="ml-1 tabular-nums text-muted-foreground/60">
+                    ({phaseElapsedSec}s)
+                  </span>
+                )}
               </p>
             </div>
           </div>
