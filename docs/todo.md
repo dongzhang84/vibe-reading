@@ -79,10 +79,16 @@ the user complains.
       how many uploaders ever ask a question? how many askers ever click
       Brief or Read? Drives the next product iteration. Posthog free tier
       is enough
-- [ ] **Supabase Storage lifecycle audit** — owned books stay in
-      `vr-docs` bucket forever. Verify cron is only deleting unowned
-      orphans. Consider a future feature: per-user storage quota or
-      "archive" flow
+- [x] ~~**Supabase Storage lifecycle audit / per-user quota**~~ —
+      shipped 2026-04-30. Per-user hard caps (100 MB / 15 books)
+      enforced at `/api/upload/init` via `lib/usage/quota.ts`.
+      `vr.books.size_bytes` added in
+      `scripts/migrate-v2.3-storage-quota.sql`. `/library` shows
+      "X MB / 100 MB used · N / 15 books" so users see headroom.
+      Sized for Supabase Free (1 GB) shared with launchradar. **Not
+      addressed**: archive flow for old books, and the cron audit
+      (current cron only sweeps unowned/orphan rows; owned books
+      stay forever, but per-user cap now bounds total)
 
 ---
 
@@ -127,12 +133,15 @@ tried v1.
 Quick reference of what's been shipped recently. Full history in `git log`
 and [`CHANGELOG.md`](../CHANGELOG.md).
 
-**v2.2 hardening — partial (2026-04-30)**
+**v2.2 / v2.3 hardening — partial (2026-04-30)**
 - ✅ Per-user daily rate limits on every AI-spend endpoint
   (`/api/question` / `…retry` / `/api/brief` / `/api/ask` /
   `/api/upload/init` when auth'd). Backed by `vr.usage_counters`
   + atomic `vr.bump_usage` RPC. Brief checks quota only on cache
   miss
+- ✅ Per-user storage quota — 100 MB / 15 books, enforced on
+  `/api/upload/init` (when auth'd). Sized for Supabase Free 1 GB
+  shared with launchradar. `/library` shows live usage line
 
 **v2.1 quality-of-life iteration (2026-04-29 → 04-30)**
 - ✅ Orientation block on Book Home — initially shipped as a 4-textarea

@@ -148,18 +148,24 @@ export async function POST(request: Request) {
     console.error('intake AI failed (non-fatal)', err)
   }
 
+  // Cast to bypass stale generated types — `size_bytes` is added in
+  // scripts/migrate-v2.3-storage-quota.sql and lands in types/db.ts on
+  // the next `npm run db:types`.
+  const insertRow = {
+    session_id: sessionId,
+    title: parsed.title,
+    author: parsed.author,
+    storage_path: body.storagePath,
+    page_count: parsed.pageCount,
+    size_bytes: blob.size,
+    toc: (toc ?? null) as Json | null,
+    overview: intake?.overview ?? null,
+    suggested_questions: (intake?.questions ?? null) as Json | null,
+  }
   const { data: book, error: bookError } = await db
     .from('books')
-    .insert({
-      session_id: sessionId,
-      title: parsed.title,
-      author: parsed.author,
-      storage_path: body.storagePath,
-      page_count: parsed.pageCount,
-      toc: (toc ?? null) as Json | null,
-      overview: intake?.overview ?? null,
-      suggested_questions: (intake?.questions ?? null) as Json | null,
-    })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .insert(insertRow as any)
     .select()
     .single()
   if (bookError || !book) {

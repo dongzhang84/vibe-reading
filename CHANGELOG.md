@@ -20,6 +20,14 @@ up several rough edges. Driven by dogfooding, not by a roadmap.
 ### 2026-04-30 (late evening)
 
 #### Added
+- Per-user **storage quota** (Supabase Free is 1 GB shared with another
+  app, so each user is hard-capped at **100 MB / 15 books**). Requires
+  running `scripts/migrate-v2.3-storage-quota.sql` once (adds nullable
+  `size_bytes bigint` to `vr.books`). New uploads write the actual blob
+  size on `finalize`; pre-quota rows stay NULL and count as 0 (acceptable
+  undercount). `/api/upload/init` rejects with a friendly 429 when over
+  cap. `/library` page now shows a small `X MB / 100 MB used · N / 15
+  books` line so users see how close they are.
 - Per-user daily rate limits on every AI-spend endpoint: 50 questions,
   100 briefs, 200 highlight-asks, 5 uploads per day. Requires running
   `scripts/migrate-v2.2-rate-limit.sql` once in Supabase SQL Editor (adds

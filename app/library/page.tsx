@@ -6,6 +6,10 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { getSessionId } from '@/lib/session'
 import { claimSessionBooks } from '@/lib/auth/claim'
 import { LibraryList } from '@/components/LibraryList'
+import {
+  STORAGE_BYTES_CAP_PER_USER,
+  BOOK_COUNT_CAP_PER_USER,
+} from '@/lib/usage/quota'
 
 // Middleware already protects /library, but re-check here so this page
 // works even if someone removes the matcher entry later.
@@ -29,11 +33,24 @@ export default async function LibraryPage() {
   }
 
   const db = createAdminClient()
-  const { data: books } = await db
+  // Cast to bypass stale generated types — `size_bytes` is added in
+  // scripts/migrate-v2.3-storage-quota.sql and lands in types/db.ts on
+  // the next `npm run db:types`.
+  const { data: books } = (await db
     .from('books')
-    .select('id, title, author, page_count, created_at')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .select('id, title, author, page_count, created_at, size_bytes' as any)
     .eq('owner_id', user.id)
-    .order('created_at', { ascending: false })
+    .order('created_at', { ascending: false })) as {
+    data: Array<{
+      id: string
+      title: string
+      author: string | null
+      page_count: number | null
+      created_at: string | null
+      size_bytes: number | null
+    }> | null
+  }
 
   // Latest question text per book — gives returning readers an instant
   // "what was I thinking about" signal on the card. One DB round-trip; we
@@ -60,6 +77,14 @@ export default async function LibraryPage() {
 
   const isEmpty = enriched.length === 0
 
+  const usedBytes = (books ?? []).reduce(
+    (sum, b) => sum + (b.size_bytes ?? 0),
+    0,
+  )
+  const usedMB = (usedBytes / (1024 * 1024)).toFixed(1)
+  const capMB = Math.round(STORAGE_BYTES_CAP_PER_USER / (1024 * 1024))
+  const usedBooks = enriched.length
+
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-10 px-6 py-16">
       <header className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
@@ -70,6 +95,12 @@ export default async function LibraryPage() {
           <p className="text-base text-muted-foreground">
             Click a book to ask a new question or reopen an old one.
           </p>
+          {!isEmpty && (
+            <p className="mt-1 text-xs text-muted-foreground/70 tabular-nums">
+              {usedMB} MB / {capMB} MB used · {usedBooks} /{' '}
+              {BOOK_COUNT_CAP_PER_USER} books
+            </p>
+          )}
         </div>
         {!isEmpty && (
           <Link

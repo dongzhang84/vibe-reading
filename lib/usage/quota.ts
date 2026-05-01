@@ -87,6 +87,90 @@ export function quotaErrorMessage(action: QuotaAction, cap: number): string {
   return `Daily ${noun[action]} limit reached (${cap}/day). Try again after midnight UTC.`
 }
 
+// ─────────────────────────────────────────────────────────────────────────
+// Storage quota — separate from the daily-action quota above. Keyed on
+// total bytes + total book count per user, sized for the Supabase Free
+// plan's 1 GB shared bucket.
+// ─────────────────────────────────────────────────────────────────────────
+
+export const STORAGE_BYTES_CAP_PER_USER = 100 * 1024 * 1024 // 100 MB
+export const BOOK_COUNT_CAP_PER_USER = 15
+
+export interface StorageQuotaResult {
+  allowed: boolean
+  reason?: 'bytes' | 'count'
+  /** Bytes already used by this user's owned books. */
+  usedBytes: number
+  /** Books already owned by this user. */
+  usedBooks: number
+  bytesCap: number
+  bookCap: number
+}
+
+/**
+ * Check whether `incomingBytes` would push this user over either of:
+ *   - total Storage bytes cap (sum of `books.size_bytes`)
+ *   - total book count cap
+ *
+ * Pre-quota books with `size_bytes = NULL` count as 0 — acceptable
+ * undercount for the few rows that pre-date the v2.3 migration.
+ */
+export async function checkStorageQuota(
+  userId: string,
+  incomingBytes: number,
+): Promise<StorageQuotaResult> {
+  const db = createAdminClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: rows } = (await (db as any)
+    .from('books')
+    .select('size_bytes')
+    .eq('owner_id', userId)) as {
+    data: Array<{ size_bytes: number | null }> | null
+  }
+
+  const owned = rows ?? []
+  const usedBytes = owned.reduce((sum, r) => sum + (r.size_bytes ?? 0), 0)
+  const usedBooks = owned.length
+
+  if (usedBooks >= BOOK_COUNT_CAP_PER_USER) {
+    return {
+      allowed: false,
+      reason: 'count',
+      usedBytes,
+      usedBooks,
+      bytesCap: STORAGE_BYTES_CAP_PER_USER,
+      bookCap: BOOK_COUNT_CAP_PER_USER,
+    }
+  }
+  if (usedBytes + incomingBytes > STORAGE_BYTES_CAP_PER_USER) {
+    return {
+      allowed: false,
+      reason: 'bytes',
+      usedBytes,
+      usedBooks,
+      bytesCap: STORAGE_BYTES_CAP_PER_USER,
+      bookCap: BOOK_COUNT_CAP_PER_USER,
+    }
+  }
+  return {
+    allowed: true,
+    usedBytes,
+    usedBooks,
+    bytesCap: STORAGE_BYTES_CAP_PER_USER,
+    bookCap: BOOK_COUNT_CAP_PER_USER,
+  }
+}
+
+export function storageQuotaErrorMessage(r: StorageQuotaResult): string {
+  if (r.reason === 'count') {
+    return `Library limit reached (${r.usedBooks}/${r.bookCap} books). Delete a book in /library to free a slot.`
+  }
+  // bytes
+  const usedMB = (r.usedBytes / (1024 * 1024)).toFixed(1)
+  const capMB = Math.round(r.bytesCap / (1024 * 1024))
+  return `Storage full (${usedMB} MB used of ${capMB} MB). Delete an old book in /library to free space.`
+}
+
 function midnightUtcSec(): number {
   const t = new Date()
   t.setUTCHours(24, 0, 0, 0)

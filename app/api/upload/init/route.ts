@@ -2,7 +2,12 @@ import { NextResponse } from 'next/server'
 import { getOrCreateSessionId } from '@/lib/session'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { checkAndIncrement, quotaErrorMessage } from '@/lib/usage/quota'
+import {
+  checkAndIncrement,
+  checkStorageQuota,
+  quotaErrorMessage,
+  storageQuotaErrorMessage,
+} from '@/lib/usage/quota'
 
 // NOTE on quota for upload: getOrCreateSessionId binds the upload to a
 // session cookie which may pre-date login (the design lets users drop a
@@ -50,13 +55,24 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Max 50MB' }, { status: 400 })
   }
 
-  // Conditional quota: only logged-in callers go through the bucket.
+  // Conditional quota: only logged-in callers go through the buckets.
   // See top-of-file note on the anonymous-upload gap.
   const supabase = await createServerSupabaseClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
   if (user) {
+    // Per-user storage cap (book count + total bytes) — Free Supabase
+    // plan is 1 GB shared, so we hard-limit each user's footprint.
+    const storage = await checkStorageQuota(user.id, body.size)
+    if (!storage.allowed) {
+      return NextResponse.json(
+        { error: storageQuotaErrorMessage(storage) },
+        { status: 429 },
+      )
+    }
+    // Daily upload action cap — independent of storage; stops curl loops
+    // even if the user is well under their storage cap.
     const quota = await checkAndIncrement(user.id, 'upload')
     if (!quota.allowed) {
       return NextResponse.json(
