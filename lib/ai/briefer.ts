@@ -60,6 +60,10 @@ Hard rules:
 - DO NOT reference the reader (no "you", "your", "we").
 - Output exactly 3 items in key_claims, no more, no fewer.
 - Plain language. No academic hedging.
+- LANGUAGE: write all four fields in the SAME LANGUAGE as the CHAPTER CONTENT
+  above. Chinese chapter → Chinese output (one_sentence / key_claims / example /
+  not_addressed all in Chinese). English chapter → English output. If mixed,
+  follow the dominant language of the chapter body.
 - Return ONLY valid JSON matching the schema.`
 
   const response = await openai().chat.completions.create({

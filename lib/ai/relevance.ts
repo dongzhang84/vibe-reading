@@ -104,10 +104,21 @@ BAD reasons (NEVER do these):
 - "Proves method Z works in 5 steps"            ← summarizing
 - "The three principles of effective practice"  ← summarizing
 
-GOOD reasons:
+GOOD reasons (English):
 - "Likely contains the author's definition of paradigm shift"
 - "Discusses the historical context this question refers to"
 - "Covers the chapter-end section distinguishing X from Y"
+
+GOOD reasons (Chinese — equivalent phrasings):
+- "可能包含作者对范式转移的定义"
+- "讨论了该问题指向的历史背景"
+- "涉及章末区分 X 与 Y 的部分"
+- "介绍了..."
+
+LANGUAGE: write each \`reason\` in the SAME LANGUAGE as the QUESTION above.
+Chinese question → Chinese reason. English question → English reason. Use the
+natural equivalent of "likely contains / discusses / covers / introduces" in
+that language.
 
 Return ONLY valid JSON matching the schema.`
 

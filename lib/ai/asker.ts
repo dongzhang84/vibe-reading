@@ -43,6 +43,8 @@ Hard rules:
 - 2–4 short paragraphs max. Plain language. No bullet lists.
 - If the passage references something defined elsewhere in the chapter, name it concretely instead of hand-waving.
 - Do not reference the reader ("you", "your highlight"). Talk about the content.
+- LANGUAGE: write the answer in the SAME LANGUAGE as the highlighted passage.
+  Chinese passage → Chinese answer. English passage → English answer.
 - Return ONLY valid JSON matching the schema.`
 
   const response = await openai().chat.completions.create({

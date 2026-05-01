@@ -80,6 +80,11 @@ Each question under 150 characters. Pull specific vocabulary from the TOC and
 intro to make the questions this-book-specific. Avoid generic "What is [topic]?"
 phrasing.
 
+LANGUAGE: write the overview AND all three questions in the SAME LANGUAGE as
+the book's intro / conclusion content above. Chinese book → Chinese overview
++ Chinese questions. English book → English overview + English questions. The
+title and author may be in a different language than the body — match the body.
+
 Return ONLY JSON matching the schema.`
 
   const response = await openai().chat.completions.create({
