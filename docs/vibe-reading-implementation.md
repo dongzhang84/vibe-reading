@@ -106,7 +106,8 @@ npm install -D supabase
 vibe-reading/
 ├── app/
 │   ├── api/
-│   │   ├── upload/route.ts            ← PDF 解析 + intake (overview + 3 questions)
+│   │   ├── upload/init/route.ts       ← issue Supabase signed upload URL (≤ 几 KB body)
+│   │   ├── upload/finalize/route.ts   ← pull PDF from Storage → parse + intake AI
 │   │   ├── question/route.ts          ← 提交 question → 触发 relevance → 写 question_chapters
 │   │   ├── question/[id]/retry/      ← 0-match 重试，重跑 relevance 替换 question_chapters
 │   │   ├── brief/route.ts             ← [Brief] 触发点（chapter-level，缓存）
@@ -246,35 +247,57 @@ npx supabase gen types typescript --project-id myvtqxfcwzrntepcfvkn --schema vr 
 
 ### 1.2 Upload Dropzone（`components/UploadDropzone.tsx`）
 
+> **2026-04-30 重写**：从单次 multipart POST 改为 3 阶段直传。理由见 §6.4。
+
 ```tsx
 'use client'
 import { useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
+
+type Phase = 'starting' | 'transferring' | 'analyzing'
 
 export function UploadDropzone() {
-  const [state, setState] = useState<'idle' | 'uploading' | 'parsing'>('idle')
+  const [state, setState] = useState<{ kind: 'idle' } | { kind: 'uploading'; phase: Phase } | ...>({ kind: 'idle' })
 
   async function handleFile(file: File) {
     if (file.size > 50 * 1024 * 1024) { alert('Max 50MB'); return }
     if (file.type !== 'application/pdf') { alert('PDF only'); return }
 
-    setState('uploading')
-    const form = new FormData()
-    form.append('file', file)
-    const res = await fetch('/api/upload', { method: 'POST', body: form })
-    if (!res.ok) {
-      const { error } = await res.json().catch(() => ({ error: 'Upload failed' }))
-      alert(error); setState('idle'); return
-    }
-    setState('parsing')
-    const { bookId } = await res.json()
-    // v2: upload 之后立刻走登录 + Book Home (不再是 /goal)
-    // 若已登录 → 直接 /b/[id]；若未登录 → /auth/login?next=/b/[id]（LoginModal 会接管）
+    // Phase 1 — ask server for a signed upload URL
+    setState({ kind: 'uploading', phase: 'starting' })
+    const initRes = await fetch('/api/upload/init', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ filename: file.name, size: file.size }),
+    })
+    const { storagePath, token } = await initRes.json()
+
+    // Phase 2 — client uploads the PDF directly to Supabase Storage,
+    // bypassing the Vercel function entirely.
+    setState({ kind: 'uploading', phase: 'transferring' })
+    const supabase = createClient()
+    const { error: putErr } = await supabase.storage
+      .from('vr-docs')
+      .uploadToSignedUrl(storagePath, token, file, { contentType: 'application/pdf' })
+    if (putErr) { /* show diag and return */ }
+
+    // Phase 3 — server pulls the file back, parses, runs intake AI,
+    // writes book + chapters rows, returns bookId.
+    setState({ kind: 'uploading', phase: 'analyzing' })
+    const finalizeRes = await fetch('/api/upload/finalize', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ storagePath, filename: file.name }),
+    })
+    const { bookId } = await finalizeRes.json()
     window.location.href = `/b/${bookId}`
   }
 
-  return (/* drop UI + file input fallback + progress */)
+  return (/* drop UI + 3-phase progress label */)
 }
 ```
+
+UX 上 dropzone 显示三段不同的 label：`Preparing upload… → Uploading to storage… → Analyzing your book…`，让用户知道大文件传输那段（Phase 2）正在进行而不是卡死。错误时显示真实 HTTP 状态码 + size + 耗时（不再 fallback 到模糊的 "Upload failed"）。
 
 ### 1.3 Session Cookie 工具（`lib/session.ts`）
 
@@ -975,15 +998,35 @@ let client: OpenAI | null = null
 function openai() { if (!client) client = new OpenAI(); return client }
 ```
 
-### 6.4 Upload API（`app/api/upload/route.ts`）
+### 6.4 Upload API（`app/api/upload/init` + `app/api/upload/finalize`）
 
-关键点：
+> **2026-04-30 重写**：从单次 multipart POST 拆成 3 阶段直传，原因下面 callout 写清楚。
 
-- `runtime = 'nodejs'` + `maxDuration = 60`
-- Validate: `application/pdf`, ≤ 50 MB
-- 流程：upload to Storage → parseBookStructure → write books row (with toc + chapter_count) → write chapters → 异步或同步调 `analyzeBook` → update books.overview + suggested_questions → 返回 bookId
-- 错误路径最优努力回滚（Storage blob、books row、chapters row）
-- `analyzeBook` 的失败不应阻断上传成功 —— 没 overview/questions 时 Book Home 仍可工作（只是没推荐问题）
+**两个 routes**：
+
+`POST /api/upload/init` —— body `{ filename, size }`：
+- Validate `.pdf` 后缀、`0 < size ≤ 50MB`
+- 生成 storage path：`session/<sessionId>/<uuid>.pdf`（session-scoped，`finalize` 会校验前缀）
+- 调 `db.storage.from('vr-docs').createSignedUploadUrl(path)` 拿 signed URL + token
+- 返回 `{ storagePath, uploadUrl, token }`
+- 函数本身极轻：几 KB body、毫秒级响应
+
+`POST /api/upload/finalize` —— body `{ storagePath, filename }`：
+- 校验 `storagePath` 以 `session/<currentSessionId>/` 开头（防止用别人的 path）
+- `db.storage.from('vr-docs').download(storagePath)` 把 PDF 拉回 buffer
+- 跑原来 upload route 里的全部逻辑：`extractOutlineAndChapters` → `parsePdf` → `analyzeBook` (intake AI) → insert books row + chapters rows
+- 失败路径回滚 Storage blob + books row（同原来）
+- 返回 `{ bookId }`
+
+`runtime = 'nodejs'` + `maxDuration = 60`（finalize；init 用默认）。
+
+> **为什么是 3 阶段直传，不是单次 multipart POST**
+>
+> Vercel **Hobby 计划的 Serverless Function request body 上限大约 4.5 MB**（AWS Lambda 同步 invoke 的 payload 限制，error code 是 `FUNCTION_PAYLOAD_TOO_LARGE`）。原来的 `POST /api/upload` 接 multipart formData 整个 PDF，任何 ≥ 5MB 左右的书在 prod 都会撞 413。Hobby 没有 config 能调高这个上限。
+>
+> 客户端拿 signed URL 直接 PUT 到 Supabase Storage 这条路，**完全绕过 Vercel function**：30MB 的传输走客户端 ↔ Supabase 直连。`finalize` 里 server 从 Storage **download** 文件是函数内部的 egress，不受入站 HTTP body 限制。
+>
+> 另外有一层是 Next.js 16 的 proxy 默认 10MB body 限制（在 `next.config.ts` 通过 `experimental.proxyClientMaxBodySize: '50mb'` 调高），那条只在本地 dev 暴露 —— prod 上是 Vercel 限制先撞。两层都要处理。
 
 > **为什么 intake 同步跑**：reader UX 要求进入 Book Home 就看到推荐问题，不能 "parsing..." spin 10 秒再 spin 5 秒。同步跑总时长 ~8-15 秒，给 dropzone 显示 "Analyzing your book..." progress 即可。
 
@@ -1452,7 +1495,11 @@ return NextResponse.redirect(`${origin}${next}`)
 
 ```
 Landing (未登录) → drop PDF
-  ↓ /api/upload (session_id 绑定)
+  ↓ POST /api/upload/init (session_id 绑定，发 filename/size)
+  ↓ 返回 storagePath + signed upload URL + token
+  ↓ 客户端 PUT 文件直接到 Supabase Storage（绕过 Vercel function）
+  ↓ POST /api/upload/finalize { storagePath, filename }
+  ↓ server 从 Storage 拉文件 → parse + intake AI → 写 books + chapters
   ↓ 返回 bookId
 Landing → 自动 fetch /b/${bookId} → middleware 拦截 → redirect /auth/login?next=/b/${bookId}
   ↓ LoginModal 弹 (或 /auth/login 页面)
