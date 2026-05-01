@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { ArrowRight, BookOpen, RefreshCw } from 'lucide-react'
+import { ArrowLeft, ArrowRight, BookOpen, RefreshCw } from 'lucide-react'
 
 export interface ChapterMatchView {
   questionChapterId: string
@@ -43,7 +43,14 @@ export function ChapterListPane({
 }: Props) {
   return (
     <aside className="flex h-full flex-col gap-6 overflow-y-auto border-r border-border bg-secondary/30 p-6">
-      <header className="flex flex-col gap-4">
+      <header className="flex flex-col gap-3">
+        <Link
+          href="/library"
+          className="inline-flex w-fit items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ArrowLeft className="h-3 w-3" />
+          Library
+        </Link>
         <Link
           href={`/b/${bookId}`}
           className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-border bg-card px-3.5 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary/60"
@@ -51,7 +58,7 @@ export function ChapterListPane({
           Ask another question
           <ArrowRight className="h-3.5 w-3.5" />
         </Link>
-        <div className="flex flex-col gap-2">
+        <div className="mt-1 flex flex-col gap-2">
           <p className="text-xs font-medium uppercase tracking-wider text-accent">
             Your Question
           </p>
