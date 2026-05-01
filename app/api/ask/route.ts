@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { askPassage } from '@/lib/ai/asker'
+import { checkAndIncrement, quotaErrorMessage } from '@/lib/usage/quota'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -66,6 +67,15 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: 'Ask a question first' },
       { status: 403 },
+    )
+  }
+
+  // Real gpt-4o-mini call follows; charge the daily 'ask' bucket.
+  const quota = await checkAndIncrement(user.id, 'ask')
+  if (!quota.allowed) {
+    return NextResponse.json(
+      { error: quotaErrorMessage('ask', quota.cap) },
+      { status: 429 },
     )
   }
 

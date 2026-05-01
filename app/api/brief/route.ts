@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { briefChapter, type Brief } from '@/lib/ai/briefer'
+import { checkAndIncrement, quotaErrorMessage } from '@/lib/usage/quota'
 import type { Json } from '@/types/db'
 
 export const runtime = 'nodejs'
@@ -77,6 +78,16 @@ export async function POST(request: Request) {
         not_addressed: cached.not_addressed,
       } satisfies Brief,
     })
+  }
+
+  // Cache miss — actual gpt-4o-mini call follows. Quota check belongs HERE,
+  // not above the cache lookup, so re-reading an old brief never burns quota.
+  const quota = await checkAndIncrement(user.id, 'brief')
+  if (!quota.allowed) {
+    return NextResponse.json(
+      { error: quotaErrorMessage('brief', quota.cap) },
+      { status: 429 },
+    )
   }
 
   let brief: Brief

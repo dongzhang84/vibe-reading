@@ -56,15 +56,18 @@ These are the "production safety" gaps. Without them, a single curious user
 can run up an OpenAI bill, or you'll find out about prod errors only after
 the user complains.
 
-- [ ] **Rate-limit AI endpoints** — `/api/question`, `/api/brief`,
-      `/api/ask`, `/api/question/[id]/retry`, `/api/upload/finalize`
-      (intake AI) have no caps. One signed-in user could `for i in
-      {1..1000}` a curl loop and burn $50+ in minutes. Suggested:
-      per-user daily caps (e.g. 50 questions, 100 briefs, 200 asks,
-      5 uploads) via Upstash Ratelimit or a simple `vr.usage_log`
-      table + check at API entry. Bonus belt-and-suspenders: also
-      cap `/api/upload/init` (cheap, but each issued URL ties up a
-      Storage path even if never used — DOS surface)
+- [x] ~~**Rate-limit AI endpoints**~~ — shipped 2026-04-30. Per-user
+      daily caps (50 questions, 100 briefs, 200 asks, 5 uploads) via
+      `vr.usage_counters` + `vr.bump_usage` SQL function (atomic
+      check-and-increment with `for update` row lock). Wired into
+      `/api/question`, `/api/question/[id]/retry`, `/api/brief` (cache
+      miss only — re-reads don't burn quota), `/api/ask`, and
+      `/api/upload/init` (when authenticated). Helper at
+      `lib/usage/quota.ts`. **Known gap**: anonymous upload (drop PDF
+      pre-login) skips quota since `user_id` doesn't exist yet — relies
+      on the OpenAI dashboard monthly hard cap. Worth fixing in a
+      follow-up: extend usage_counters schema to allow session_id keys,
+      or auth-gate uploads
 - [ ] **Error tracking (Sentry / Highlight / similar)** — only console.error
       right now; prod errors invisible unless we manually check Vercel logs.
       Free tier is fine for an MVP. Hook it into `app/error.tsx` +
@@ -123,6 +126,13 @@ tried v1.
 
 Quick reference of what's been shipped recently. Full history in `git log`
 and [`CHANGELOG.md`](../CHANGELOG.md).
+
+**v2.2 hardening — partial (2026-04-30)**
+- ✅ Per-user daily rate limits on every AI-spend endpoint
+  (`/api/question` / `…retry` / `/api/brief` / `/api/ask` /
+  `/api/upload/init` when auth'd). Backed by `vr.usage_counters`
+  + atomic `vr.bump_usage` RPC. Brief checks quota only on cache
+  miss
 
 **v2.1 quality-of-life iteration (2026-04-29 → 04-30)**
 - ✅ Orientation block on Book Home — initially shipped as a 4-textarea

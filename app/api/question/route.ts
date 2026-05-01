@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { matchChapters } from '@/lib/ai/relevance'
+import { checkAndIncrement, quotaErrorMessage } from '@/lib/usage/quota'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -31,6 +32,14 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser()
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const quota = await checkAndIncrement(user.id, 'question')
+  if (!quota.allowed) {
+    return NextResponse.json(
+      { error: quotaErrorMessage('question', quota.cap) },
+      { status: 429 },
+    )
   }
 
   const db = createAdminClient()

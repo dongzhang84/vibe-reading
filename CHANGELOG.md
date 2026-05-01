@@ -17,6 +17,27 @@ For day-to-day commit history see `git log`. For deeper "why" context see
 Quality-of-life iteration on the v2 MVP after a real-book test pass turned
 up several rough edges. Driven by dogfooding, not by a roadmap.
 
+### 2026-04-30 (late evening)
+
+#### Added
+- Per-user daily rate limits on every AI-spend endpoint: 50 questions,
+  100 briefs, 200 highlight-asks, 5 uploads per day. Requires running
+  `scripts/migrate-v2.2-rate-limit.sql` once in Supabase SQL Editor (adds
+  `vr.usage_counters` table + atomic `vr.bump_usage` SQL function with a
+  `for update` row lock so concurrent requests can't both pass the cap
+  check). Implemented in `lib/usage/quota.ts`; called at the top of
+  `/api/question`, `/api/question/[id]/retry`, `/api/brief` (only on
+  cache miss — re-reads of an old brief don't burn quota), `/api/ask`,
+  and `/api/upload/init` (skipped when caller is anonymous; see Known
+  gaps below). 429 responses ship a friendly body the existing clients
+  already render verbatim.
+
+#### Known gaps
+- Anonymous upload (drop a PDF before signing in) is not rate-limited
+  — `usage_counters.user_id` references `auth.users(id)` and we don't
+  have a real user_id pre-login. The OpenAI dashboard hard monthly cap
+  is the real backstop here. Tracked in `docs/todo.md` bucket B.
+
 ### 2026-04-30 (evening)
 
 #### Added

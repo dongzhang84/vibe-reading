@@ -1,6 +1,16 @@
 import { NextResponse } from 'next/server'
 import { getOrCreateSessionId } from '@/lib/session'
+import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { checkAndIncrement, quotaErrorMessage } from '@/lib/usage/quota'
+
+// NOTE on quota for upload: getOrCreateSessionId binds the upload to a
+// session cookie which may pre-date login (the design lets users drop a
+// PDF before signing in). Quota is keyed on auth user_id, which only
+// exists after sign-in. So we apply the cap only when the request is
+// authenticated. Anonymous upload abuse (curl-bombing /api/upload/init
+// without signing in) is a known gap, mitigated for now by the OpenAI
+// dashboard monthly hard cap. See docs/todo.md bucket B.
 
 export const runtime = 'nodejs'
 
@@ -38,6 +48,22 @@ export async function POST(request: Request) {
   }
   if (body.size > MAX_BYTES) {
     return NextResponse.json({ error: 'Max 50MB' }, { status: 400 })
+  }
+
+  // Conditional quota: only logged-in callers go through the bucket.
+  // See top-of-file note on the anonymous-upload gap.
+  const supabase = await createServerSupabaseClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (user) {
+    const quota = await checkAndIncrement(user.id, 'upload')
+    if (!quota.allowed) {
+      return NextResponse.json(
+        { error: quotaErrorMessage('upload', quota.cap) },
+        { status: 429 },
+      )
+    }
   }
 
   const storagePath = `session/${sessionId}/${crypto.randomUUID()}.pdf`
