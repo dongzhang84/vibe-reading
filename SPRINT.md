@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-05-01 05:37 UTC  
+**Generated:** 2026-05-01 15:37 UTC  
 **Showing:** last 2 week(s) of 2 total  
 
 ---
@@ -10,12 +10,12 @@
 | Stat | Value |
 |------|-------|
 | Status | ⚠️ Slow |
-| Active days | 3 / 7 |
-| Total commits | 34 |
+| Active days | 4 / 7 |
+| Total commits | 35 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| **11** | ⚪ | **1** | **22** | ⚪ | ⚪ | ⚪ |
+| **11** | ⚪ | **1** | **22** | **1** | ⚪ | ⚪ |
 
 **Mon – Monday, Apr 27**
 
@@ -59,6 +59,10 @@
 - `4fa0fec` copy(v2.1): tighten Orientation helper text — _dongzhang84_ `2026-04-30 01:32`
 - `bf3a062` feat(v2.1): translate Orientation questions to English — _dongzhang84_ `2026-04-30 01:31`
 - `57c7e99` feat(v2.1): static Orientation block on Book Home — _dongzhang84_ `2026-04-30 01:10`
+
+**Fri – Friday, May 1**
+
+- `fc9ba8a` docs(todo): park inactivity-based PDF retention in C bucket — _dongzhang84_ `2026-05-01 08:37`
 
 ---
 
