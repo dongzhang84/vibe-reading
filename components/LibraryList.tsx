@@ -10,6 +10,7 @@ interface Book {
   author: string | null
   page_count: number | null
   created_at: string | null
+  lastAsked: string | null
 }
 
 interface Props {
@@ -79,6 +80,14 @@ export function LibraryList({ books: initialBooks }: Props) {
                 <p className="font-medium text-foreground">{b.title}</p>
                 {b.author && (
                   <p className="text-sm text-muted-foreground">{b.author}</p>
+                )}
+                {b.lastAsked && (
+                  <p className="mt-1 line-clamp-1 text-sm text-muted-foreground">
+                    Last asked:{' '}
+                    <span className="italic text-foreground/75">
+                      &ldquo;{b.lastAsked}&rdquo;
+                    </span>
+                  </p>
                 )}
                 <p className="mt-1 text-xs text-muted-foreground/70">
                   {b.page_count ? `${b.page_count} pages · ` : ''}

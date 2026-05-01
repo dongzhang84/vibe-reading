@@ -35,7 +35,30 @@ export default async function LibraryPage() {
     .eq('owner_id', user.id)
     .order('created_at', { ascending: false })
 
-  const isEmpty = !books || books.length === 0
+  // Latest question text per book — gives returning readers an instant
+  // "what was I thinking about" signal on the card. One DB round-trip; we
+  // dedupe to first-occurrence (the .order desc above) in JS to avoid
+  // needing a window function.
+  const bookIds = (books ?? []).map((b) => b.id)
+  const latestByBook = new Map<string, string>()
+  if (bookIds.length > 0) {
+    const { data: questions } = await db
+      .from('questions')
+      .select('book_id, text, created_at')
+      .in('book_id', bookIds)
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(500)
+    for (const q of questions ?? []) {
+      if (!latestByBook.has(q.book_id)) latestByBook.set(q.book_id, q.text)
+    }
+  }
+  const enriched = (books ?? []).map((b) => ({
+    ...b,
+    lastAsked: latestByBook.get(b.id) ?? null,
+  }))
+
+  const isEmpty = enriched.length === 0
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-10 px-6 py-16">
@@ -74,7 +97,7 @@ export default async function LibraryPage() {
           </Link>
         </section>
       ) : (
-        <LibraryList books={books} />
+        <LibraryList books={enriched} />
       )}
     </main>
   )

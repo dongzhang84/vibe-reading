@@ -20,6 +20,11 @@ up several rough edges. Driven by dogfooding, not by a roadmap.
 ### 2026-04-30 (evening)
 
 #### Added
+- `/library` book cards now show "Last asked: '...'" — the most recent
+  question on each book, single-line truncated. Helps returning readers
+  pick up mid-thought without opening every book to remember context.
+  One DB round-trip per page render: `vr.questions` ordered by
+  `created_at desc`, deduped to first-occurrence per book in JS.
 - Small `← Library` ghost link in `ChapterListPane` header above the
   "Ask another question →" CTA. The global `Nav` is intentionally hidden
   on Question Result to keep the PDF split pane full-height; this gives

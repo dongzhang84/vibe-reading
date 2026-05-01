@@ -1,5 +1,19 @@
 @AGENTS.md
 
+## Workflow conventions
+
+- **CHANGELOG.md is kept current.** After every meaningful change (user-visible
+  feature, behavior change, architectural decision, bug fix worth remembering),
+  add a one-line entry under the current version's most-recent date subsection
+  in `CHANGELOG.md`. Categories follow Keep-a-Changelog: Added / Changed /
+  Fixed / Removed. Skip CI noise, doc-only typo fixes, and pure refactors with
+  no observable effect — they live in `git log` only. The CHANGELOG and the
+  commit go in the **same** push so a returning reader can `git log -- CHANGELOG.md`
+  to navigate history.
+- Commit + push after every completed change (no batching). Push to `main`
+  directly is allowed; PR-only branches get rejected by the configured rule
+  unless the user explicitly approves.
+
 ## Setup Blockers（开工前读）
 
 历史上遇到过的非显然 setup 坑。记下来是为了下次 session / 下个开发者不再重复踩。每条只记事实 + 教训；过程对话在 git log 里查。

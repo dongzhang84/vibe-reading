@@ -37,9 +37,11 @@ Each ~15–45 min. None block anything. Pick when you want a clean break.
       "AI couldn't map this question to specific chapters." Two CTAs:
       Retry (re-runs relevance via `POST /api/question/[id]/retry`,
       replaces existing `question_chapters`) + Back to book
-- [ ] **`/library` book card metadata** — show "Last asked: 'why X?'" so
-      returning users land in context. Requires a quick join from
-      `vr.questions ORDER BY created_at DESC LIMIT 1` per book
+- [x] ~~**`/library` book card metadata**~~ — shipped 2026-04-30. Each
+      book card now shows "Last asked: '...'" using a single PostgREST
+      query for all the user's books' questions, deduped to first-
+      occurrence (created_at desc) in JS. Single-line truncated; only
+      renders when the book actually has a question history
 
 ---
 
