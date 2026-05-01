@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-05-01 01:50 UTC  
+**Generated:** 2026-05-01 03:27 UTC  
 **Showing:** last 2 week(s) of 2 total  
 
 ---
@@ -11,11 +11,11 @@
 |------|-------|
 | Status | ⚠️ Slow |
 | Active days | 3 / 7 |
-| Total commits | 30 |
+| Total commits | 31 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| **11** | ⚪ | **1** | **18** | ⚪ | ⚪ | ⚪ |
+| **11** | ⚪ | **1** | **19** | ⚪ | ⚪ | ⚪ |
 
 **Mon – Monday, Apr 27**
 
@@ -37,6 +37,7 @@
 
 **Thu – Thursday, Apr 30**
 
+- `2ad842c` docs(todo): refresh for v2.1 — empty A bucket, B is next, capture today's work — _dongzhang84_ `2026-04-30 20:27`
 - `9b34f2b` feat(library): show "Last asked: '...'" on each book card — _dongzhang84_ `2026-04-30 18:50`
 - `cdcc747` docs: add CHANGELOG.md — _dongzhang84_ `2026-04-30 18:44`
 - `dc2d30b` docs: i18n rules + analyzing UX + Library link in chapter pane — _dongzhang84_ `2026-04-30 18:41`
