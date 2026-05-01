@@ -133,6 +133,17 @@ tried v1.
       stack supports it. Most pages already use `lg:` breakpoint sensibly;
       just need a tighter pass on Question Result split-pane (collapse to
       tabs on `<lg`)
+- [ ] **Inactivity-based PDF retention** — when Free 1 GB starts feeling
+      tight (≥ 600 MB used or right before opening to strangers): add a
+      cron that, for any book whose `last_activity_at` is > 30 days
+      stale, removes the Storage blob and nulls `books.storage_path`.
+      The book row + chapters + questions + briefs all stay so the
+      reader keeps the value of past reading; `/library` shows
+      "PDF expired — re-upload to read again". Aligns with the project
+      stance ("compression happens in your head, not on disk") better
+      than hard-delete-after-N-days. Discussed and deferred 2026-05-01:
+      current 100 MB/user × 15-book cap already bounds total bucket
+      footprint, no immediate pressure
 
 ---
 
