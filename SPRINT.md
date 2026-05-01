@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-05-01 04:09 UTC  
+**Generated:** 2026-05-01 05:37 UTC  
 **Showing:** last 2 week(s) of 2 total  
 
 ---
@@ -11,11 +11,11 @@
 |------|-------|
 | Status | ⚠️ Slow |
 | Active days | 3 / 7 |
-| Total commits | 33 |
+| Total commits | 34 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| **11** | ⚪ | **1** | **21** | ⚪ | ⚪ | ⚪ |
+| **11** | ⚪ | **1** | **22** | ⚪ | ⚪ | ⚪ |
 
 **Mon – Monday, Apr 27**
 
@@ -37,6 +37,7 @@
 
 **Thu – Thursday, Apr 30**
 
+- `3d10c82` docs: end-of-day wrap — B mostly done, UAT is next — _dongzhang84_ `2026-04-30 22:37`
 - `fddd59d` feat(quota): per-user storage cap (100 MB / 15 books) for Supabase Free — _dongzhang84_ `2026-04-30 21:08`
 - `9e9eefa` feat(quota): per-user daily rate limits on AI-spend endpoints — _dongzhang84_ `2026-04-30 21:03`
 - `2ad842c` docs(todo): refresh for v2.1 — empty A bucket, B is next, capture today's work — _dongzhang84_ `2026-04-30 20:27`
