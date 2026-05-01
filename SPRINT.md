@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-05-01 00:08 UTC  
+**Generated:** 2026-05-01 01:06 UTC  
 **Showing:** last 2 week(s) of 2 total  
 
 ---
@@ -11,11 +11,11 @@
 |------|-------|
 | Status | ⚠️ Slow |
 | Active days | 3 / 7 |
-| Total commits | 24 |
+| Total commits | 25 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| **11** | ⚪ | **1** | **12** | ⚪ | ⚪ | ⚪ |
+| **11** | ⚪ | **1** | **13** | ⚪ | ⚪ | ⚪ |
 
 **Mon – Monday, Apr 27**
 
@@ -37,6 +37,7 @@
 
 **Thu – Thursday, Apr 30**
 
+- `cb2aaca` ux(upload): elapsed counter + cycling phase labels during analyze — _dongzhang84_ `2026-04-30 18:06`
 - `d180c80` docs: align with 3-phase direct-to-Supabase upload — _dongzhang84_ `2026-04-30 17:07`
 - `4bcb881` fix(upload): direct-to-Supabase to bypass Vercel function payload limit — _dongzhang84_ `2026-04-30 15:50`
 - `ca3d457` chore(upload): drop server-side lap() diagnostics — _dongzhang84_ `2026-04-30 14:54`
