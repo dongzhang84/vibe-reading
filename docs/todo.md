@@ -3,14 +3,16 @@
 > Living list of things not yet done. Three buckets, ordered roughly by
 > "ship-blocker → polish → new edge".
 >
-> Recommended sequence: **B → C**. A bucket is currently empty (all the
-> polish items envisioned so far have shipped); add new polish there as
-> it comes up. B is the "before showing strangers" safety net and is the
-> next focus. C is product expansion that needs time and conviction.
+> Recommended sequence: B is **mostly done** — rate-limit, storage cap,
+> and OpenAI cost ceiling all shipped 2026-04-30. The two remaining B
+> items (Sentry, Posthog) are deferred to right before §12.C friends
+> test, since solo dogfood doesn't need remote-error or funnel
+> visibility. **Current focus: §12.A UAT solo dogfood** — creator
+> reads a real book through the app and finds whatever's left to fix.
+> A bucket is empty; C bucket is post-friend-test territory.
 >
-> Last updated: 2026-04-30 (post v2.1 quality-of-life pass — Orientation
-> simplification, parser fixes, direct-to-Supabase upload refactor, AI
-> i18n, "Last asked" on /library, Library link on Question Result).
+> Last updated: 2026-04-30 (post v2.2/v2.3 hardening — daily AI rate
+> limits, per-user 100 MB / 15 books storage cap, OpenAI cost ceiling).
 
 ---
 
@@ -71,14 +73,20 @@ the user complains.
 - [ ] **Error tracking (Sentry / Highlight / similar)** — only console.error
       right now; prod errors invisible unless we manually check Vercel logs.
       Free tier is fine for an MVP. Hook it into `app/error.tsx` +
-      `app/global-error.tsx` + each `/api/*` route's catch block
-- [ ] **OpenAI cost ceiling** — set a hard monthly cap on the API key in
-      OpenAI dashboard, and a $10 / $25 alert email. Belt + suspenders
-      with the rate limit
+      `app/global-error.tsx` + each `/api/*` route's catch block.
+      **Deferred (2026-04-30)**: not needed during solo dogfood (creator
+      hits and fixes own bugs). Pick this up the week before §12.C —
+      inviting 5-10 friends — when remote-error visibility actually
+      starts mattering
+- [x] ~~**OpenAI cost ceiling**~~ — done 2026-04-30 (manual step in
+      OpenAI dashboard). Hard monthly cap + alert email set. Belt +
+      suspenders with the rate-limit and storage cap
 - [ ] **Basic usage analytics (Posthog / Plausible)** — funnel visibility:
       how many uploaders ever ask a question? how many askers ever click
       Brief or Read? Drives the next product iteration. Posthog free tier
-      is enough
+      is enough. **Deferred (2026-04-30)**: same reasoning as Sentry —
+      no funnel data worth analyzing during solo dogfood. Pick up before
+      §12.C friends test
 - [x] ~~**Supabase Storage lifecycle audit / per-user quota**~~ —
       shipped 2026-04-30. Per-user hard caps (100 MB / 15 books)
       enforced at `/api/upload/init` via `lib/usage/quota.ts`.
