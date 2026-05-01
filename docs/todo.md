@@ -3,18 +3,23 @@
 > Living list of things not yet done. Three buckets, ordered roughly by
 > "ship-blocker → polish → new edge".
 >
-> Recommended sequence: **B → A → C**. B is the "before showing strangers"
-> safety net; A is closing-time polish; C is product expansion that needs
-> time and conviction.
+> Recommended sequence: **B → C**. A bucket is currently empty (all the
+> polish items envisioned so far have shipped); add new polish there as
+> it comes up. B is the "before showing strangers" safety net and is the
+> next focus. C is product expansion that needs time and conviction.
 >
-> Last updated: 2026-04-27 (post Notion-warm UI overhaul, dark mode,
-> PDF zoom + keyboard, delete-book affordance, auth-page redesign).
+> Last updated: 2026-04-30 (post v2.1 quality-of-life pass — Orientation
+> simplification, parser fixes, direct-to-Supabase upload refactor, AI
+> i18n, "Last asked" on /library, Library link on Question Result).
 
 ---
 
 ## A. Polish (low-effort visible wins)
 
 Each ~15–45 min. None block anything. Pick when you want a clean break.
+
+> **Status: all current items shipped.** Add new polish here as you
+> notice it during dogfooding.
 
 - [x] ~~**Auth pages (`/auth/login`, `/auth/register`) UI pass**~~ —
       shipped 2026-04-26. Notion-warm tokens, BookOpen brand mark,
@@ -52,11 +57,14 @@ can run up an OpenAI bill, or you'll find out about prod errors only after
 the user complains.
 
 - [ ] **Rate-limit AI endpoints** — `/api/question`, `/api/brief`,
-      `/api/ask`, `/api/question/[id]/retry`, `/api/upload` (intake AI)
-      have no caps. One signed-in user could `for i in {1..1000}` a curl
-      loop and burn $50+ in minutes. Suggested: per-user daily caps
-      (e.g. 50 questions, 100 briefs, 200 asks, 5 uploads) via Upstash
-      Ratelimit or a simple `vr.usage_log` table + check at API entry
+      `/api/ask`, `/api/question/[id]/retry`, `/api/upload/finalize`
+      (intake AI) have no caps. One signed-in user could `for i in
+      {1..1000}` a curl loop and burn $50+ in minutes. Suggested:
+      per-user daily caps (e.g. 50 questions, 100 briefs, 200 asks,
+      5 uploads) via Upstash Ratelimit or a simple `vr.usage_log`
+      table + check at API entry. Bonus belt-and-suspenders: also
+      cap `/api/upload/init` (cheap, but each issued URL ties up a
+      Storage path even if never used — DOS surface)
 - [ ] **Error tracking (Sentry / Highlight / similar)** — only console.error
       right now; prod errors invisible unless we manually check Vercel logs.
       Free tier is fine for an MVP. Hook it into `app/error.tsx` +
@@ -113,7 +121,43 @@ tried v1.
 
 ## Done (just landed — for context)
 
-Quick reference of what's been shipped recently. Full history in `git log`.
+Quick reference of what's been shipped recently. Full history in `git log`
+and [`CHANGELOG.md`](../CHANGELOG.md).
+
+**v2.1 quality-of-life iteration (2026-04-29 → 04-30)**
+- ✅ Orientation block on Book Home — initially shipped as a 4-textarea
+  form with DB columns + Ask-area gate + relevance-AI takeaway injection;
+  same-day simplified to a static cognitive prompt (no input, no DB, no
+  AI). "AI doesn't write here" doesn't imply "user must type here"
+- ✅ PDF title fallback — when `info.Title` metadata is missing, derive
+  from filename (strip `.pdf`, normalize separators, peel trailing
+  `(Author Name)` if it looks like a person)
+- ✅ Outline chapter-source-level picker + front-matter filter — books
+  with Part-Chapter structure (e.g. _Beyond Vibe Coding_'s Part I/II/III)
+  now slice at the right level instead of treating each Part as a single
+  80-page chapter; Cover/Copyright/Index etc. stay in `book.toc` for
+  display but stay out of the chapter rows fed to relevance AI
+- ✅ Upload refactor: 3-phase direct-to-Supabase to bypass Vercel Hobby's
+  ~4.5MB function payload limit. Client → `POST /api/upload/init`
+  (signed URL) → client PUTs to Supabase Storage directly →
+  `POST /api/upload/finalize` (server pulls blob, parses, runs intake
+  AI). Also raised Next.js 16's proxy 10MB cap via
+  `experimental.proxyClientMaxBodySize: '50mb'`
+- ✅ Upload progress UX — per-phase elapsed counter + cycling phase
+  labels matching the server pipeline order (`Reading the book outline
+  → Mapping chapter boundaries → Drafting your starter questions →
+  Almost done`)
+- ✅ AI output language matches source — explicit `LANGUAGE:` rule in
+  every prompt: intake follows book body, relevance follows question,
+  briefer follows chapter content, asker follows highlight passage.
+  Chinese few-shots added to relevance prompt (可能包含 / 讨论了 / 涉及
+  / 介绍了)
+- ✅ Question Result navigation — `← Back to book` upgraded to a card
+  CTA `Ask another question →`; small `← Library` ghost link added
+  above for the quick "switch books entirely" action without unhiding
+  the global Nav (which would crop the PDF viewport)
+- ✅ /library "Last asked: '...'" — most recent question per book
+  rendered on each card
 
 **Functional flow (M1–M3, the v2 redesign foundation)**
 - ✅ v1 → v2 schema migration (drop goals/chapter_maps, add questions /
@@ -156,7 +200,10 @@ Quick reference of what's been shipped recently. Full history in `git log`.
 
 ## Notes for whoever picks this up next
 
-- **CLAUDE.md / AGENTS.md** are the project entry points
+- **CLAUDE.md / AGENTS.md** are the project entry points (CLAUDE.md
+  also has Workflow Conventions including "always update CHANGELOG.md
+  alongside meaningful changes")
+- **`CHANGELOG.md`** = chronological view of features / fixes by version
 - **`docs/vibe-reading.md`** = product spec (philosophy + design rules)
 - **`docs/vibe-reading-implementation.md`** = tech walkthrough by Phase
 - **`docs/ui-design-report.md`** = how the UI is built (tokens, component
