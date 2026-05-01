@@ -56,6 +56,14 @@
 
 **核心选型**：所有 LLM 调用都走 OpenAI `gpt-4o-mini` + JSON schema strict 模式。**没有 vector DB、没有 embeddings、没有 RAG 框架**——只有 `pdfjs` 抽结构 + 4 类 narrow LLM call。详细 prompt 设计在各 Phase 内。
 
+> **i18n 约定**（2026-04-30 patch）：四个 LLM 调用都被显式约束**输出语言跟数据源走**，而不是默认英文。具体规则：
+> - `intake` (§6.3) → overview + 推荐问题 跟 **书的正文**（intro/conclusion）语言走
+> - `relevance` (§8.1) → 章节匹配 reason 跟 **用户提问** 语言走（中文问 → 中文 reason）
+> - `briefer` (§10.1) → 4 段式 brief 跟 **章节内容** 语言走
+> - `asker` (§12.2) → 划词解释跟 **高亮段落** 语言走
+>
+> 每个 prompt 都加了一行 `LANGUAGE:` 规则 + （relevance 还加了"可能包含 / 讨论了 / 涉及 / 介绍了"的中文 few-shot）。原因：prompt 主体 + 示例都是英文，模型默认会把输出对齐到 prompt 语言；不显式 override 就拿不到中文输出，即便给的是中文章节。中英文混排的书按主导语言走。
+
 ---
 
 ## Phase Mapping to STANDARD §11
@@ -297,7 +305,16 @@ export function UploadDropzone() {
 }
 ```
 
-UX 上 dropzone 显示三段不同的 label：`Preparing upload… → Uploading to storage… → Analyzing your book…`，让用户知道大文件传输那段（Phase 2）正在进行而不是卡死。错误时显示真实 HTTP 状态码 + size + 耗时（不再 fallback 到模糊的 "Upload failed"）。
+UX 上 dropzone 显示三段不同的 label：`Preparing upload… → Uploading to storage… → Analyzing your book…`，让用户知道大文件传输那段（Phase 2）正在进行而不是卡死。每个 phase 旁边带一个 `(Ns)` 实时秒计数器（`phaseStartedAt` 入 state，`now` 由 1s `setInterval` 驱动，phase 切换时归零）。**Phase 3 内部** label 还会基于 elapsed 时间继续轮换（顺序对齐服务端 pipeline）：
+
+```
+0–4s   → "Reading the book outline…"
+4–10s  → "Mapping chapter boundaries…"
+10–20s → "Drafting your starter questions…"
+20s+   → "Almost done…"
+```
+
+不是真的服务端事件（finalize 是单次 fetch），但顺序匹配 server 端 outline → chapter slice → intake AI 的实际工作顺序，所以感知和真实节奏对得上。错误时显示真实 HTTP 状态码 + size + 耗时（不再 fallback 到模糊的 "Upload failed"）。
 
 ### 1.3 Session Cookie 工具（`lib/session.ts`）
 
@@ -1426,7 +1443,12 @@ export function QuestionResultScreen({ bookId, ..., matches }: Props) {
 
 渲染 matches 列表。每项：章节编号 + 标题 + AI reason + [Brief] / [Read] 两按钮。支持 `chapter_id === null` 的 book-level 条目（显示为 "📖 Book-level: read intro + conclusion"，点击跳首章）。
 
-头部："← Back to book"（回 `/b/[bookId]`），还有当前 question 文字。
+**头部两行 + question 文字**（2026-04-30 patch）：
+1. 小的灰色 ghost link `← Library`（去 `/library`，低频"换本书"动作）
+2. card-style 主按钮 `Ask another question →`（去 `/b/[bookId]` Book Home，最高频动作）
+3. `YOUR QUESTION` 蓝色 eyebrow + 当前 question 文字
+
+为什么不直接显示 `Nav`：`Nav.tsx` 的 `HIDE_PATTERNS` 故意在 `/b/[id]/q/` 隐藏全站 nav，给分屏 PDF 区域多 56px 高度。把 Library 链接放进 ChapterListPane 头部（左 pane 内）就不挤压右 pane，保留 PDF 视野。
 
 ### 8.5 BriefPane
 
