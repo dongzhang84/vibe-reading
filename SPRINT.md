@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-05-01 01:21 UTC  
+**Generated:** 2026-05-01 01:30 UTC  
 **Showing:** last 2 week(s) of 2 total  
 
 ---
@@ -11,11 +11,11 @@
 |------|-------|
 | Status | ⚠️ Slow |
 | Active days | 3 / 7 |
-| Total commits | 26 |
+| Total commits | 27 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| **11** | ⚪ | **1** | **14** | ⚪ | ⚪ | ⚪ |
+| **11** | ⚪ | **1** | **15** | ⚪ | ⚪ | ⚪ |
 
 **Mon – Monday, Apr 27**
 
@@ -37,6 +37,7 @@
 
 **Thu – Thursday, Apr 30**
 
+- `515aaf0` ux(question-result): add small Library link above the Ask CTA — _dongzhang84_ `2026-04-30 18:30`
 - `d0388cd` i18n(ai): match output language to source content / question — _dongzhang84_ `2026-04-30 18:21`
 - `cb2aaca` ux(upload): elapsed counter + cycling phase labels during analyze — _dongzhang84_ `2026-04-30 18:06`
 - `d180c80` docs: align with 3-phase direct-to-Supabase upload — _dongzhang84_ `2026-04-30 17:07`
