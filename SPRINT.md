@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-05-01 01:41 UTC  
+**Generated:** 2026-05-01 01:45 UTC  
 **Showing:** last 2 week(s) of 2 total  
 
 ---
@@ -11,11 +11,11 @@
 |------|-------|
 | Status | ⚠️ Slow |
 | Active days | 3 / 7 |
-| Total commits | 28 |
+| Total commits | 29 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| **11** | ⚪ | **1** | **16** | ⚪ | ⚪ | ⚪ |
+| **11** | ⚪ | **1** | **17** | ⚪ | ⚪ | ⚪ |
 
 **Mon – Monday, Apr 27**
 
@@ -37,6 +37,7 @@
 
 **Thu – Thursday, Apr 30**
 
+- `cdcc747` docs: add CHANGELOG.md — _dongzhang84_ `2026-04-30 18:44`
 - `dc2d30b` docs: i18n rules + analyzing UX + Library link in chapter pane — _dongzhang84_ `2026-04-30 18:41`
 - `515aaf0` ux(question-result): add small Library link above the Ask CTA — _dongzhang84_ `2026-04-30 18:30`
 - `d0388cd` i18n(ai): match output language to source content / question — _dongzhang84_ `2026-04-30 18:21`
