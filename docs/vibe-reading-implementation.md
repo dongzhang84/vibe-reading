@@ -56,13 +56,15 @@
 
 **核心选型**：所有 LLM 调用都走 OpenAI `gpt-4o-mini` + JSON schema strict 模式。**没有 vector DB、没有 embeddings、没有 RAG 框架**——只有 `pdfjs` 抽结构 + 4 类 narrow LLM call。详细 prompt 设计在各 Phase 内。
 
-> **i18n 约定**（2026-04-30 patch）：四个 LLM 调用都被显式约束**输出语言跟数据源走**，而不是默认英文。具体规则：
+> **i18n 约定**（2026-04-30 + 2026-05-02 patch）：四个 LLM 调用都被显式约束**输出语言跟数据源走**，而不是默认英文。具体规则：
 > - `intake` (§6.3) → overview + 推荐问题 跟 **书的正文**（intro/conclusion）语言走
-> - `relevance` (§8.1) → 章节匹配 reason 跟 **用户提问** 语言走（中文问 → 中文 reason）
+> - `relevance` (§8.1) → 章节匹配 reason 跟 **章节内容（即书的语言）** 走（**2026-05-02 修正**：原来是跟用户提问语言走，但 reason 描述的是章节内容，章节是英文 → reason 也得是英文，跟提问语言无关。中文 few-shot "可能包含 / 讨论了 / 涉及 / 介绍了" 仍保留）
 > - `briefer` (§10.1) → 4 段式 brief 跟 **章节内容** 语言走
 > - `asker` (§12.2) → 划词解释跟 **高亮段落** 语言走
 >
-> 每个 prompt 都加了一行 `LANGUAGE:` 规则 + （relevance 还加了"可能包含 / 讨论了 / 涉及 / 介绍了"的中文 few-shot）。原因：prompt 主体 + 示例都是英文，模型默认会把输出对齐到 prompt 语言；不显式 override 就拿不到中文输出，即便给的是中文章节。中英文混排的书按主导语言走。
+> 每个 prompt 都加了一行 `LANGUAGE:` 规则。原因：prompt 主体 + 示例都是英文，模型默认会把输出对齐到 prompt 语言；不显式 override 就拿不到中文输出，即便给的是中文章节。中英文混排的书按主导语言走。
+>
+> **UI 镜像层**（2026-05-02 加）：Book Home 顶部静态 Orientation 块也跟书的语言走（中文书 → 中文 4 问，英文书 → 英文）。检测在 server component 跑 `pickBookLang()` (`lib/text/lang.ts`)：CJK 字符密度 ≥ 30% 算中文，主要看 `book.overview`（已经是 AI 按书语言生成的可靠信号），fallback 到 title。App-chrome（Library 链接、Ask another CTA、metadata 行）保持英文不动，**只有镜像书内容的 UI 跟书走**。
 
 ---
 
@@ -884,13 +886,15 @@ async function resolvePage(pdf: any, dest: any): Promise<number | null> {
 实际部署后发现两类书 outline 切片会翻车，落地代码 `lib/pdf/outline.ts` 在 flatten 之后多两步处理（本节为代码现状，比上面这版 sketch 更精确）：
 
 **Front-matter 过滤** —— 标题匹配下列模式的 entry 仍保留在 `book.toc`（Book Home 渲染 TOC 用），但**不进 `chapters` 表**（不喂给 relevance AI）：
-`Cover · Title Page · Half Title · Copyright · Dedication · About the Author · Praise · Reviews · Acknowledgments · Bibliography · Glossary · Index · Notes · Colophon · 封面 · 版权 · 致谢 · 索引`。Preface / Foreword / Introduction / Epilogue **保留**——这些经常有真内容（Kuhn 的 Introduction 就是核心论点的延伸）。
+`Cover · Title (单独) · Title Page · Half Title · Copyright · Dedication · About the Author · Praise · Reviews · Acknowledgments · Bibliography · References (单独) · Glossary · Index · Notes (单独) · Colophon · Contents · Table of Contents · List of {tables, figures, illustrations, maps, abbreviations, plates, charts} · 封面 · 版权 · 致谢 · 索引 · 目录 · 参考文献`。Preface / Foreword / Introduction / Epilogue **保留**——这些经常有真内容（Kuhn 的 Introduction 就是核心论点的延伸）。
 
 **Chapter source level picker** —— 默认 level 1 当章节切片层级。但当 ≥60% 的"非 front-matter level-1 entry"匹配 Part divider 模式（`/^Part\s+[IVX\d]+/` 或 `/^第\d+(篇|部)/`）且 level-2 至少 3 条时，**descend 到 level 2**。下沉后非 Part 的 level-1 entry（比如 Preface）也会作为 chapter 一并保留，不丢内容。
 
+**Part divider 永远排除**（2026-05-02 强化）—— 不管 sourceLevel 是 1 还是 2，Part 标题永远不进 chapter rows。原来只在 sourceLevel==2 时排除；当一本书 level-1 混了真章节 + 一两个 Part divider（_The British Industrial Revolution_ 的情况：Chapter 1 + Part II + ...），sourceLevel 不下沉，Part divider 漏过当 chapter 喂给 AI 是个洞。修了。
+
 **Boundary 计算** —— 切片用所有非 front-matter entry 的页码作为 boundary（不只 chosen-level）。一章在下一个 boundary 的前一页结束，所以下沉到 level 2 时一个 chapter 不会意外把下一个 Part divider 页吞进去。
 
-**修这个的真实事件**：_Beyond Vibe Coding_（Addy Osmani）outline 是 `Cover / Preface / Part I. Foundations / [Ch1, Ch2, ...] / Part II / ...`。原代码只取 level-1 → "Part I" 一个 chapter 包含 80+ 页全部 Part 内容 → relevance AI 看每个 Part 都 "likely contains" 任何问题相关内容 → 返回 5 条全选（Part I/II/III + Cover + Preface）。Patch 后切出真正的 Chapter 1/2/3...，front-matter 不再污染候选。
+**修这个的真实事件**：(1) _Beyond Vibe Coding_（Addy Osmani）outline 是 `Cover / Preface / Part I. Foundations / [Ch1, Ch2, ...] / Part II / ...`。原代码只取 level-1 → "Part I" 一个 chapter 包含 80+ 页全部 Part 内容 → relevance AI 看每个 Part 都 "likely contains" 任何问题相关内容 → 返回 5 条全选（Part I/II/III + Cover + Preface）。(2) _The British Industrial Revolution_ 的 outline 把 `Title / Contents / List of tables / List of figures / 1 The Industrial Revolution... / Part II: ... / ...` 全混在 level-1，原 front-matter 黑名单不够全面，加上 Part divider 永远排除的强化条款一起修。
 
 ### 6.2 PDF 全文 + 章节切分（`lib/pdf/parser.ts`）
 
@@ -1752,6 +1756,8 @@ export async function DELETE(_request, { params }) {
   const { id } = await params
   // 验 auth → 验 owner_id 匹配
   // best-effort 删 Storage blob（vr-docs/...）
+  //   ⚠️ 双路径尝试：如果 storage_path 还是 session/...（claim 漏改的
+  //   legacy 数据），同时也 remove user/<owner>/... 重写版
   // 删 books 行 → cascade 自动清掉 chapters / questions /
   //              question_chapters / briefs / restatements
   return NextResponse.json({ ok: true })
@@ -1759,6 +1765,8 @@ export async function DELETE(_request, { params }) {
 ```
 
 Cascade 是 v1 → v2 schema 在 ON DELETE CASCADE 已经布好的（Phase 4A Path B 里），所以这里只删一行 books 就完事。
+
+> **2026-05-02 patch — Storage 孤儿防御**：原代码只用 `book.storage_path` 调一次 `storage.remove()`。bug 在于 `claim.ts` 早期版本如果 move 成功但 `update storage_path` 失败（且 update 的 error 没检查），DB 会留 stale `session/...` path 而文件实际在 `user/...`。后来删除时按 stale path remove，Supabase 对不存在 path **静默返回 success**，文件成永久孤儿。当前 DELETE 在 path 是 `session/...` 时把 `user/<owner>/<uuid>.pdf` 也加进 remove 列表（双路径），claim 也加了 update-error 检查 + 失败回滚 move。运维脚本 `scripts/cleanup-orphan-pdfs.mjs` 可一次性扫并清现存孤儿。详细 root cause 见 CHANGELOG 2026-05-02 (late) 条目。
 
 不做：搜索、标签、筛选、统计、分享。
 
