@@ -202,7 +202,7 @@ Vibe Reading 是一个**反主流**的读书工具。它故意阻止用户做三
 
 v2（4 屏 question-driven）端到端跑通：上传 → 登录 → Book Home → 提问 → Question Result（左 chapter list + 右 Brief / Read 分屏）。已用真书自测过（《程序员修炼之道》第 2 版、Kuhn《科学革命的结构》等）。
 
-UI 已过 v0 redesign + Notion-warm token 系统 + light/dark toggle + PDF 缩放 + 键盘快捷键 + 删书 affordance。Live 在 [vibe-reading-iota.vercel.app](https://vibe-reading-iota.vercel.app/)。
+UI 已过 v0 redesign + Notion-warm token 系统 + light/dark toggle + PDF 缩放 + 键盘快捷键 + 删书 affordance。Live 在 [vibe-reading.dev](https://vibe-reading.dev/)（custom domain 切于 2026-05-02，原 `vibe-reading-iota.vercel.app` 仍可访问）。
 
 **演进史**：
 - 2026-04-21 v1 spec（5 屏 goal-driven）写完

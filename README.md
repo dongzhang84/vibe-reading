@@ -6,7 +6,7 @@
 
 > A reading tool that refuses to summarize the whole book for you — unless you tell it first why you're reading.
 
-🔗 **Live demo**: [vibe-reading-iota.vercel.app](https://vibe-reading-iota.vercel.app/)
+🔗 **Live demo**: [vibe-reading.dev](https://vibe-reading.dev/)
 
 ---
 

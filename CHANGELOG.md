@@ -17,6 +17,20 @@ For day-to-day commit history see `git log`. For deeper "why" context see
 Quality-of-life iteration on the v2 MVP after a real-book test pass turned
 up several rough edges. Driven by dogfooding, not by a roadmap.
 
+### 2026-05-02
+
+#### Changed
+- **Custom domain shipped**: live URL is now `https://vibe-reading.dev`
+  (apex as primary; `www.vibe-reading.dev` 307s to apex). Followed
+  STANDARD §12.B end-to-end — Vercel adds domain → Namecheap Advanced
+  DNS gets Vercel's A + CNAME records → Supabase Auth Site URL +
+  Redirect URLs updated. Code touched zero files: `NEXT_PUBLIC_APP_URL`
+  is referenced only in `.env.local` examples (no actual `process.env`
+  reads in code), and `app/layout.tsx` metadata has no `metadataBase`,
+  so the cutover only required updating live-URL strings in 4 doc files
+  (README en + zh, vibe-reading.md Status, impl-guide §2.5 + §Phase
+  Mapping). Previous `vibe-reading-iota.vercel.app` URL still resolves.
+
 ### 2026-04-30 (late evening)
 
 #### Added
