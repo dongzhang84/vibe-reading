@@ -133,6 +133,14 @@ tried v1.
       stack supports it. Most pages already use `lg:` breakpoint sensibly;
       just need a tighter pass on Question Result split-pane (collapse to
       tabs on `<lg`)
+- [ ] **Periodic orphan-storage cron** — `scripts/cleanup-orphan-pdfs.mjs`
+      currently has to be run by hand. Wire it into the daily cron
+      (`app/api/cron/cleanup/route.ts`) so any storage blob without a
+      matching `books` row gets swept. Belt to the suspenders of the
+      claim/delete fixes shipped 2026-05-02 (those handle the predictable
+      stale-path failure mode; this catches network-blip orphans). Low
+      priority — current orphans are cleaned, fixes block new ones from
+      forming under normal operation
 - [ ] **Inactivity-based PDF retention** — when Free 1 GB starts feeling
       tight (≥ 600 MB used or right before opening to strangers): add a
       cron that, for any book whose `last_activity_at` is > 30 days

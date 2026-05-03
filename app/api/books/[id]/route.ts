@@ -35,10 +35,25 @@ export async function DELETE(
 
   // Best-effort blob removal first. The row delete cascades chapters /
   // questions / question_chapters / briefs / restatements via FK.
+  //
+  // Defensive: if the stored path is `session/...` (= claim's path-rewrite
+  // never landed for this book due to an old bug), the actual file might
+  // already be at `user/<owner_id>/...`. Try both. Supabase Storage's remove
+  // silently no-ops on nonexistent paths, so passing both costs nothing
+  // and rescues legacy-stale paths.
   if (book.storage_path) {
+    const pathsToRemove = [book.storage_path]
+    if (book.storage_path.startsWith('session/')) {
+      pathsToRemove.push(
+        book.storage_path.replace(
+          /^session\/[^/]+\//,
+          `user/${user.id}/`,
+        ),
+      )
+    }
     const { error: storageError } = await db.storage
       .from(STORAGE_BUCKET)
-      .remove([book.storage_path])
+      .remove(pathsToRemove)
     if (storageError) {
       console.error('storage remove failed (non-fatal)', storageError)
     }

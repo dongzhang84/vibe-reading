@@ -19,6 +19,30 @@ up several rough edges. Driven by dogfooding, not by a roadmap.
 
 ### 2026-05-02 (late)
 
+#### Fixed
+- **Storage orphan bug** — UI delete was leaving PDF blobs behind in the
+  `vr-docs` bucket while removing the `books` row, accumulating ~30 MB of
+  invisible storage debt across the project's lifetime (4 orphan files
+  found and cleaned up). Root cause was in `lib/auth/claim.ts`: after
+  `storage.move()` succeeded but the subsequent
+  `update books set storage_path = newPath` failed silently (return value
+  not checked), the DB held a stale `session/...` path while the actual
+  file lived at `user/...`. Later UI delete called `storage.remove()` on
+  the stale path; Supabase's `remove()` returns success on nonexistent
+  paths (no error), so the books row got deleted but the real file at
+  `user/...` was orphaned. Two-line defense:
+  1. `claim.ts` now checks the `update` error and rolls the move back
+     (move file from `user/...` back to `session/...`) so DB and Storage
+     stay in sync.
+  2. `app/api/books/[id]/route.ts` DELETE now passes BOTH the stored
+     path and the rewritten `user/<owner>/...` path to `storage.remove()`
+     when the stored value still starts with `session/...` — rescues any
+     legacy books that were already created stale by the original bug.
+
+  Also added `scripts/cleanup-orphan-pdfs.mjs` (dry-run by default,
+  `--commit` to actually delete) for one-shot cleanups; ran it once with
+  `--commit` to clear the 4 existing orphans (28.89 MB freed).
+
 #### Changed
 - **Orientation block on Book Home now matches the book's language.**
   Chinese book → Chinese prompts ("认识这本书 · 提问之前 / 这本书写的是什么样的

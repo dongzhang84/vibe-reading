@@ -49,7 +49,33 @@ export async function claimSessionBooks({
       console.error('storage move failed', book.id, moveError)
       continue
     }
-    await db.from('books').update({ storage_path: newPath }).eq('id', book.id)
+    // Critical: if this update fails AFTER the file has already been moved,
+    // books.storage_path keeps the stale `session/...` value while the
+    // physical file is at `user/...`. Future deletes would call
+    // storage.remove() on the stale path (silent no-op for nonexistent
+    // files) and orphan the file forever. Detect → roll the move back so
+    // DB and Storage stay in sync.
+    const { error: updateError } = await db
+      .from('books')
+      .update({ storage_path: newPath })
+      .eq('id', book.id)
+    if (updateError) {
+      console.error(
+        'claim: storage_path update failed AFTER move; rolling move back',
+        book.id,
+        updateError,
+      )
+      const { error: rollbackError } = await db.storage
+        .from(STORAGE_BUCKET)
+        .move(newPath, book.storage_path)
+      if (rollbackError) {
+        console.error(
+          'claim: rollback move ALSO failed — orphan possible',
+          book.id,
+          rollbackError,
+        )
+      }
+    }
   }
 
   return { claimed: claimed?.length ?? 0 }
