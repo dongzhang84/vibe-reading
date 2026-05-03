@@ -19,6 +19,17 @@ up several rough edges. Driven by dogfooding, not by a roadmap.
 
 ### 2026-05-02 (late)
 
+#### Changed
+- **Orientation block on Book Home now matches the book's language.**
+  Chinese book → Chinese prompts ("认识这本书 · 提问之前 / 这本书写的是什么样的
+  主题？ / 作者是谁，什么背景？ / 这本书是写给谁的？ / 你希望从这本书获得什么
+  信息？"). English book stays English. Detected via a cheap CJK-density
+  heuristic on `book.overview` (which is AI-generated to match the book's body
+  per the existing i18n rule), with `book.title` as fallback. Helper at
+  `lib/text/lang.ts`. App-chrome strings (Library / Ask another / metadata
+  lines) stay English regardless — only the orientation prompt mirrors the
+  book.
+
 #### Fixed
 - **Relevance reasons now follow the BOOK's language, not the user's question
   language.** Previous design said "Chinese question → Chinese reason" — wrong:

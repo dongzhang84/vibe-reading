@@ -5,6 +5,7 @@ import { BookHomeScreen } from '@/components/BookHomeScreen'
 import { getSessionId } from '@/lib/session'
 import { claimSessionBooks } from '@/lib/auth/claim'
 import type { TocEntry } from '@/lib/pdf/outline'
+import { pickBookLang } from '@/lib/text/lang'
 
 export default async function BookHomePage({
   params,
@@ -55,6 +56,11 @@ export default async function BookHomePage({
     .order('created_at', { ascending: false })
     .limit(20)
 
+  const lang = pickBookLang({
+    overview: book.overview,
+    title: book.title,
+  })
+
   return (
     <BookHomeScreen
       book={{
@@ -65,6 +71,7 @@ export default async function BookHomePage({
         overview: book.overview,
         suggestedQuestions:
           (book.suggested_questions as string[] | null) ?? null,
+        lang,
       }}
       questionHistory={(questions ?? []).map((q) => ({
         id: q.id,

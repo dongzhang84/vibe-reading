@@ -18,6 +18,12 @@ interface BookHomeScreenProps {
     toc: TocEntry[] | null
     overview: string | null
     suggestedQuestions: string[] | null
+    /**
+     * Detected book language — controls the language of UI copy that
+     * mirrors the book itself (e.g. the static Orientation prompt).
+     * Fixed app-chrome strings (Library / Ask another / etc.) stay English.
+     */
+    lang: 'zh' | 'en'
   }
   questionHistory: Array<{
     id: string
@@ -25,6 +31,25 @@ interface BookHomeScreenProps {
     createdAt: string | null
   }>
 }
+
+const ORIENT_COPY = {
+  en: {
+    eyebrow: 'Orient yourself · before you ask',
+    subtitle: 'Read, think, then ask below before you ask other questions.',
+    q1: 'What is this book about?',
+    q2: "Who wrote it, and what's their background?",
+    q3: 'Who is it written for?',
+    q4: 'What do you want to take away from it?',
+  },
+  zh: {
+    eyebrow: '认识这本书 · 提问之前',
+    subtitle: '读这四个问题，自己心里过一遍，再到下方提问。',
+    q1: '这本书写的是什么样的主题？',
+    q2: '作者是谁，什么背景？',
+    q3: '这本书是写给谁的？',
+    q4: '你希望从这本书获得什么信息？',
+  },
+} as const
 
 export function BookHomeScreen({
   book,
@@ -90,22 +115,29 @@ export function BookHomeScreen({
       )}
 
       {/* Orient yourself — Rule 1 cognitive prompt. No input, no AI. The
-          reader thinks through these silently before asking. */}
+          reader thinks through these silently before asking. Copy follows
+          the detected book language so a Chinese book gets Chinese prompts. */}
       <section className="rounded-xl border border-border bg-card p-6">
         <div className="mb-3 flex items-center gap-2">
           <Sparkles className="h-3.5 w-3.5 text-accent" />
-          <h2 className="text-xs font-medium uppercase tracking-wider text-accent">
-            Orient yourself · before you ask
+          <h2
+            className={
+              book.lang === 'en'
+                ? 'text-xs font-medium uppercase tracking-wider text-accent'
+                : 'text-sm font-medium tracking-wider text-accent'
+            }
+          >
+            {ORIENT_COPY[book.lang].eyebrow}
           </h2>
         </div>
         <p className="mb-4 text-sm text-muted-foreground">
-          Read, think, then ask below before you ask other questions.
+          {ORIENT_COPY[book.lang].subtitle}
         </p>
         <ol className="flex flex-col gap-2 text-base leading-relaxed text-foreground/85">
-          <li>① What is this book about?</li>
-          <li>② Who wrote it, and what&apos;s their background?</li>
-          <li>③ Who is it written for?</li>
-          <li>④ What do you want to take away from it?</li>
+          <li>① {ORIENT_COPY[book.lang].q1}</li>
+          <li>② {ORIENT_COPY[book.lang].q2}</li>
+          <li>③ {ORIENT_COPY[book.lang].q3}</li>
+          <li>④ {ORIENT_COPY[book.lang].q4}</li>
         </ol>
       </section>
 
