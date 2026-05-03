@@ -122,9 +122,11 @@ Detailed docs:
 
 ## Status
 
-✅ **MVP shipped** — 2026-04-27. The full question-driven flow is live, including PDF zoom + dark mode + delete-book + 0-match retry. Self-tested on real books.
+✅ **MVP shipped** — 2026-04-27. The full question-driven flow is live, including PDF zoom + dark mode + delete-book + 0-match retry. Self-tested on real books. Live on the custom domain since 2026-05-02.
 
-🚧 **Next**: production hardening (rate limit · error tracking · cost ceiling) before opening to friends. See [todo.md](./docs/todo.md) bucket B.
+✅ **Hardening (partial)** — 2026-04-30. Per-user daily AI rate limits (50 questions / 100 briefs / 200 asks / 5 uploads), per-user storage cap (100 MB / 15 books, sized for Supabase Free), OpenAI dashboard monthly cost ceiling. Sentry + Posthog deferred to right before opening to outside users.
+
+🚧 **Next**: solo-author UAT — read a real book end-to-end through the app and find whatever's left to fix. See [todo.md](./docs/todo.md).
 
 🔮 **Reserved for v1.1**: interactive restate / Feynman check (code preserved in `vr.restatements` + `lib/ai/checker.ts` + `components/RestateScreen.tsx`).
 

@@ -122,9 +122,11 @@ npm run dev
 
 ## 状态
 
-✅ **MVP 已上线** —— 2026-04-27。完整的 question-driven 流程跑通：上传 → 问问题 → 看到匹配章节 → Brief/Read 分屏。包括 PDF 缩放 + dark mode + 删书 + 0-match 重试。已用真书自测过。
+✅ **MVP 已上线** —— 2026-04-27。完整的 question-driven 流程跑通：上传 → 问问题 → 看到匹配章节 → Brief/Read 分屏。包括 PDF 缩放 + dark mode + 删书 + 0-match 重试。已用真书自测过。**自定义域名**于 2026-05-02 切换。
 
-🚧 **下一步**：在放给朋友之前的生产硬化（rate limit · 错误监控 · 成本上限）。详见 [todo.md](./docs/todo.md) bucket B。
+✅ **生产硬化（部分）** —— 2026-04-30。每用户每天 AI 限额（50 questions / 100 briefs / 200 asks / 5 uploads），每用户存储上限（100 MB / 15 books，按 Supabase Free 1 GB 倒推），OpenAI 月度硬上限。Sentry + Posthog 推迟到放给陌生人测试前再做。
+
+🚧 **下一步**：单作者 UAT —— 自己用 vibe-reading 完整读一本真想读的书，发现还剩什么要修。详见 [todo.md](./docs/todo.md)。
 
 🔮 **预留 v1.1**：交互式复述 / 费曼检验。代码 / 表 / API 全部保留（`vr.restatements` + `lib/ai/checker.ts` + `components/RestateScreen.tsx`），UI 入口暂不挂。
 
