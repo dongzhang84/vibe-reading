@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-05-01 15:37 UTC  
+**Generated:** 2026-05-03 01:58 UTC  
 **Showing:** last 2 week(s) of 2 total  
 
 ---
@@ -9,13 +9,13 @@
 
 | Stat | Value |
 |------|-------|
-| Status | ⚠️ Slow |
-| Active days | 4 / 7 |
-| Total commits | 35 |
+| Status | ✅ Good |
+| Active days | 5 / 7 |
+| Total commits | 36 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| **11** | ⚪ | **1** | **22** | **1** | ⚪ | ⚪ |
+| **11** | ⚪ | **1** | **22** | **1** | **1** | ⚪ |
 
 **Mon – Monday, Apr 27**
 
@@ -63,6 +63,10 @@
 **Fri – Friday, May 1**
 
 - `fc9ba8a` docs(todo): park inactivity-based PDF retention in C bucket — _dongzhang84_ `2026-05-01 08:37`
+
+**Sat – Saturday, May 2**
+
+- `a2c97db` chore: cut over to vibe-reading.dev custom domain — _dongzhang84_ `2026-05-02 18:58`
 
 ---
 
