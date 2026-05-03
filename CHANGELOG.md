@@ -34,14 +34,20 @@ up several rough edges. Driven by dogfooding, not by a roadmap.
   rate-limit / Sentry / cost ceiling" line, replaced with "Hardening
   (partial)" recap of v2.2/v2.3 + new "Next: solo-author UAT" framing.
 
-#### Known cosmetic quirk
-- Vercel dashboard's deployment thumbnail for this project shows a
-  cached 403 page even after domain primary was flipped from www to
-  apex. Live site (apex 200, www 307→apex) is fully correct via curl;
-  the thumbnail just doesn't regenerate. Deployment Protection setting
-  was tweaked, but no observable effect on the dashboard image. Pure
-  cosmetic — doesn't affect users, SEO, or the actual deploy. Probably
-  a Vercel-side cache issue specific to this project. Skipped.
+#### Pitfalls hit during cutover (worth noting for future indie projects)
+- **Vercel "Add Domain" defaulted www to Production**, not apex —
+  even though the form takes the bare apex string, the resulting
+  config had `www.vibe-reading.dev` set as the primary and apex 307'd
+  to www. Had to manually flip in Settings → Domains → Edit (apex
+  set to "Connect to environment: Production"; www set to "Redirect
+  to Another Domain → vibe-reading.dev"). Once flipped, list mirrors
+  what other projects (e.g. beprofitly.com) look like.
+- **Vercel dashboard's deployment thumbnail for this project shows a
+  cached 403 page** even after the primary flip + a fresh deploy.
+  Live site (apex 200, www 307→apex) is fully correct via curl; the
+  thumbnail just doesn't regenerate. Deployment Protection setting
+  was tweaked, no observable effect on the dashboard image. Pure
+  cosmetic — doesn't affect users, SEO, or actual deploys. Skipped.
 
 ### 2026-04-30 (late evening)
 
