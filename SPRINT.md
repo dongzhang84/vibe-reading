@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-05-03 07:01 UTC  
+**Generated:** 2026-05-03 07:08 UTC  
 **Showing:** last 2 week(s) of 2 total  
 
 ---
@@ -11,11 +11,11 @@
 |------|-------|
 | Status | ✅ Good |
 | Active days | 6 / 7 |
-| Total commits | 47 |
+| Total commits | 48 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| **11** | ⚪ | **1** | **22** | **1** | **10** | **2** |
+| **11** | ⚪ | **1** | **22** | **1** | **10** | **3** |
 
 **Mon – Monday, Apr 27**
 
@@ -79,6 +79,7 @@
 
 **Sun – Sunday, May 3**
 
+- `0471c89` docs: end-of-day wrap for 2026-05-02 — capture today's parser/i18n/storage fixes — _dongzhang84_ `2026-05-03 00:08`
 - `f11f34d` fix(storage): the actual code changes (claim path-update + delete dual-path) — _dongzhang84_ `2026-05-03 00:01`
 - `14579e0` fix(storage): UI delete now actually removes PDF blob from Storage — _dongzhang84_ `2026-05-03 00:01`
 
