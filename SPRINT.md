@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-05-03 02:03 UTC  
+**Generated:** 2026-05-03 02:08 UTC  
 **Showing:** last 2 week(s) of 2 total  
 
 ---
@@ -11,11 +11,11 @@
 |------|-------|
 | Status | ✅ Good |
 | Active days | 5 / 7 |
-| Total commits | 37 |
+| Total commits | 38 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| **11** | ⚪ | **1** | **22** | **1** | **2** | ⚪ |
+| **11** | ⚪ | **1** | **22** | **1** | **3** | ⚪ |
 
 **Mon – Monday, Apr 27**
 
@@ -66,6 +66,7 @@
 
 **Sat – Saturday, May 2**
 
+- `a4c0253` docs(readme): refresh Status — custom domain live + v2.2/v2.3 hardening — _dongzhang84_ `2026-05-02 19:08`
 - `f981d5d` trigger redeploy — _dongzhang84_ `2026-05-02 19:02`
 - `a2c97db` chore: cut over to vibe-reading.dev custom domain — _dongzhang84_ `2026-05-02 18:58`
 
