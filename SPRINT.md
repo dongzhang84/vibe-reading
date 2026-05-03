@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-05-03 06:10 UTC  
+**Generated:** 2026-05-03 06:22 UTC  
 **Showing:** last 2 week(s) of 2 total  
 
 ---
@@ -11,11 +11,11 @@
 |------|-------|
 | Status | ✅ Good |
 | Active days | 5 / 7 |
-| Total commits | 42 |
+| Total commits | 43 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| **11** | ⚪ | **1** | **22** | **1** | **7** | ⚪ |
+| **11** | ⚪ | **1** | **22** | **1** | **8** | ⚪ |
 
 **Mon – Monday, Apr 27**
 
@@ -66,6 +66,7 @@
 
 **Sat – Saturday, May 2**
 
+- `d877cb7` fix(parser+relevance): follow book language; broaden front-matter filter — _dongzhang84_ `2026-05-02 23:21`
 - `7e52d13` twitter-launch: 还原原版 + 把润色版作为参考附在下面 — _dongzhang84_ `2026-05-02 23:09`
 - `d6ef12a` twitter-launch: 润色 — _dongzhang84_ `2026-05-02 23:08`
 - `990212d` docs: capture two Custom Domain pitfalls hit during the 2026-05-02 cutover — _dongzhang84_ `2026-05-02 19:53`
