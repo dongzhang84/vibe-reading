@@ -11,11 +11,11 @@
 |------|-------|
 | Status | ✅ Good |
 | Active days | 6 / 7 |
-| Total commits | 46 |
+| Total commits | 47 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| **11** | ⚪ | **1** | **22** | **1** | **10** | **1** |
+| **11** | ⚪ | **1** | **22** | **1** | **10** | **2** |
 
 **Mon – Monday, Apr 27**
 
@@ -79,6 +79,7 @@
 
 **Sun – Sunday, May 3**
 
+- `f11f34d` fix(storage): the actual code changes (claim path-update + delete dual-path) — _dongzhang84_ `2026-05-03 00:01`
 - `14579e0` fix(storage): UI delete now actually removes PDF blob from Storage — _dongzhang84_ `2026-05-03 00:01`
 
 ---
