@@ -115,10 +115,13 @@ GOOD reasons (Chinese — equivalent phrasings):
 - "涉及章末区分 X 与 Y 的部分"
 - "介绍了..."
 
-LANGUAGE: write each \`reason\` in the SAME LANGUAGE as the QUESTION above.
-Chinese question → Chinese reason. English question → English reason. Use the
-natural equivalent of "likely contains / discusses / covers / introduces" in
-that language.
+LANGUAGE: write each \`reason\` in the SAME LANGUAGE as the CHAPTERS above
+(the language the book itself is written in). The reason describes what's IN
+the chapter, so it must follow the chapter's language regardless of what
+language the user used to ask. English book → English reasons even if the
+question is in Chinese. Chinese book → Chinese reasons even if the question
+is in English. Use the natural equivalent of "likely contains / discusses /
+covers / introduces" in the book's language.
 
 Return ONLY valid JSON matching the schema.`
 

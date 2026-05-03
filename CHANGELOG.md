@@ -17,6 +17,29 @@ For day-to-day commit history see `git log`. For deeper "why" context see
 Quality-of-life iteration on the v2 MVP after a real-book test pass turned
 up several rough edges. Driven by dogfooding, not by a roadmap.
 
+### 2026-05-02 (late)
+
+#### Fixed
+- **Relevance reasons now follow the BOOK's language, not the user's question
+  language.** Previous design said "Chinese question → Chinese reason" — wrong:
+  the reason describes the chapter's content, so it should match the chapter's
+  language. English book + Chinese question used to produce mismatched Chinese
+  reasons over English chapters; now produces English reasons (matches what
+  you'd actually read in the chapter).
+- **Front-matter / Part-divider filter expanded**. Previous filter missed
+  several common TOC entries that were leaking into the chapter list and
+  getting fed to relevance AI:
+  - "Title" alone (without "page"), "Contents" / "Table of Contents",
+    "List of tables" / "figures" / "illustrations" / "maps" / "abbreviations" /
+    "plates" / "charts", "References" alone — all now treated as front-matter
+    and kept in `book.toc` for display but excluded from chapter rows
+  - Chinese front-matter list extended: "目录", "参考文献"
+  - Part dividers (`Part I/II/III`, `第N篇/部`) are now excluded from chapter
+    rows **regardless of source level**. Before: only excluded when descending
+    to level 2; if a book had a single Part divider mixed with real chapters
+    at level 1 (rare but observed in _The British Industrial Revolution_),
+    the Part divider would slip through as a giant chapter blob. Fixed.
+
 ### 2026-05-02
 
 #### Changed

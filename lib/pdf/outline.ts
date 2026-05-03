@@ -25,7 +25,7 @@ const MIN_TOP_CHAPTERS = 2
 
 const FRONT_MATTER_PATTERNS: readonly RegExp[] = [
   /^cover\b/i,
-  /^title\s+page\b/i,
+  /^title(?:\s+page)?\s*$/i,
   /^half[-\s]+title\b/i,
   /^copyright\b/i,
   /^dedication\b/i,
@@ -34,14 +34,20 @@ const FRONT_MATTER_PATTERNS: readonly RegExp[] = [
   /^reviews?\b/i,
   /^acknowledg(?:e)?ments?\b/i,
   /^bibliography\b/i,
+  /^references?\s*$/i,
   /^glossary\b/i,
   /^index\b/i,
   /^notes?\s*$/i,
   /^colophon\b/i,
+  /^contents\b/i,
+  /^table\s+of\s+contents/i,
+  /^list\s+of\s+(tables|figures|illustrations|maps|abbreviations|plates|charts)\b/i,
   /^封面/,
   /^版权/,
   /^致谢/,
   /^索引/,
+  /^目录/,
+  /^参考文献/,
 ]
 
 const PART_DIVIDER_PATTERNS: readonly RegExp[] = [
@@ -119,14 +125,15 @@ export async function extractOutlineAndChapters(
 
     const sourceLevel = pickChapterSourceLevel(flat)
 
-    // Chapter sources. When descending to level 2, also keep non-Part
-    // level-1 entries (e.g. "Preface", "Introduction") as chapters so their
-    // content isn't lost.
+    // Chapter sources. Always exclude front-matter and Part dividers (the
+    // latter regardless of sourceLevel — they're never real content). When
+    // descending to level 2 we still keep non-Part level-1 entries (e.g.
+    // "Preface", "Introduction") so their content isn't lost.
     const sources = flat.filter((e) => {
       if (isFrontMatter(e.title)) return false
+      if (isPartDivider(e.title)) return false
       if (sourceLevel === 1) return e.level === 1
-      if (e.level === 1) return !isPartDivider(e.title)
-      return e.level === 2
+      return e.level === 1 || e.level === 2
     })
     if (sources.length < MIN_TOP_CHAPTERS) return null
 
