@@ -1867,8 +1867,8 @@ CRON_SECRET=
 —— Build 阶段以上结束。下面是 Post-MVP（按 STANDARD §12 顺序）——
 
 □ §12.A UAT（创始人 dogfood）：自己读完 1 本真书；不通过 → 回 Phase 6-N 改业务
-□ §12.B Custom Domain：UAT 通过 + brand 定型后；走 STANDARD §12.B
-□ §12.C Scale-up：开放陌生人前；rate limit / Sentry / cost cap / Posthog / storage audit
+■ §12.B Custom Domain：✅ 完成 2026-05-02 —— `vibe-reading.dev`（apex 主 / www 307）
+□ §12.C Scale-up：开放陌生人前剩 Sentry + Posthog（rate limit / storage cap / OpenAI cost ceiling 已于 2026-04-30 完成）
 □ §12.D Stripe：仅当决定收费时；走 STANDARD §6 Stripe 模块
 ```
 

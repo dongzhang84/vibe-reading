@@ -30,6 +30,18 @@ up several rough edges. Driven by dogfooding, not by a roadmap.
   so the cutover only required updating live-URL strings in 4 doc files
   (README en + zh, vibe-reading.md Status, impl-guide §2.5 + §Phase
   Mapping). Previous `vibe-reading-iota.vercel.app` URL still resolves.
+- README Status sections (en + zh) refreshed: removed obsolete "Next:
+  rate-limit / Sentry / cost ceiling" line, replaced with "Hardening
+  (partial)" recap of v2.2/v2.3 + new "Next: solo-author UAT" framing.
+
+#### Known cosmetic quirk
+- Vercel dashboard's deployment thumbnail for this project shows a
+  cached 403 page even after domain primary was flipped from www to
+  apex. Live site (apex 200, www 307→apex) is fully correct via curl;
+  the thumbnail just doesn't regenerate. Deployment Protection setting
+  was tweaked, but no observable effect on the dashboard image. Pure
+  cosmetic — doesn't affect users, SEO, or the actual deploy. Probably
+  a Vercel-side cache issue specific to this project. Skipped.
 
 ### 2026-04-30 (late evening)
 
