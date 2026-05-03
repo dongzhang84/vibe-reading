@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-05-03 06:26 UTC  
+**Generated:** 2026-05-03 07:01 UTC  
 **Showing:** last 2 week(s) of 2 total  
 
 ---
@@ -10,12 +10,12 @@
 | Stat | Value |
 |------|-------|
 | Status | ✅ Good |
-| Active days | 5 / 7 |
-| Total commits | 45 |
+| Active days | 6 / 7 |
+| Total commits | 46 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| **11** | ⚪ | **1** | **22** | **1** | **10** | ⚪ |
+| **11** | ⚪ | **1** | **22** | **1** | **10** | **1** |
 
 **Mon – Monday, Apr 27**
 
@@ -76,6 +76,10 @@
 - `a4c0253` docs(readme): refresh Status — custom domain live + v2.2/v2.3 hardening — _dongzhang84_ `2026-05-02 19:08`
 - `f981d5d` trigger redeploy — _dongzhang84_ `2026-05-02 19:02`
 - `a2c97db` chore: cut over to vibe-reading.dev custom domain — _dongzhang84_ `2026-05-02 18:58`
+
+**Sun – Sunday, May 3**
+
+- `14579e0` fix(storage): UI delete now actually removes PDF blob from Storage — _dongzhang84_ `2026-05-03 00:01`
 
 ---
 
