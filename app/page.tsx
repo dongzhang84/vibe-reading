@@ -1,5 +1,5 @@
 import { BookOpen, Brain, Sparkles, Target } from 'lucide-react'
-import { UploadDropzone } from '@/components/UploadDropzone'
+import { UploadDropzone } from '@/components/LazyUploadDropzone'
 import { UploadCtaButton } from '@/components/UploadCtaButton'
 
 export default function Home() {
