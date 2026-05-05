@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-05-05 01:13 UTC  
+**Generated:** 2026-05-05 06:28 UTC  
 **Showing:** last 3 week(s) of 3 total  
 
 ---
@@ -11,14 +11,15 @@
 |------|-------|
 | Status | ❌ Stalled |
 | Active days | 1 / 7 |
-| Total commits | 1 |
+| Total commits | 2 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| **1** | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |
+| **2** | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |
 
 **Mon – Monday, May 4**
 
+- `9aaa9f2` perf(landing): lazy-load UploadDropzone to slim initial JS — _dongzhang84_ `2026-05-04 23:28`
 - `d1c4efe` chore: untrack /marketing/, gitignore it (local-only drafts) — _dongzhang84_ `2026-05-04 18:13`
 
 ---
