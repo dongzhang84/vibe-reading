@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { BookOpen } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 import { ThemeToggle } from './ThemeToggle'
 
 interface NavUser {
@@ -73,6 +72,9 @@ export function Nav({ user }: Props) {
 
 function SignOutButton() {
   async function handleSignOut() {
+    // Lazy-import the supabase client so the ~150 KB SDK doesn't land in
+    // every page's initial bundle just to power one rarely-clicked button.
+    const { createClient } = await import('@/lib/supabase/client')
     const supabase = createClient()
     await supabase.auth.signOut()
     window.location.href = '/'
