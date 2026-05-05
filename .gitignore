@@ -43,3 +43,6 @@ yarn-error.log*
 Thumbs.db
 coverage/
 ui_design/
+
+# personal marketing copy / drafts — local only
+/marketing/
