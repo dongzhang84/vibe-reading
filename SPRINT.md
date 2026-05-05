@@ -1,11 +1,29 @@
 # Sprint Report
 
-**Generated:** 2026-05-03 07:08 UTC  
-**Showing:** last 2 week(s) of 2 total  
+**Generated:** 2026-05-05 01:13 UTC  
+**Showing:** last 3 week(s) of 3 total  
 
 ---
 
-## Week 2 _(current)_ · 2026-04-27 to 2026-05-03
+## Week 3 _(current)_ · 2026-05-04 to 2026-05-10
+
+| Stat | Value |
+|------|-------|
+| Status | ❌ Stalled |
+| Active days | 1 / 7 |
+| Total commits | 1 |
+
+| Mon | Tue | Wed | Thu | Fri | Sat | Sun |
+|---|---|---|---|---|---|---|
+| **1** | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |
+
+**Mon – Monday, May 4**
+
+- `d1c4efe` chore: untrack /marketing/, gitignore it (local-only drafts) — _dongzhang84_ `2026-05-04 18:13`
+
+---
+
+## Week 2 · 2026-04-27 to 2026-05-03
 
 | Stat | Value |
 |------|-------|
