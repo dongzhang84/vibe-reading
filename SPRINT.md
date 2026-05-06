@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-05-05 06:32 UTC  
+**Generated:** 2026-05-06 18:29 UTC  
 **Showing:** last 3 week(s) of 3 total  
 
 ---
@@ -10,18 +10,22 @@
 | Stat | Value |
 |------|-------|
 | Status | ❌ Stalled |
-| Active days | 1 / 7 |
-| Total commits | 3 |
+| Active days | 2 / 7 |
+| Total commits | 4 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| **3** | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |
+| **3** | ⚪ | **1** | ⚪ | ⚪ | ⚪ | ⚪ |
 
 **Mon – Monday, May 4**
 
 - `2e3abdd` perf(nav): lazy-import supabase client inside SignOut handler — _dongzhang84_ `2026-05-04 23:31`
 - `9aaa9f2` perf(landing): lazy-load UploadDropzone to slim initial JS — _dongzhang84_ `2026-05-04 23:28`
 - `d1c4efe` chore: untrack /marketing/, gitignore it (local-only drafts) — _dongzhang84_ `2026-05-04 18:13`
+
+**Wed – Wednesday, May 6**
+
+- `ea71045` perf(landing): make / statically prerendered (kill cold-start TTFB) — _dongzhang84_ `2026-05-06 11:29`
 
 ---
 
