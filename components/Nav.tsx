@@ -2,16 +2,14 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import { BookOpen } from 'lucide-react'
 import { ThemeToggle } from './ThemeToggle'
 
-interface NavUser {
-  email: string | null
-}
-
-interface Props {
-  user: NavUser | null
-}
+type AuthState =
+  | { kind: 'loading' }
+  | { kind: 'anon' }
+  | { kind: 'user'; email: string | null }
 
 // Routes where the nav would compete with the page content. Question Result
 // uses the full screen for the split pane; auth pages own their own flow.
@@ -20,8 +18,33 @@ const HIDE_PATTERNS: RegExp[] = [
   /^\/auth\//,
 ]
 
-export function Nav({ user }: Props) {
+export function Nav() {
   const pathname = usePathname()
+
+  // Auth state fetched client-side via /api/me. Keeping auth out of the
+  // root layout lets the layout stay sync, which lets landing prerender
+  // statically (CDN cache hit, no Vercel function cold start).
+  const [auth, setAuth] = useState<AuthState>({ kind: 'loading' })
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/me', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : { email: null }))
+      .then((data: { email: string | null }) => {
+        if (cancelled) return
+        setAuth(
+          data.email !== null
+            ? { kind: 'user', email: data.email }
+            : { kind: 'anon' },
+        )
+      })
+      .catch(() => {
+        if (!cancelled) setAuth({ kind: 'anon' })
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   if (HIDE_PATTERNS.some((re) => re.test(pathname ?? ''))) return null
 
   const nextParam = pathname && pathname !== '/'
@@ -37,7 +60,11 @@ export function Nav({ user }: Props) {
         </Link>
 
         <nav className="flex items-center gap-2 text-sm">
-          {user ? (
+          {auth.kind === 'loading' ? (
+            // Reserve roughly the same width as the rendered buttons so
+            // there's no layout shift when auth state arrives.
+            <div className="h-8 w-32" aria-hidden />
+          ) : auth.kind === 'user' ? (
             <>
               <Link
                 href="/library"

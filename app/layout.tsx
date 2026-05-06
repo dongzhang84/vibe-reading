@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
 import { Nav } from '@/components/Nav'
-import { createServerSupabaseClient } from '@/lib/supabase/server'
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -32,18 +31,19 @@ export const metadata: Metadata = {
   },
 }
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  // Pull auth state once at the layout level so every page's nav is correct
-  // on first paint. Nav itself decides whether to render based on pathname.
-  const supabase = await createServerSupabaseClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
+  // NOTE: this layout is intentionally **synchronous** — it does NOT call
+  // supabase.auth.getUser() or any other dynamic API. Reading cookies in
+  // the root layout would force every route (including landing) to be
+  // dynamic-rendered on every request, killing CDN caching and leaving
+  // landing exposed to cold-start latency.
+  //
+  // Auth state is fetched client-side by Nav via /api/me — see
+  // components/Nav.tsx + app/api/me/route.ts.
   return (
     <html
       lang="en"
@@ -62,7 +62,7 @@ export default async function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col font-sans">
-        <Nav user={user ? { email: user.email ?? null } : null} />
+        <Nav />
         {children}
       </body>
     </html>
