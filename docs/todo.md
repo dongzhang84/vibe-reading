@@ -3,16 +3,17 @@
 > Living list of things not yet done. Three buckets, ordered roughly by
 > "ship-blocker → polish → new edge".
 >
-> Recommended sequence: B is **mostly done** — rate-limit, storage cap,
-> and OpenAI cost ceiling all shipped 2026-04-30. The two remaining B
-> items (Sentry, Posthog) are deferred to right before §12.C friends
-> test, since solo dogfood doesn't need remote-error or funnel
-> visibility. **Current focus: §12.A UAT solo dogfood** — creator
-> reads a real book through the app and finds whatever's left to fix.
-> A bucket is empty; C bucket is post-friend-test territory.
+> Recommended sequence: B's hardening (rate-limit, storage cap, OpenAI
+> cost ceiling) shipped 2026-04-30. **Current focus: B's remaining two
+> items — Sentry + Posthog — now that real users are here.** The Twitter
+> launch on 2026-05-09 brought ~33 users in 24h; cold reach-out went out
+> the same day. From here onward, dogfood is over and we're optimizing
+> against actual user behavior. Sentry first (so user-reported bugs come
+> with stack traces); Posthog when there's enough traffic to draw funnel
+> conclusions.
 >
-> Last updated: 2026-04-30 (post v2.2/v2.3 hardening — daily AI rate
-> limits, per-user 100 MB / 15 books storage cap, OpenAI cost ceiling).
+> Last updated: 2026-05-09 (post landing perf + NUL-byte chapter fix +
+> first-user wave + cold reach-out tooling open-sourced).
 
 ---
 
@@ -159,6 +160,36 @@ tried v1.
 
 Quick reference of what's been shipped recently. Full history in `git log`
 and [`CHANGELOG.md`](../CHANGELOG.md).
+
+**Launch + early-user wave (2026-05-09)**
+- ✅ Twitter launch post; ~33 new users / 38 books in first 24h
+- ✅ Cold reach-out tooling open-sourced — `scripts/draft-cold-emails.mjs`
+  + `scripts/send-cold-emails.mjs` + `marketing/templates/` + selective
+  `.gitignore` so user PII stays local but tools + templates ship with
+  the repo
+- ✅ Sent personalized cold reach-out (33 emails, two Chinese templates
+  for uploaded vs signed-up-no-upload tiers)
+
+**Landing performance round (2026-05-04 → 05-06)**
+- ✅ Lazy-load `UploadDropzone` + lazy-import supabase in `Nav` —
+  initial JS 850 KB → 627 KB (-26%)
+- ✅ Make `/` statically prerendered: `app/layout.tsx` no longer reads
+  cookies; `Nav` fetches `/api/me` client-side. TTFB 800-1000ms cold /
+  220ms warm → 120-155ms globally consistent (CDN HIT, no function
+  invocation)
+
+**Bug fixes (2026-05-02 → 05-08)**
+- ✅ Storage orphan bug — claim path-update error checked + roll back
+  move; DELETE tries dual paths (session + user); cleanup-orphans
+  script
+- ✅ NUL-byte chapter insert fix — `stripNul()` at parser/outline source
+  + defensive belt at finalize, kills Postgres `22P05` for PDFs with
+  embedded font subsets
+- ✅ Custom domain `vibe-reading.dev` (apex primary, www 307 to apex)
+- ✅ Orientation block matches book language (Chinese/English)
+- ✅ Relevance reasons match book language (not question language)
+- ✅ Outline parser: front-matter filter expanded; Part divider always
+  excluded
 
 **v2.2 / v2.3 hardening — partial (2026-04-30)**
 - ✅ Per-user daily rate limits on every AI-spend endpoint
