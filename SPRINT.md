@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-05-09 18:33 UTC  
+**Generated:** 2026-05-09 18:39 UTC  
 **Showing:** last 3 week(s) of 3 total  
 
 ---
@@ -11,11 +11,11 @@
 |------|-------|
 | Status | ⚠️ Slow |
 | Active days | 4 / 7 |
-| Total commits | 10 |
+| Total commits | 11 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| **3** | ⚪ | **1** | ⚪ | **1** | **5** | ⚪ |
+| **3** | ⚪ | **1** | ⚪ | **1** | **6** | ⚪ |
 
 **Mon – Monday, May 4**
 
@@ -33,6 +33,7 @@
 
 **Sat – Saturday, May 9**
 
+- `1511b25` docs: add landing-page screenshot to README (en + zh) — _dongzhang84_ `2026-05-09 11:38`
 - `1fae0df` docs: EPUB support plan as next-iteration main focus — _dongzhang84_ `2026-05-09 11:33`
 - `6dfae9a` chore: ignore per-user reply drafts under /marketing/reply-*.txt — _dongzhang84_ `2026-05-09 11:33`
 - `35d956d` fix(pdf): drop shadow-library watermark "chapters" + friendly 422 for scan-only PDFs — _dongzhang84_ `2026-05-09 10:50`
