@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-05-06 18:29 UTC  
+**Generated:** 2026-05-09 04:17 UTC  
 **Showing:** last 3 week(s) of 3 total  
 
 ---
@@ -9,13 +9,13 @@
 
 | Stat | Value |
 |------|-------|
-| Status | ❌ Stalled |
-| Active days | 2 / 7 |
-| Total commits | 4 |
+| Status | ⚠️ Slow |
+| Active days | 3 / 7 |
+| Total commits | 5 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| **3** | ⚪ | **1** | ⚪ | ⚪ | ⚪ | ⚪ |
+| **3** | ⚪ | **1** | ⚪ | **1** | ⚪ | ⚪ |
 
 **Mon – Monday, May 4**
 
@@ -26,6 +26,10 @@
 **Wed – Wednesday, May 6**
 
 - `ea71045` perf(landing): make / statically prerendered (kill cold-start TTFB) — _dongzhang84_ `2026-05-06 11:29`
+
+**Fri – Friday, May 8**
+
+- `2542d23` fix(pdf): strip NUL bytes before Postgres inserts (22P05 errors) — _dongzhang84_ `2026-05-08 21:17`
 
 ---
 
