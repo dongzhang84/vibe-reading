@@ -3,17 +3,19 @@
 > Living list of things not yet done. Three buckets, ordered roughly by
 > "ship-blocker → polish → new edge".
 >
-> Recommended sequence: B's hardening (rate-limit, storage cap, OpenAI
-> cost ceiling) shipped 2026-04-30. **Current focus: B's remaining two
-> items — Sentry + Posthog — now that real users are here.** The Twitter
-> launch on 2026-05-09 brought ~33 users in 24h; cold reach-out went out
-> the same day. From here onward, dogfood is over and we're optimizing
-> against actual user behavior. Sentry first (so user-reported bugs come
-> with stack traces); Posthog when there's enough traffic to draw funnel
-> conclusions.
+> **Current focus (2026-05-10): EPUB format support.** First-user wave
+> on 2026-05-09 surfaced enough demand for EPUB (programming books and
+> Chinese novels are EPUB-native; PDF's parsing pain — font NULs, scan-
+> only pages, shadow-library watermark covers — mostly evaporates in
+> EPUB) that this jumped ahead of the Sentry / Posthog hardening.
+> Detailed plan: [`docs/epub-support.md`](./epub-support.md). Estimated
+> 2–3 working days end-to-end.
 >
-> Last updated: 2026-05-09 (post landing perf + NUL-byte chapter fix +
-> first-user wave + cold reach-out tooling open-sourced).
+> After EPUB ships: Sentry + Posthog (§12.C, the remaining two items in
+> bucket B). Sentry first (user-reported bugs come with stack traces);
+> Posthog when there's enough traffic to draw funnel conclusions.
+>
+> Last updated: 2026-05-10 (post Frankie bug fix → EPUB plan locked).
 
 ---
 
@@ -118,10 +120,14 @@ tried v1.
       question, (b) skip Brief / Read, (c) treat the AI summary as the
       answer instead of triggering compression. Iterate based on
       what's actually broken — don't pre-build for hypotheses
-- [ ] **EPUB / non-PDF support** — programmer books often EPUB; `unpdf`
-      can't read them. Need `epub2` or `epubjs` parser, new
-      `lib/epub/outline.ts`. Storage path / book row schema can stay the
-      same; just fan out by file type at upload time
+- [ ] **EPUB / non-PDF support** — **CURRENT FOCUS.** First-user wave
+      surfaced this as the highest-return next step. Detailed plan in
+      [`docs/epub-support.md`](./epub-support.md): `jszip` + manual
+      OPF/NAV parsing (no heavy SDK), reuse PDF's intake/relevance/brief
+      pipeline by adapting EPUB output to the same chapter shape, render
+      chapter HTML in Read pane (skip full epub.js reader for v1). Adds
+      `vr.books.format` + `vr.chapters.content_html` columns. Estimated
+      2–3 working days.
 - [ ] **Share / export Question Result** — turn a great Q+chapter map into
       a public read-only URL or markdown export. Potential viral surface
 - [ ] **`/library` cross-book question history** — global "Your questions
