@@ -44,6 +44,12 @@ Thumbs.db
 coverage/
 ui_design/
 
+# images — selective. Local working folder for screenshots / mockups.
+# Only the specific images referenced from README ship with the repo
+# (so they actually render on GitHub).
+/images/*
+!/images/landing_page_1.png
+
 # marketing — selective. Templates + README go in repo (useful to other
 # indie founders). Per-user data and personal drafts stay local-only.
 /marketing/sent-emails.json
