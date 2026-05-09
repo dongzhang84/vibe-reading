@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-05-09 04:17 UTC  
+**Generated:** 2026-05-09 09:18 UTC  
 **Showing:** last 3 week(s) of 3 total  
 
 ---
@@ -10,12 +10,12 @@
 | Stat | Value |
 |------|-------|
 | Status | ⚠️ Slow |
-| Active days | 3 / 7 |
-| Total commits | 5 |
+| Active days | 4 / 7 |
+| Total commits | 6 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| **3** | ⚪ | **1** | ⚪ | **1** | ⚪ | ⚪ |
+| **3** | ⚪ | **1** | ⚪ | **1** | **1** | ⚪ |
 
 **Mon – Monday, May 4**
 
@@ -30,6 +30,10 @@
 **Fri – Friday, May 8**
 
 - `2542d23` fix(pdf): strip NUL bytes before Postgres inserts (22P05 errors) — _dongzhang84_ `2026-05-08 21:17`
+
+**Sat – Saturday, May 9**
+
+- `4128d83` docs+tools: open-source the cold reach-out + ops scripts — _dongzhang84_ `2026-05-09 02:18`
 
 ---
 
