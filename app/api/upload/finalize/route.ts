@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getOrCreateSessionId } from '@/lib/session'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { parsePdf, splitIntoChapters } from '@/lib/pdf/parser'
+import { parsePdf, splitIntoChapters, stripNul } from '@/lib/pdf/parser'
 import {
   extractOutlineAndChapters,
   type OutlineResult,
@@ -177,17 +177,22 @@ export async function POST(request: Request) {
     )
   }
 
-  const { error: chaptersError } = await db.from('chapters').insert(
-    chapters.map((c) => ({
-      book_id: book.id,
-      seq: c.seq,
-      title: c.title,
-      content: c.content,
-      level: c.level,
-      page_start: c.pageStart,
-      page_end: c.pageEnd,
-    })),
-  )
+  // Belt-and-suspenders: parser.ts and outline.ts already strip NUL bytes
+  // at the source, but if a future code path (regex fallback edge case,
+  // EPUB parser, etc.) ever feeds raw bytes here, we don't want chapters
+  // to silently fail and orphan the book row. Also caps content to 1MB
+  // per row to bound the PostgREST request payload.
+  const MAX_CONTENT_BYTES = 1_000_000
+  const safeChapters = chapters.map((c) => ({
+    book_id: book.id,
+    seq: c.seq,
+    title: stripNul(c.title) || `Chapter ${c.seq + 1}`,
+    content: stripNul(c.content).slice(0, MAX_CONTENT_BYTES),
+    level: c.level,
+    page_start: c.pageStart,
+    page_end: c.pageEnd,
+  }))
+  const { error: chaptersError } = await db.from('chapters').insert(safeChapters)
   if (chaptersError) {
     console.error('chapters insert failed', chaptersError)
     await db.from('books').delete().eq('id', book.id)
