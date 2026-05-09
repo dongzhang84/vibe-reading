@@ -1,0 +1,19 @@
+SUBJECT: Vibe Reading 用得怎么样？
+
+{{GREETING}}
+
+谢谢你注册并使用了 Vibe Reading（vibe-reading.dev）。我是 Dong，Vibe Reading 平台的开发者。
+
+看到你最近上传了书到我们的平台，想向你请教，用起来感觉怎么样？有没有哪个地方让你觉得挺顺手，或者哪一步觉得别扭、卡住了？
+
+我现在最关心的就是新用户 onboarding 之后的使用体验。如果你遇到任何问题，欢迎随时告诉我。如果有哪里卡住了，也欢迎直接跟我说。
+
+期待你的回复！祝你阅读愉快～
+
+Dong
+
+-----------
+
+📅 Schedule a meeting: https://calendly.com/acerocket-ai
+🌐 X: https://x.com/snowboat84
+🟦 Linkedin: https://www.linkedin.com/in/dongzhanghz/

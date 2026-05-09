@@ -44,5 +44,9 @@ Thumbs.db
 coverage/
 ui_design/
 
-# personal marketing copy / drafts — local only
-/marketing/
+# marketing — selective. Templates + README go in repo (useful to other
+# indie founders). Per-user data and personal drafts stay local-only.
+/marketing/sent-emails.json
+/marketing/sent-state.json
+/marketing/cold-reachout-*.txt
+/marketing/twitter-launch.txt
