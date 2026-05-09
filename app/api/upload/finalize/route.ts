@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { parsePdf, splitIntoChapters, stripNul } from '@/lib/pdf/parser'
 import {
   extractOutlineAndChapters,
+  looksLikeShadowLibraryWatermark,
   type OutlineResult,
   type TocEntry,
 } from '@/lib/pdf/outline'
@@ -127,6 +128,28 @@ export async function POST(request: Request) {
       pageEnd: null,
     }))
   }
+
+  // Drop shadow-library watermark "chapters" (Anna's Archive / DuXiu /
+  // Z-Library cover pages whose content is archive metadata, not book
+  // text). If filtering empties the chapter list, the PDF is almost
+  // certainly a scanned image with no extractable text layer — bail out
+  // with a friendly message so the user knows to find a different copy.
+  const beforeFilter = chapters.length
+  chapters = chapters.filter(
+    (c) => !looksLikeShadowLibraryWatermark(c.content),
+  )
+  const filteredOut = beforeFilter - chapters.length
+
+  if (chapters.length === 0) {
+    await db.storage.from(STORAGE_BUCKET).remove([body.storagePath])
+    const msg =
+      filteredOut > 0
+        ? 'This PDF looks like a shadow-library download (Anna’s Archive / DuXiu) where the only readable text is the archive metadata page — the rest of the book is likely a scanned image with no text layer. Try uploading a PDF with extractable text.'
+        : 'No readable chapter text found in this PDF. Common cause: the PDF is a scanned image with no text layer. Try uploading a different copy.'
+    return NextResponse.json({ error: msg }, { status: 422 })
+  }
+  // Re-seq after filtering so chapter ordering stays 0..N-1 in the DB.
+  chapters = chapters.map((c, i) => ({ ...c, seq: i }))
 
   // Intake AI: overview + 3 starter questions. Non-fatal on failure — Book Home
   // can render a TOC-only page when these are null.

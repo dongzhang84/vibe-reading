@@ -17,7 +17,32 @@ For day-to-day commit history see `git log`. For deeper "why" context see
 Quality-of-life iteration on the v2 MVP after a real-book test pass turned
 up several rough edges. Driven by dogfooding, not by a roadmap.
 
-### 2026-05-09
+### 2026-05-10
+
+#### Fixed
+- **Shadow-library watermark "chapters" polluting Brief output.** First
+  real user (Frankie) reported a Brief whose 1-line summary was
+  *"本章讨论了由 Anna 的档案生成的文档"* with example *"文档的文件名为
+  'XzExNTA4ODczLnppcA==', 解码后为 '_11508873.zip'"*. Root cause: her
+  PDF was an Anna's Archive / DuXiu / 读秀 download whose first
+  "chapter" in the embedded outline was a watermark cover page (archive
+  metadata, base64 IDs, MD5 / SHA-256 hashes), and the actual book pages
+  were image-only with no text layer — so after dropping unparseable
+  pages, the watermark was the *only* content the relevance + brief AI
+  saw. Fix:
+  - `lib/pdf/outline.ts` — new `looksLikeShadowLibraryWatermark(content)`
+    detector. Triggers when content < 3000 chars **and** matches at least
+    one fingerprint (Anna's Archive / DuXiu|读秀 / Z-Library / LibGen /
+    Sci-Hub / archive filename `_<digits>.zip|pdf|epub` / long base64 /
+    SHA-256 / MD5). Length cap protects real chapters that legitimately
+    discuss shadow libraries (a piracy paper) from being filtered out.
+  - `app/api/upload/finalize/route.ts` — applies the filter after
+    chapter selection (works for both outline-based and regex fallback
+    paths). If filtering empties the chapter list, returns a friendly
+    422 explaining the PDF is likely a scanned shadow-library download
+    with no extractable text and asking the user to find a copy with a
+    real text layer. Re-seqs surviving chapters so DB ordering stays
+    `0..N-1`.
 
 #### Added
 - **Cold reach-out tooling, open-sourced**. Twitter launch the day before
