@@ -49,4 +49,5 @@ ui_design/
 /marketing/sent-emails.json
 /marketing/sent-state.json
 /marketing/cold-reachout-*.txt
+/marketing/reply-*.txt
 /marketing/twitter-launch.txt
