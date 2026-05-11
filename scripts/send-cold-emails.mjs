@@ -70,7 +70,7 @@ const raw = readFileSync(TXT_PATH, 'utf8')
 // the position right after the separator (bodyStart). Block i's text runs
 // from bodyStart[i] to sepStart[i+1] — i.e. EXCLUSIVE of the next separator,
 // otherwise the next block's "─── 9/31 ───" header leaks into block i's body.
-const SEP = /\n─{15} (\d+)\/31 ─{15}\n/g
+const SEP = /\n─{15} (\d+)\/\d+ ─{15}\n/g
 const matches = []
 let m
 while ((m = SEP.exec(raw)) !== null) {
