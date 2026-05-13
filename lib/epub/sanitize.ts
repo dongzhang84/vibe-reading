@@ -180,17 +180,60 @@ export interface Sanitized {
   text: string
   html: string
   firstHeading: string | null
+  secondHeading: string | null
 }
 
-// Extract the first <h1>/<h2> body for chapter-title fallback.
-function findFirstHeading(html: string): string | null {
-  const m = html.match(/<h([12])\b[^>]*>([\s\S]*?)<\/h\1\s*>/i)
-  if (!m) return null
-  const raw = m[2]
+// Extract the first two <h1>–<h6> bodies for chapter-title fallback.
+// Books like _Atomic Habits_ frequently split the chapter number and
+// chapter name into two separate headings:
+//   <h1>5</h1><h2>The Best Way to Start a New Habit</h2>
+// We return both so the caller can stitch them when the first one is
+// just a number.
+function findLeadingHeadings(html: string): {
+  first: string | null
+  second: string | null
+} {
+  const re = /<h([1-6])\b[^>]*>([\s\S]*?)<\/h\1\s*>/gi
+  const headings: string[] = []
+  let m: RegExpExecArray | null
+  while ((m = re.exec(html)) !== null && headings.length < 2) {
+    const raw = m[2]
+      .replace(/<[^>]+>/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+    if (raw.length > 0) headings.push(decodeEntities(raw))
+  }
+  return {
+    first: headings[0] ?? null,
+    second: headings[1] ?? null,
+  }
+}
+
+// EPUBs often split the chapter heading into a "chapter number" h-tag
+// followed by a "chapter title" h-tag (e.g. `<h2>5</h2><h2>The Best Way
+// …</h2>`). The book's own CSS gives the number a huge font, the title
+// a smaller one. Since we strip class/style attrs (XSS safety), we lose
+// that hierarchy unless we re-encode it semantically.
+//
+// Fix: promote any `<h2>` whose body is just a chapter number into `<h1>`.
+// Paired with prose-h1 vs prose-h2 styling, this restores the visual
+// "number on top, title below" relationship.
+const CHAPTER_NUMBER_RE =
+  /^(?:\d+[.:]?|chapter\s*\d+[.:]?|part\s*\d+[.:]?|第\s*[\d一二三四五六七八九十百零〇]+\s*[章节卷部篇][:：]?)$/i
+
+function isChapterNumberHeading(body: string): boolean {
+  const text = body
     .replace(/<[^>]+>/g, '')
     .replace(/\s+/g, ' ')
     .trim()
-  return raw.length > 0 ? decodeEntities(raw) : null
+  return text.length > 0 && text.length <= 6 && CHAPTER_NUMBER_RE.test(text)
+}
+
+function promoteChapterNumberHeadings(html: string): string {
+  return html.replace(
+    /<h2\b[^>]*>([\s\S]*?)<\/h2\s*>/gi,
+    (full, body) => (isChapterNumberHeading(body) ? `<h1>${body}</h1>` : full),
+  )
 }
 
 /**
@@ -199,15 +242,20 @@ function findFirstHeading(html: string): string | null {
  *              normalized whitespace + decoded entities. NUL-stripped.
  *   - `html` : safe HTML for the Read pane — allowlisted tags only,
  *              no scripts/styles, no event handlers, no javascript:
- *              URLs, no img/svg/math.
- *   - `firstHeading` : the first <h1>/<h2> body, used to fall back to a
- *                       chapter title when the OPF/NAV don't provide one.
+ *              URLs, no img/svg/math. Chapter-number h2 tags are
+ *              promoted to h1 so prose styling can give them visual
+ *              weight (the book's own CSS hierarchy gets stripped by
+ *              the attr-removal pass).
+ *   - `firstHeading` / `secondHeading` : the first two <h1>–<h6> bodies,
+ *              used to fall back to a chapter title when the OPF/NAV
+ *              don't provide one (or are too terse).
  */
 export function sanitize(xhtml: string): Sanitized {
   const stripped = stripDangerousBlocks(xhtml)
   const noAttrs = stripDangerousAttrs(stripped)
-  const html = stripNul(rewriteAllTags(noAttrs)).trim()
+  const rewritten = stripNul(rewriteAllTags(noAttrs)).trim()
+  const html = promoteChapterNumberHeadings(rewritten)
   const text = stripNul(tagsToText(noAttrs))
-  const firstHeading = findFirstHeading(noAttrs)
-  return { text, html, firstHeading }
+  const { first, second } = findLeadingHeadings(noAttrs)
+  return { text, html, firstHeading: first, secondHeading: second }
 }

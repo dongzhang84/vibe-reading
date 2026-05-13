@@ -223,6 +223,7 @@ interface RawChapter {
   text: string
   html: string
   firstHeading: string | null
+  secondHeading: string | null
 }
 
 async function walkSpine(
@@ -248,24 +249,55 @@ async function walkSpine(
     const file = zip.file(fullPath) ?? zip.file(decodeURIComponent(fullPath))
     if (!file) continue
     const raw = await file.async('string')
-    const { text, html, firstHeading } = sanitize(raw)
-    chapters.push({ href: fullPath, text, html, firstHeading })
+    const { text, html, firstHeading, secondHeading } = sanitize(raw)
+    chapters.push({ href: fullPath, text, html, firstHeading, secondHeading })
   }
   return { chapters, spineHrefs }
 }
 
 // ─── 4. Title resolution ───────────────────────────────────────────────
 
+// Body heading "5" / "10" / "Chapter 4" tells us almost nothing on its
+// own — the EPUB author meant for the chapter number to live alongside a
+// separate descriptive heading (and frequently put one in the next h-tag).
+// When we see one of these, prefer the TOC label if available, else
+// stitch the second heading on.
+function looksLikeChapterNumberOnly(s: string): boolean {
+  const t = s.trim()
+  if (t.length === 0) return false
+  if (/^\d+[.:]?$/.test(t)) return true // "5", "10:", "12."
+  if (t.length <= 4) return true // very short — almost certainly not the full title
+  if (/^(chapter|part)\s*\d+[:.]?$/i.test(t)) return true
+  if (/^第\s*[\d一二三四五六七八九十百零〇]+\s*[章节卷部篇][:：]?$/.test(t)) return true
+  return false
+}
+
 function titleForChapter(
   raw: RawChapter,
   seq: number,
   spineToTocTitle: Map<number, string>,
 ): string {
-  // Priority: first <h1>/<h2> in body > TOC entry for this spine idx >
-  // fallback "Chapter N".
-  if (raw.firstHeading) return raw.firstHeading
+  // 1) TOC entry — author-authoritative. Books like _Atomic Habits_ put
+  //    "5: The Best Way to Start a New Habit" here; preferring this over
+  //    the body's <h1>5</h1> fixes the "list shows only numbers" bug.
   const tocTitle = spineToTocTitle.get(seq)
-  if (tocTitle) return tocTitle
+  if (tocTitle && tocTitle.length > 0) return tocTitle
+
+  // 2) Body heading. If the first is just a chapter number and a second
+  //    heading exists, stitch them so the title carries the descriptive
+  //    half ("5: The Best Way to Start a New Habit").
+  if (raw.firstHeading) {
+    if (
+      raw.secondHeading &&
+      looksLikeChapterNumberOnly(raw.firstHeading)
+    ) {
+      const num = raw.firstHeading.trim().replace(/[.:]$/, '')
+      return `${num}: ${raw.secondHeading}`
+    }
+    return raw.firstHeading
+  }
+
+  // 3) Generic fallback.
   return `Chapter ${seq + 1}`
 }
 
@@ -314,6 +346,89 @@ function escapeHtml(s: string): string {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
+}
+
+// ─── 6. Chapter coalesce ───────────────────────────────────────────────
+//
+// EPUBs love to split structurally: cover, title page, copyright,
+// dedication, each part divider, each chapter — all separate XHTML
+// files. A book like _Atomic Habits_ ends up with 70+ "chapters" of
+// which most are 0-byte covers or 1-line part dividers (e.g.
+// "THE 1ST LAW / Make It Obvious").
+//
+// We:
+//   1. Drop chapters with zero content (Cover / Title / blank pages).
+//   2. Fold short chapters (< MIN_BODY_CHARS) forward into the next
+//      substantial chapter. The short chapter's title and body become
+//      a header at the top of the merged result. This keeps part-
+//      divider context attached to the chapter it introduces, and
+//      stops the AI relevance ranker from wasting matches on dividers.
+//
+// The result: chapter titles in the UI are the substantive ones, and
+// clicking Read on a chapter gives the reader the actual chapter
+// content — divider heading included — instead of just a section page.
+
+const MIN_BODY_CHARS = 500
+
+function coalesceChapters(chapters: EpubChapter[]): EpubChapter[] {
+  // 1. Drop empties.
+  const nonEmpty = chapters.filter((c) => c.content.trim().length > 0)
+  if (nonEmpty.length === 0) return []
+
+  // 2. Fold shorts forward.
+  const result: EpubChapter[] = []
+  let pending: EpubChapter[] = []
+
+  for (const c of nonEmpty) {
+    if (c.content.length < MIN_BODY_CHARS) {
+      pending.push(c)
+      continue
+    }
+    // Substantial chapter — flush any pending shorts as a header on c.
+    if (pending.length > 0) {
+      const prefixHtml = pending
+        .map(
+          (p) =>
+            `<h2>${escapeHtml(p.title)}</h2>\n${p.contentHtml}`,
+        )
+        .join('\n')
+      const prefixText = pending
+        .map((p) => `${p.title}\n\n${p.content}`)
+        .join('\n\n')
+      result.push({
+        ...c,
+        content: `${prefixText}\n\n${c.content}`,
+        contentHtml: `${prefixHtml}\n${c.contentHtml}`,
+      })
+      pending = []
+    } else {
+      result.push(c)
+    }
+  }
+
+  // 3. Trailing shorts (book ends with a short epilogue / about-the-author
+  // page): collapse into one final chapter so they're not lost.
+  if (pending.length > 0) {
+    const last = pending[pending.length - 1]
+    result.push({
+      ...last,
+      title: pending[0].title,
+      content: pending
+        .map((p) => `${p.title}\n\n${p.content}`)
+        .join('\n\n'),
+      contentHtml: pending
+        .map((p) => `<h2>${escapeHtml(p.title)}</h2>\n${p.contentHtml}`)
+        .join('\n'),
+    })
+  }
+
+  // 4. Re-seq + reset page indices to the new order.
+  return result.map((c, i) => ({
+    ...c,
+    seq: i,
+    pageStart: i,
+    pageEnd: i,
+  }))
 }
 
 // ─── Main entry ────────────────────────────────────────────────────────
@@ -388,7 +503,7 @@ export async function parseEpub(buffer: Buffer): Promise<ParsedEpub> {
   if (isSingleXhtmlBook(rawChapters)) {
     finalChapters = splitSingleXhtml(rawChapters[0])
   } else {
-    finalChapters = rawChapters.map((raw, i) => ({
+    const expanded = rawChapters.map((raw, i) => ({
       seq: i,
       title: titleForChapter(raw, i, spineToTocTitle),
       content: raw.text,
@@ -397,6 +512,9 @@ export async function parseEpub(buffer: Buffer): Promise<ParsedEpub> {
       pageStart: i,
       pageEnd: i,
     }))
+    // Fold short part-dividers / front-matter forward into substantive
+    // chapters so the chapter list isn't 70+ rows of fragments.
+    finalChapters = coalesceChapters(expanded)
   }
 
   // Image-only / no-text-layer guard. Mirror the PDF scan-only friendly
