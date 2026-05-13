@@ -52,9 +52,11 @@ export async function POST(request: Request) {
   // Storage path must belong to the current session — prevents picking up
   // someone else's blob even if the path leaks.
   const expectedPrefix = `session/${sessionId}/`
+  const isPdfPath = body.storagePath.endsWith('.pdf')
+  const isEpubPath = body.storagePath.endsWith('.epub')
   if (
     !body.storagePath.startsWith(expectedPrefix) ||
-    !body.storagePath.endsWith('.pdf') ||
+    (!isPdfPath && !isEpubPath) ||
     body.storagePath.includes('..')
   ) {
     return NextResponse.json(
@@ -62,6 +64,7 @@ export async function POST(request: Request) {
       { status: 403 },
     )
   }
+  const format: 'pdf' | 'epub' = isEpubPath ? 'epub' : 'pdf'
 
   const db = createAdminClient()
 
@@ -78,6 +81,16 @@ export async function POST(request: Request) {
   }
 
   const buffer = Buffer.from(await blob.arrayBuffer())
+
+  // EPUB pipeline is wired in E3/E4. Until then, refuse the upload
+  // gracefully (rather than feeding the ZIP to the PDF parser).
+  if (format === 'epub') {
+    await db.storage.from(STORAGE_BUCKET).remove([body.storagePath])
+    return NextResponse.json(
+      { error: 'EPUB support coming soon — please upload a PDF for now.' },
+      { status: 501 },
+    )
+  }
 
   let outline: OutlineResult | null = null
   try {
@@ -181,6 +194,7 @@ export async function POST(request: Request) {
     storage_path: body.storagePath,
     page_count: parsed.pageCount,
     size_bytes: blob.size,
+    format,
     toc: (toc ?? null) as Json | null,
     overview: intake?.overview ?? null,
     suggested_questions: (intake?.questions ?? null) as Json | null,

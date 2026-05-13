@@ -34,8 +34,14 @@ export function UploadDropzone() {
   }, [state.kind])
 
   const handleFile = useCallback(async (file: File) => {
-    if (file.type !== 'application/pdf') {
-      setState({ kind: 'error', message: 'PDF only.' })
+    // Browsers are inconsistent about MIME for EPUB (some report
+    // application/epub+zip, some application/zip, some empty when drag-drop).
+    // Use extension as the source of truth — server enforces too.
+    const lowerName = file.name.toLowerCase()
+    const isPdf = lowerName.endsWith('.pdf')
+    const isEpub = lowerName.endsWith('.epub')
+    if (!isPdf && !isEpub) {
+      setState({ kind: 'error', message: 'PDF or EPUB only.' })
       return
     }
     if (file.size > MAX_BYTES) {
@@ -126,7 +132,7 @@ export function UploadDropzone() {
     const { error: putErr } = await supabase.storage
       .from(STORAGE_BUCKET)
       .uploadToSignedUrl(storagePath, token, file, {
-        contentType: 'application/pdf',
+        contentType: isEpub ? 'application/epub+zip' : 'application/pdf',
       })
     if (putErr) {
       // eslint-disable-next-line no-console
@@ -237,7 +243,7 @@ export function UploadDropzone() {
           ref={inputRef}
           id="vr-file-upload"
           type="file"
-          accept="application/pdf"
+          accept="application/pdf,application/epub+zip,.pdf,.epub"
           onChange={onChange}
           disabled={isUploading}
           className="sr-only"
@@ -279,10 +285,10 @@ export function UploadDropzone() {
             </div>
             <div className="text-center">
               <p className="font-medium text-foreground">
-                Drop a PDF, or click to choose
+                Drop a PDF or EPUB, or click to choose
               </p>
               <p className="mt-1.5 text-sm text-muted-foreground">
-                PDF · up to 50MB
+                PDF or EPUB · up to 50MB
               </p>
             </div>
           </div>

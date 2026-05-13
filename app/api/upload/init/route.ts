@@ -45,8 +45,10 @@ export async function POST(request: Request) {
   ) {
     return NextResponse.json({ error: 'Bad request' }, { status: 400 })
   }
-  if (!body.filename.toLowerCase().endsWith('.pdf')) {
-    return NextResponse.json({ error: 'PDF only' }, { status: 400 })
+  const lower = body.filename.toLowerCase()
+  const ext = lower.endsWith('.pdf') ? 'pdf' : lower.endsWith('.epub') ? 'epub' : null
+  if (!ext) {
+    return NextResponse.json({ error: 'PDF or EPUB only' }, { status: 400 })
   }
   if (!Number.isFinite(body.size) || body.size <= 0) {
     return NextResponse.json({ error: 'Empty file' }, { status: 400 })
@@ -82,7 +84,7 @@ export async function POST(request: Request) {
     }
   }
 
-  const storagePath = `session/${sessionId}/${crypto.randomUUID()}.pdf`
+  const storagePath = `session/${sessionId}/${crypto.randomUUID()}.${ext}`
   const db = createAdminClient()
   const { data, error } = await db.storage
     .from(STORAGE_BUCKET)
