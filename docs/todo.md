@@ -3,19 +3,26 @@
 > Living list of things not yet done. Three buckets, ordered roughly by
 > "ship-blocker → polish → new edge".
 >
-> **Current focus (2026-05-10): EPUB format support.** First-user wave
-> on 2026-05-09 surfaced enough demand for EPUB (programming books and
-> Chinese novels are EPUB-native; PDF's parsing pain — font NULs, scan-
-> only pages, shadow-library watermark covers — mostly evaporates in
-> EPUB) that this jumped ahead of the Sentry / Posthog hardening.
-> Detailed plan: [`docs/epub-support.md`](./epub-support.md). Estimated
-> 2–3 working days end-to-end.
+> **Current focus (2026-05-12): EPUB format support** (dev focus) **+
+> Supabase storage capacity expansion** (operational, urgent).
 >
-> After EPUB ships: Sentry + Posthog (§12.C, the remaining two items in
-> bucket B). Sentry first (user-reported bugs come with stack traces);
+> EPUB: first-user wave on 2026-05-09 surfaced enough demand (programming
+> books and Chinese novels are EPUB-native; PDF's parsing pain — font
+> NULs, scan-only pages, shadow-library watermark covers — mostly
+> evaporates in EPUB) that this jumped ahead of the Sentry / Posthog
+> hardening. Detailed plan: [`docs/epub-support.md`](./epub-support.md).
+> Estimated 2–3 working days end-to-end.
+>
+> Storage: now at 712.7 MB / 1024 MB on Free tier, ~10–14 days to ceiling
+> at current upload rate. See §B "Supabase storage capacity expansion"
+> for options — likely Pro upgrade.
+>
+> After EPUB + storage: Sentry + Posthog (§12.C, the remaining two items
+> in bucket B). Sentry first (user-reported bugs come with stack traces);
 > Posthog when there's enough traffic to draw funnel conclusions.
 >
-> Last updated: 2026-05-10 (post Frankie bug fix → EPUB plan locked).
+> Last updated: 2026-05-12 (storage at 70%, EPUB still current dev focus,
+> BYO-API + export-TXT items added from Jason feedback).
 
 ---
 
@@ -73,6 +80,22 @@ the user complains.
       on the OpenAI dashboard monthly hard cap. Worth fixing in a
       follow-up: extend usage_counters schema to allow session_id keys,
       or auth-gate uploads
+- [ ] **Supabase storage capacity expansion** — **URGENT, near-term.**
+      Current usage 712.7 MB / 1024 MB (~70%) as of 2026-05-12. Shared
+      project with launchradar + AIfy means three products competing for
+      the 1 GB Free cap. At ~25 MB/day growth from new-user uploads we
+      hit the ceiling in 10-14 days. Options:
+      (a) **Supabase Pro upgrade** — $25/mo gives 100 GB storage + 8 GB
+          DB + daily backups. Cleanest path, also unlocks point-in-time
+          recovery which we want before scaling
+      (b) **Move PDFs to Cloudflare R2** — ~$0.015/GB/mo, zero egress
+          fees. Cheaper at scale but adds a second provider to the
+          stack and rewrites the storage layer
+      (c) **Aggressive inactivity-based retention** (see §C bullet) +
+          shrink per-user quota — buys weeks, not months
+      Recommend (a) for now; revisit (b) if storage growth > 10 GB/mo.
+      Belt-and-suspenders: ship the orphan cron (§C) and inactivity
+      retention in parallel so we're not paying for waste
 - [ ] **Error tracking (Sentry / Highlight / similar)** — only console.error
       right now; prod errors invisible unless we manually check Vercel logs.
       Free tier is fine for an MVP. Hook it into `app/error.tsx` +
@@ -108,6 +131,14 @@ the user complains.
 Each is multi-day. Don't start until A + B are clean and 5–10 friends have
 tried v1.
 
+- [ ] **EPUB / non-PDF support** — **CURRENT FOCUS.** First-user wave
+      surfaced this as the highest-return next step. Detailed plan in
+      [`docs/epub-support.md`](./epub-support.md): `jszip` + manual
+      OPF/NAV parsing (no heavy SDK), reuse PDF's intake/relevance/brief
+      pipeline by adapting EPUB output to the same chapter shape, render
+      chapter HTML in Read pane (skip full epub.js reader for v1). Adds
+      `vr.books.format` + `vr.chapters.content_html` columns. Estimated
+      2–3 working days.
 - [ ] **Restate v1.1 (Reserved per spec)** — `vr.restatements` table,
       `lib/ai/checker.ts`, `components/RestateScreen.tsx`, `/api/check` are
       all preserved but unhooked. v1.1 plan: BriefPane gets an optional
@@ -120,16 +151,27 @@ tried v1.
       question, (b) skip Brief / Read, (c) treat the AI summary as the
       answer instead of triggering compression. Iterate based on
       what's actually broken — don't pre-build for hypotheses
-- [ ] **EPUB / non-PDF support** — **CURRENT FOCUS.** First-user wave
-      surfaced this as the highest-return next step. Detailed plan in
-      [`docs/epub-support.md`](./epub-support.md): `jszip` + manual
-      OPF/NAV parsing (no heavy SDK), reuse PDF's intake/relevance/brief
-      pipeline by adapting EPUB output to the same chapter shape, render
-      chapter HTML in Read pane (skip full epub.js reader for v1). Adds
-      `vr.books.format` + `vr.chapters.content_html` columns. Estimated
-      2–3 working days.
 - [ ] **Share / export Question Result** — turn a great Q+chapter map into
       a public read-only URL or markdown export. Potential viral surface
+- [ ] **Export reading outputs to TXT** — surfaced from Jason's feedback
+      2026-05-12 (worry: "what if the site disappears, my reading is
+      gone"). Per-book download: bundle the Brief, all asked-questions
+      with their AI answers, and any highlighted passages into a plain
+      TXT (or Markdown) file the user keeps locally. Promised in the
+      reply email — send a follow-up when shipped. Lightweight: no new
+      schema, just a `/api/books/[id]/export` route that walks the
+      existing tables and concats. Estimated 0.5–1 day
+- [ ] **BYO API key (free tier) + we-provide API (paid tier)** — surfaced
+      from Jason's feedback 2026-05-12. Two-tier model: (a) **free** —
+      user pastes their own OpenAI / Anthropic key into Settings, we
+      route all their AI calls through it; (b) **paid** — we provide
+      the key, zero setup. BYO opens the door to power users while
+      capping our cost exposure. Needs: settings UI for key entry
+      (encrypted at rest, never logged); validation probe on save; a
+      switch in `lib/ai/*` to prefer user key when present; usage
+      accounting that distinguishes BYO from ours (BYO shouldn't burn
+      our rate-limit quota the same way). Model-selection UI (gpt-4o
+      vs claude-3-5-sonnet etc.) is a natural extension
 - [ ] **`/library` cross-book question history** — global "Your questions
       across all books" view. Find old questions without remembering which
       book
