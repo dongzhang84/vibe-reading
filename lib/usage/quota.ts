@@ -15,6 +15,23 @@ const DAILY_CAPS: Record<QuotaAction, number> = {
   upload: 5,
 }
 
+/**
+ * Exempt list — comma-separated user UUIDs in QUOTA_EXEMPT_USER_IDS env
+ * var. Bypass both daily caps and storage caps. For dev / test / creator
+ * accounts; never gate behind it in product flows. Re-parsed each call
+ * so dev-server env edits take effect on the next request without a
+ * full restart.
+ */
+function isExempt(userId: string): boolean {
+  const raw = process.env.QUOTA_EXEMPT_USER_IDS
+  if (!raw) return false
+  return raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .includes(userId)
+}
+
 export interface QuotaResult {
   allowed: boolean
   cap: number
@@ -38,6 +55,9 @@ export async function checkAndIncrement(
   action: QuotaAction,
 ): Promise<QuotaResult> {
   const cap = DAILY_CAPS[action]
+  if (isExempt(userId)) {
+    return { allowed: true, cap, used: 0, resetAtUnixSec: midnightUtcSec() }
+  }
   const db = createAdminClient()
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -119,6 +139,15 @@ export async function checkStorageQuota(
   userId: string,
   incomingBytes: number,
 ): Promise<StorageQuotaResult> {
+  if (isExempt(userId)) {
+    return {
+      allowed: true,
+      usedBytes: 0,
+      usedBooks: 0,
+      bytesCap: STORAGE_BYTES_CAP_PER_USER,
+      bookCap: BOOK_COUNT_CAP_PER_USER,
+    }
+  }
   const db = createAdminClient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: rows } = (await (db as any)
