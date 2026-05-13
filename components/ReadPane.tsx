@@ -3,6 +3,8 @@
 import dynamic from 'next/dynamic'
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowRight, BookOpen, Sparkles } from 'lucide-react'
+import { FontSizeToggle } from '@/components/FontSizeToggle'
+import { useFontScale } from '@/lib/hooks/useFontScale'
 
 const PdfViewer = dynamic(
   () => import('@/components/PdfViewer').then((m) => m.PdfViewer),
@@ -58,6 +60,9 @@ export function ReadPane({
 }: Props) {
   const [selection, setSelection] = useState('')
   const [asks, setAsks] = useState<AskEntry[]>([])
+  // Hook is always called (no conditional hooks) but only surfaced in
+  // the UI for EPUB books — PDF has its own zoom controls.
+  const fontScale = useFontScale()
 
   useEffect(() => {
     function update() {
@@ -133,22 +138,32 @@ export function ReadPane({
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <header className="border-b border-border bg-background/85 px-8 py-5 backdrop-blur">
-        <div className="flex items-center gap-2">
-          <BookOpen className="h-3.5 w-3.5 text-accent" />
-          <p className="text-xs font-medium uppercase tracking-wider text-accent">
-            Read
-          </p>
+      <header className="flex items-start justify-between gap-4 border-b border-border bg-background/85 px-8 py-5 backdrop-blur">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <BookOpen className="h-3.5 w-3.5 text-accent" />
+            <p className="text-xs font-medium uppercase tracking-wider text-accent">
+              Read
+            </p>
+          </div>
+          <h2 className="mt-2 text-balance text-xl font-semibold tracking-tight text-foreground">
+            {chapterTitle}
+          </h2>
         </div>
-        <h2 className="mt-2 text-balance text-xl font-semibold tracking-tight text-foreground">
-          {chapterTitle}
-        </h2>
+        {format === 'epub' && (
+          <FontSizeToggle
+            onShrink={fontScale.shrink}
+            onGrow={fontScale.grow}
+            canShrink={fontScale.canShrink}
+            canGrow={fontScale.canGrow}
+          />
+        )}
       </header>
 
       <div className="flex flex-1 overflow-hidden">
         <div className="flex-1 overflow-y-auto bg-secondary/20 px-4 py-6">
           {format === 'epub' ? (
-            <EpubChapterView chapterId={chapterId} />
+            <EpubChapterView chapterId={chapterId} fontScale={fontScale.scale} />
           ) : (
             <PdfViewer url={pdfUrl} initialPage={pageStart} />
           )}

@@ -4,6 +4,12 @@ import { useEffect, useState } from 'react'
 
 interface Props {
   chapterId: string
+  /**
+   * Multiplier applied to all prose font sizes via the --prose-scale CSS
+   * variable. 1.0 = default; valid range is whatever the FontSizeToggle
+   * exposes (currently 0.9 / 1.0 / 1.15 / 1.3).
+   */
+  fontScale?: number
 }
 
 type FetchState =
@@ -20,7 +26,7 @@ type FetchState =
  * accepting user-edited chapter HTML, run it through DOMPurify before
  * this component.
  */
-export function EpubChapterView({ chapterId }: Props) {
+export function EpubChapterView({ chapterId, fontScale = 1 }: Props) {
   const [state, setState] = useState<FetchState>({ kind: 'loading' })
 
   useEffect(() => {
@@ -75,8 +81,14 @@ export function EpubChapterView({ chapterId }: Props) {
   }
 
   return (
+    // All the heading / paragraph / list typography for `.prose` is in
+    // app/globals.css. Tailwind v4 + @tailwindcss/typography + shadcn's
+    // reset interacted poorly with prose-X:utility modifiers here, so
+    // we use plain CSS rules scoped to `.prose` instead. Keep this
+    // className minimal — anything visual lives in globals.css.
     <article
-      className="prose prose-slate mx-auto max-w-prose dark:prose-invert prose-headings:font-semibold prose-headings:tracking-tight prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-p:leading-relaxed"
+      className="prose prose-slate mx-auto max-w-prose py-8 dark:prose-invert"
+      style={{ ['--prose-scale' as string]: fontScale }}
       // eslint-disable-next-line react/no-danger
       dangerouslySetInnerHTML={{ __html: state.html }}
     />
