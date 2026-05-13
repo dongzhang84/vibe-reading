@@ -39,7 +39,7 @@ export default async function LibraryPage() {
   const { data: books } = (await db
     .from('books')
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .select('id, title, author, page_count, created_at, size_bytes' as any)
+    .select('id, title, author, page_count, format, created_at, size_bytes' as any)
     .eq('owner_id', user.id)
     .order('created_at', { ascending: false })) as {
     data: Array<{
@@ -47,6 +47,7 @@ export default async function LibraryPage() {
       title: string
       author: string | null
       page_count: number | null
+      format: 'pdf' | 'epub' | null
       created_at: string | null
       size_bytes: number | null
     }> | null

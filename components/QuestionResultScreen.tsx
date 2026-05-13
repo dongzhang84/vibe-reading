@@ -20,6 +20,8 @@ interface Props {
   bookId: string
   bookTitle: string
   bookAuthor: string | null
+  bookFormat: 'pdf' | 'epub'
+  /** Empty string when bookFormat === 'epub' (no PDF to sign). */
   pdfUrl: string
   questionId: string
   questionText: string
@@ -30,6 +32,7 @@ export function QuestionResultScreen({
   bookId,
   bookTitle,
   bookAuthor,
+  bookFormat,
   pdfUrl,
   questionId,
   questionText,
@@ -67,6 +70,7 @@ export function QuestionResultScreen({
             bookId={bookId}
             chapterId={active.chapterId}
             chapterTitle={active.chapterTitle}
+            format={bookFormat}
             pdfUrl={pdfUrl}
             pageStart={active.pageStart ?? 1}
           />
@@ -98,7 +102,7 @@ function EmptyHint({
           <span className="font-medium text-foreground">Brief</span> for the
           4-part structured note, or{' '}
           <span className="font-medium text-foreground">Read</span> to jump
-          into the PDF.
+          into the chapter.
         </p>
       </div>
     </div>

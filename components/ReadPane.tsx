@@ -14,11 +14,27 @@ const PdfViewer = dynamic(
   },
 )
 
+// EPUB body comes from a small API call (per-chapter HTML) — also lazy
+// so the PDF path doesn't pull it in.
+const EpubChapterView = dynamic(
+  () =>
+    import('@/components/EpubChapterView').then((m) => m.EpubChapterView),
+  {
+    ssr: false,
+    loading: () => (
+      <p className="py-8 text-sm text-muted-foreground">Loading chapter…</p>
+    ),
+  },
+)
+
 interface Props {
   bookId: string
   chapterId: string
   chapterTitle: string
+  format: 'pdf' | 'epub'
+  /** PDF only — empty string for EPUB. */
   pdfUrl: string
+  /** PDF only — ignored for EPUB (no native page concept). */
   pageStart: number
 }
 
@@ -36,6 +52,7 @@ export function ReadPane({
   bookId,
   chapterId,
   chapterTitle,
+  format,
   pdfUrl,
   pageStart,
 }: Props) {
@@ -130,7 +147,11 @@ export function ReadPane({
 
       <div className="flex flex-1 overflow-hidden">
         <div className="flex-1 overflow-y-auto bg-secondary/20 px-4 py-6">
-          <PdfViewer url={pdfUrl} initialPage={pageStart} />
+          {format === 'epub' ? (
+            <EpubChapterView chapterId={chapterId} />
+          ) : (
+            <PdfViewer url={pdfUrl} initialPage={pageStart} />
+          )}
         </div>
 
         <aside className="hidden w-[300px] shrink-0 flex-col gap-4 overflow-y-auto border-l border-border p-5 lg:flex">
@@ -157,8 +178,8 @@ export function ReadPane({
             </div>
           ) : (
             <p className="rounded-xl border-2 border-dashed border-border p-4 text-xs leading-relaxed text-muted-foreground">
-              Highlight ≥ {MIN_SELECTION} characters in the PDF to ask about a
-              passage.
+              Highlight ≥ {MIN_SELECTION} characters of the chapter to ask
+              about a passage.
             </p>
           )}
 

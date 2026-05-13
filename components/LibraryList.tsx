@@ -9,6 +9,7 @@ interface Book {
   title: string
   author: string | null
   page_count: number | null
+  format: 'pdf' | 'epub' | null
   created_at: string | null
   lastAsked: string | null
 }
@@ -77,7 +78,10 @@ export function LibraryList({ books: initialBooks }: Props) {
                 <BookOpen className="h-4 w-4" />
               </div>
               <div className="flex min-w-0 flex-1 flex-col gap-1">
-                <p className="font-medium text-foreground">{b.title}</p>
+                <div className="flex items-center gap-2">
+                  <p className="font-medium text-foreground">{b.title}</p>
+                  <FormatBadge format={b.format} />
+                </div>
                 {b.author && (
                   <p className="text-sm text-muted-foreground">{b.author}</p>
                 )}
@@ -90,7 +94,7 @@ export function LibraryList({ books: initialBooks }: Props) {
                   </p>
                 )}
                 <p className="mt-1 text-xs text-muted-foreground/70">
-                  {b.page_count ? `${b.page_count} pages · ` : ''}
+                  {b.page_count ? `${b.page_count} ${b.format === 'epub' ? 'chapters' : 'pages'} · ` : ''}
                   added {formatDate(b.created_at)}
                 </p>
               </div>
@@ -139,6 +143,18 @@ export function LibraryList({ books: initialBooks }: Props) {
         )
       })}
     </ul>
+  )
+}
+
+// Small ghost pill telling the user whether this card is PDF or EPUB.
+// Not a filter affordance — just orientation. EPUB rows show "EPUB"; PDF
+// rows render nothing (default format; reduces visual noise).
+function FormatBadge({ format }: { format: 'pdf' | 'epub' | null }) {
+  if (format !== 'epub') return null
+  return (
+    <span className="rounded border border-border/60 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground/80">
+      EPUB
+    </span>
   )
 }
 

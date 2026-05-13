@@ -68,12 +68,12 @@ export default function Home() {
             <FeatureCard
               icon={<Brain className="h-5 w-5" />}
               title="Brief, then read"
-              description="A 4-part structured note (claim · 3 key points · example · what's not addressed) sits beside the original PDF."
+              description="A 4-part structured note (claim · 3 key points · example · what's not addressed) sits beside the chapter."
             />
             <FeatureCard
               icon={<Sparkles className="h-5 w-5" />}
               title="Highlight & ask"
-              description="Select a passage in the PDF and ask in context. The AI explains that passage, not the whole chapter."
+              description="Select a passage and ask in context. The AI explains that passage, not the whole chapter."
             />
           </div>
         </section>
@@ -85,8 +85,9 @@ export default function Home() {
               Ready to read with purpose?
             </h2>
             <p className="mx-auto mb-8 max-w-md text-muted-foreground">
-              Drop your first PDF. We&apos;ll extract the table of contents,
-              draft an overview, and suggest three starter questions.
+              Drop your first PDF or EPUB. We&apos;ll extract the table of
+              contents, draft an overview, and suggest three starter
+              questions.
             </p>
             <UploadCtaButton />
           </div>
