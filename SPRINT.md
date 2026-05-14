@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-05-14 23:39 UTC  
+**Generated:** 2026-05-14 23:57 UTC  
 **Showing:** last 4 week(s) of 4 total  
 
 ---
@@ -9,13 +9,13 @@
 
 | Stat | Value |
 |------|-------|
-| Status | ❌ Stalled |
-| Active days | 2 / 7 |
-| Total commits | 9 |
+| Status | ⚠️ Slow |
+| Active days | 3 / 7 |
+| Total commits | 10 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| **1** | ⚪ | **8** | ⚪ | ⚪ | ⚪ | ⚪ |
+| **1** | ⚪ | **8** | **1** | ⚪ | ⚪ | ⚪ |
 
 **Mon – Monday, May 11**
 
@@ -31,6 +31,10 @@
 - `623c85a` feat(epub): Phase E3 — EPUB parser (jszip + OPF + NCX/NAV + sanitize) — _dongzhang84_ `2026-05-13 09:22`
 - `fa81613` docs(todo): EPUB to top of §C, storage expansion urgent in §B, BYO-API + export-TXT — _dongzhang84_ `2026-05-13 09:13`
 - `c719db8` feat(epub): Phase E2 — upload format dispatch (PDF + .epub whitelisted) — _dongzhang84_ `2026-05-13 09:13`
+
+**Thu – Thursday, May 14**
+
+- `0cdd2d5` fix(nav): refetch auth state on pathname change — _dongzhang84_ `2026-05-14 16:57`
 
 ---
 
