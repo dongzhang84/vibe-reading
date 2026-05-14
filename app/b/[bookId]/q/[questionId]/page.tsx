@@ -35,14 +35,28 @@ export default async function QuestionResultPage({
     redirect(`/b/${bookId}`)
   }
 
-  const { data: book } = await db
+  const { data: bookRaw } = await db
     .from('books')
-    .select('id, owner_id, title, author, storage_path')
+    .select('id, owner_id, title, author, storage_path, format')
     .eq('id', bookId)
     .single()
+  // `format` is a v2.4 column; types/db.ts hasn't been regenerated yet
+  // so we widen at the boundary instead of casting the select string
+  // (which kills inference of every other field).
+  const book = bookRaw as
+    | {
+        id: string
+        owner_id: string
+        title: string
+        author: string | null
+        storage_path: string
+        format: 'pdf' | 'epub' | null
+      }
+    | null
   if (!book || book.owner_id !== user.id) {
     redirect('/library')
   }
+  const bookFormat: 'pdf' | 'epub' = book.format === 'epub' ? 'epub' : 'pdf'
 
   const { data: rawMatches } = await db
     .from('question_chapters')
@@ -67,16 +81,22 @@ export default async function QuestionResultPage({
     }
   })
 
-  const { data: signed } = await db.storage
-    .from('vr-docs')
-    .createSignedUrl(book.storage_path, SIGNED_URL_SECONDS)
-  const pdfUrl = signed?.signedUrl ?? ''
+  // EPUB books don't need a signed URL — the Read pane fetches per-chapter
+  // HTML via /api/chapter/[id]/html instead. Skip the round-trip.
+  let pdfUrl = ''
+  if (bookFormat === 'pdf') {
+    const { data: signed } = await db.storage
+      .from('vr-docs')
+      .createSignedUrl(book.storage_path, SIGNED_URL_SECONDS)
+    pdfUrl = signed?.signedUrl ?? ''
+  }
 
   return (
     <QuestionResultScreen
       bookId={bookId}
       bookTitle={book.title}
       bookAuthor={book.author}
+      bookFormat={bookFormat}
       pdfUrl={pdfUrl}
       questionId={questionId}
       questionText={question.text}

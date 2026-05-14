@@ -8,6 +8,7 @@ import {
   type OutlineResult,
   type TocEntry,
 } from '@/lib/pdf/outline'
+import { parseEpub, EpubParseError } from '@/lib/epub/parser'
 import { analyzeBook, type IntakeResult } from '@/lib/ai/intake'
 import type { Json } from '@/types/db'
 
@@ -16,20 +17,42 @@ export const maxDuration = 60
 
 const MAX_BYTES = 50 * 1024 * 1024
 const STORAGE_BUCKET = 'vr-docs'
+const MAX_CONTENT_BYTES = 1_000_000
+const MAX_CONTENT_HTML_BYTES = 2_000_000 // HTML has markup overhead vs plain text
 
 interface NormalizedChapter {
   seq: number
   title: string
   content: string
+  contentHtml: string | null // populated for EPUB; null for PDF
   level: number
   pageStart: number | null
   pageEnd: number | null
 }
 
+interface ParsedBook {
+  title: string
+  author: string | null
+  pageCount: number
+  toc: TocEntry[] | null
+  chapters: NormalizedChapter[]
+  /** PDF only — used as intake-AI fallback when chapter[0] is empty */
+  rawText?: string
+}
+
+interface ProcessError {
+  status: number
+  message: string
+}
+
+function isError(x: ParsedBook | ProcessError): x is ProcessError {
+  return 'status' in x
+}
+
 /**
- * Phase 2 of the upload flow. The client has already PUT the PDF to
- * Supabase Storage at `storagePath`. This route pulls it back, parses,
- * runs intake AI, and writes the books + chapters rows.
+ * Phase 2 of the upload flow. The client has already PUT the file to
+ * Supabase Storage at `storagePath`. This route pulls it back, parses
+ * (PDF or EPUB), runs intake AI, and writes the books + chapters rows.
  *
  * Body never crosses a Vercel function — the download from Storage is
  * function-internal egress, not subject to the inbound HTTP body limit.
@@ -52,9 +75,11 @@ export async function POST(request: Request) {
   // Storage path must belong to the current session — prevents picking up
   // someone else's blob even if the path leaks.
   const expectedPrefix = `session/${sessionId}/`
+  const isPdfPath = body.storagePath.endsWith('.pdf')
+  const isEpubPath = body.storagePath.endsWith('.epub')
   if (
     !body.storagePath.startsWith(expectedPrefix) ||
-    !body.storagePath.endsWith('.pdf') ||
+    (!isPdfPath && !isEpubPath) ||
     body.storagePath.includes('..')
   ) {
     return NextResponse.json(
@@ -62,6 +87,7 @@ export async function POST(request: Request) {
       { status: 403 },
     )
   }
+  const format: 'pdf' | 'epub' = isEpubPath ? 'epub' : 'pdf'
 
   const db = createAdminClient()
 
@@ -79,91 +105,35 @@ export async function POST(request: Request) {
 
   const buffer = Buffer.from(await blob.arrayBuffer())
 
-  let outline: OutlineResult | null = null
-  try {
-    outline = await extractOutlineAndChapters(buffer)
-  } catch (err) {
-    console.error('outline extraction failed (non-fatal)', err)
-  }
+  const result =
+    format === 'epub'
+      ? await processEpub(buffer)
+      : await processPdf(buffer, body.filename)
 
-  let parsed
-  try {
-    parsed = await parsePdf(buffer, body.filename)
-  } catch (err) {
-    console.error('pdf parse failed', err)
+  if (isError(result)) {
     await db.storage.from(STORAGE_BUCKET).remove([body.storagePath])
     return NextResponse.json(
-      { error: 'Could not parse PDF' },
-      { status: 422 },
+      { error: result.message },
+      { status: result.status },
     )
   }
 
-  let toc: TocEntry[] | null = null
-  let chapters: NormalizedChapter[]
-  if (outline && outline.chapters.length >= 2) {
-    toc = outline.toc
-    chapters = outline.chapters.map((c, i) => ({
-      seq: i,
-      title: c.title,
-      content: c.content,
-      level: c.level,
-      pageStart: c.pageStart,
-      pageEnd: c.pageEnd,
-    }))
-  } else {
-    const fallback = splitIntoChapters(parsed.text)
-    if (fallback.length === 0) {
-      await db.storage.from(STORAGE_BUCKET).remove([body.storagePath])
-      return NextResponse.json(
-        { error: 'Could not detect any chapters or sections in this PDF' },
-        { status: 422 },
-      )
-    }
-    chapters = fallback.map((c, i) => ({
-      seq: i,
-      title: c.title,
-      content: c.content,
-      level: 1,
-      pageStart: null,
-      pageEnd: null,
-    }))
-  }
-
-  // Drop shadow-library watermark "chapters" (Anna's Archive / DuXiu /
-  // Z-Library cover pages whose content is archive metadata, not book
-  // text). If filtering empties the chapter list, the PDF is almost
-  // certainly a scanned image with no extractable text layer — bail out
-  // with a friendly message so the user knows to find a different copy.
-  const beforeFilter = chapters.length
-  chapters = chapters.filter(
-    (c) => !looksLikeShadowLibraryWatermark(c.content),
-  )
-  const filteredOut = beforeFilter - chapters.length
-
-  if (chapters.length === 0) {
-    await db.storage.from(STORAGE_BUCKET).remove([body.storagePath])
-    const msg =
-      filteredOut > 0
-        ? 'This PDF looks like a shadow-library download (Anna’s Archive / DuXiu) where the only readable text is the archive metadata page — the rest of the book is likely a scanned image with no text layer. Try uploading a PDF with extractable text.'
-        : 'No readable chapter text found in this PDF. Common cause: the PDF is a scanned image with no text layer. Try uploading a different copy.'
-    return NextResponse.json({ error: msg }, { status: 422 })
-  }
-  // Re-seq after filtering so chapter ordering stays 0..N-1 in the DB.
-  chapters = chapters.map((c, i) => ({ ...c, seq: i }))
-
-  // Intake AI: overview + 3 starter questions. Non-fatal on failure — Book Home
-  // can render a TOC-only page when these are null.
+  // Intake AI: overview + 3 starter questions. Non-fatal — Book Home
+  // renders a TOC-only page when these are null.
   let intake: IntakeResult | null = null
   try {
     const intro =
-      chapters[0]?.content?.slice(0, 2000) ?? parsed.text.slice(0, 2000)
+      result.chapters[0]?.content?.slice(0, 2000) ||
+      result.rawText?.slice(0, 2000) ||
+      ''
     const conclusion =
-      chapters[chapters.length - 1]?.content?.slice(-2000) ??
-      parsed.text.slice(-2000)
+      result.chapters[result.chapters.length - 1]?.content?.slice(-2000) ||
+      result.rawText?.slice(-2000) ||
+      ''
     intake = await analyzeBook({
-      title: parsed.title,
-      author: parsed.author,
-      tocTitles: chapters.map((c) => c.title),
+      title: result.title,
+      author: result.author,
+      tocTitles: result.chapters.map((c) => c.title),
       intro,
       conclusion,
     })
@@ -171,17 +141,17 @@ export async function POST(request: Request) {
     console.error('intake AI failed (non-fatal)', err)
   }
 
-  // Cast to bypass stale generated types — `size_bytes` is added in
-  // scripts/migrate-v2.3-storage-quota.sql and lands in types/db.ts on
-  // the next `npm run db:types`.
+  // Cast to bypass stale generated types — `size_bytes` (v2.3) and
+  // `format` (v2.4) land in types/db.ts on the next `npm run db:types`.
   const insertRow = {
     session_id: sessionId,
-    title: parsed.title,
-    author: parsed.author,
+    title: result.title,
+    author: result.author,
     storage_path: body.storagePath,
-    page_count: parsed.pageCount,
+    page_count: result.pageCount,
     size_bytes: blob.size,
-    toc: (toc ?? null) as Json | null,
+    format,
+    toc: (result.toc ?? null) as Json | null,
     overview: intake?.overview ?? null,
     suggested_questions: (intake?.questions ?? null) as Json | null,
   }
@@ -200,22 +170,26 @@ export async function POST(request: Request) {
     )
   }
 
-  // Belt-and-suspenders: parser.ts and outline.ts already strip NUL bytes
-  // at the source, but if a future code path (regex fallback edge case,
-  // EPUB parser, etc.) ever feeds raw bytes here, we don't want chapters
-  // to silently fail and orphan the book row. Also caps content to 1MB
-  // per row to bound the PostgREST request payload.
-  const MAX_CONTENT_BYTES = 1_000_000
-  const safeChapters = chapters.map((c) => ({
+  // Belt-and-suspenders: PDF parser/outline already strip NUL bytes at the
+  // source. EPUB sanitize also strips. This re-strips so any future code
+  // path can't sneak NULs into the chapters insert. Also caps content to
+  // 1MB plain / 2MB HTML per row.
+  const safeChapters = result.chapters.map((c) => ({
     book_id: book.id,
     seq: c.seq,
     title: stripNul(c.title) || `Chapter ${c.seq + 1}`,
     content: stripNul(c.content).slice(0, MAX_CONTENT_BYTES),
+    content_html: c.contentHtml
+      ? stripNul(c.contentHtml).slice(0, MAX_CONTENT_HTML_BYTES)
+      : null,
     level: c.level,
     page_start: c.pageStart,
     page_end: c.pageEnd,
   }))
-  const { error: chaptersError } = await db.from('chapters').insert(safeChapters)
+  const { error: chaptersError } = await db
+    .from('chapters')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .insert(safeChapters as any)
   if (chaptersError) {
     console.error('chapters insert failed', chaptersError)
     await db.from('books').delete().eq('id', book.id)
@@ -227,4 +201,139 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json({ bookId: book.id })
+}
+
+// ─── PDF pipeline ──────────────────────────────────────────────────────
+
+async function processPdf(
+  buffer: Buffer,
+  filename: string,
+): Promise<ParsedBook | ProcessError> {
+  let outline: OutlineResult | null = null
+  try {
+    outline = await extractOutlineAndChapters(buffer)
+  } catch (err) {
+    console.error('outline extraction failed (non-fatal)', err)
+  }
+
+  let parsed
+  try {
+    parsed = await parsePdf(buffer, filename)
+  } catch (err) {
+    console.error('pdf parse failed', err)
+    return { status: 422, message: 'Could not parse PDF' }
+  }
+
+  let toc: TocEntry[] | null = null
+  let chapters: NormalizedChapter[]
+  if (outline && outline.chapters.length >= 2) {
+    toc = outline.toc
+    chapters = outline.chapters.map((c, i) => ({
+      seq: i,
+      title: c.title,
+      content: c.content,
+      contentHtml: null,
+      level: c.level,
+      pageStart: c.pageStart,
+      pageEnd: c.pageEnd,
+    }))
+  } else {
+    const fallback = splitIntoChapters(parsed.text)
+    if (fallback.length === 0) {
+      return {
+        status: 422,
+        message: 'Could not detect any chapters or sections in this PDF',
+      }
+    }
+    chapters = fallback.map((c, i) => ({
+      seq: i,
+      title: c.title,
+      content: c.content,
+      contentHtml: null,
+      level: 1,
+      pageStart: null,
+      pageEnd: null,
+    }))
+  }
+
+  // Drop shadow-library watermark "chapters" (Anna's Archive / DuXiu /
+  // Z-Library cover pages whose content is archive metadata, not book
+  // text). If filtering empties the list, the PDF is almost certainly a
+  // scanned image with no extractable text layer.
+  const beforeFilter = chapters.length
+  chapters = chapters.filter(
+    (c) => !looksLikeShadowLibraryWatermark(c.content),
+  )
+  const filteredOut = beforeFilter - chapters.length
+
+  if (chapters.length === 0) {
+    const msg =
+      filteredOut > 0
+        ? 'This PDF looks like a shadow-library download (Anna’s Archive / DuXiu) where the only readable text is the archive metadata page — the rest of the book is likely a scanned image with no text layer. Try uploading a PDF with extractable text.'
+        : 'No readable chapter text found in this PDF. Common cause: the PDF is a scanned image with no text layer. Try uploading a different copy.'
+    return { status: 422, message: msg }
+  }
+  // Re-seq after filtering so chapter ordering stays 0..N-1 in the DB.
+  chapters = chapters.map((c, i) => ({ ...c, seq: i }))
+
+  return {
+    title: parsed.title,
+    author: parsed.author,
+    pageCount: parsed.pageCount,
+    toc,
+    chapters,
+    rawText: parsed.text,
+  }
+}
+
+// ─── EPUB pipeline ─────────────────────────────────────────────────────
+
+async function processEpub(
+  buffer: Buffer,
+): Promise<ParsedBook | ProcessError> {
+  try {
+    const epub = await parseEpub(buffer)
+    return {
+      title: epub.title,
+      author: epub.author,
+      pageCount: epub.spineLength,
+      toc: epub.toc,
+      chapters: epub.chapters.map((c) => ({
+        seq: c.seq,
+        title: c.title,
+        content: c.content,
+        contentHtml: c.contentHtml,
+        level: c.level,
+        pageStart: c.pageStart,
+        pageEnd: c.pageEnd,
+      })),
+    }
+  } catch (err) {
+    if (err instanceof EpubParseError) {
+      return { status: 422, message: epubErrorMessage(err) }
+    }
+    console.error('epub parse failed (unexpected)', err)
+    return {
+      status: 422,
+      message: 'Could not parse EPUB (malformed or unsupported file).',
+    }
+  }
+}
+
+function epubErrorMessage(err: EpubParseError): string {
+  switch (err.code) {
+    case 'drm_protected':
+      return "This EPUB is DRM-protected and can't be processed. Try a non-DRM copy."
+    case 'image_only':
+      return 'This EPUB appears to be image-only — try a copy with extractable text.'
+    case 'empty_spine':
+      return 'No readable chapters found in this EPUB.'
+    case 'invalid_container':
+    case 'no_opf':
+    case 'invalid_opf':
+      return 'This EPUB is malformed (missing container.xml or OPF). Try a different copy.'
+    case 'parse_failed':
+    default:
+      return 'Could not parse EPUB (corrupted or unsupported file).'
+  }
 }
