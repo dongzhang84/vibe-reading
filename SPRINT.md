@@ -1,21 +1,50 @@
 # Sprint Report
 
-**Generated:** 2026-05-09 18:47 UTC  
-**Showing:** last 3 week(s) of 3 total  
+**Generated:** 2026-05-14 23:39 UTC  
+**Showing:** last 4 week(s) of 4 total  
 
 ---
 
-## Week 3 _(current)_ · 2026-05-04 to 2026-05-10
+## Week 4 _(current)_ · 2026-05-11 to 2026-05-17
+
+| Stat | Value |
+|------|-------|
+| Status | ❌ Stalled |
+| Active days | 2 / 7 |
+| Total commits | 9 |
+
+| Mon | Tue | Wed | Thu | Fri | Sat | Sun |
+|---|---|---|---|---|---|---|
+| **1** | ⚪ | **8** | ⚪ | ⚪ | ⚪ | ⚪ |
+
+**Mon – Monday, May 11**
+
+- `6610e5a` fix(send-cold-emails): generalize separator regex (any /N, not just /31) — _dongzhang84_ `2026-05-11 01:31`
+
+**Wed – Wednesday, May 13**
+
+- `e5d1df3` feat(epub): continuous-scroll Read pane (whole book, scroll-jump to chapter) — _dongzhang84_ `2026-05-13 23:54`
+- `f236b7f` chore: quota exempt list + EPUB diagnostic scripts — _dongzhang84_ `2026-05-13 15:18`
+- `3d499e9` feat(epub): Read pane typography + font-size toggle — _dongzhang84_ `2026-05-13 15:17`
+- `16c617c` fix(epub): chapter title resolution + short-chapter coalesce + h2 promotion — _dongzhang84_ `2026-05-13 15:17`
+- `a86620e` feat(epub): Phases E4–E6 — wire EPUB pipeline end-to-end — _dongzhang84_ `2026-05-13 10:41`
+- `623c85a` feat(epub): Phase E3 — EPUB parser (jszip + OPF + NCX/NAV + sanitize) — _dongzhang84_ `2026-05-13 09:22`
+- `fa81613` docs(todo): EPUB to top of §C, storage expansion urgent in §B, BYO-API + export-TXT — _dongzhang84_ `2026-05-13 09:13`
+- `c719db8` feat(epub): Phase E2 — upload format dispatch (PDF + .epub whitelisted) — _dongzhang84_ `2026-05-13 09:13`
+
+---
+
+## Week 3 · 2026-05-04 to 2026-05-10
 
 | Stat | Value |
 |------|-------|
 | Status | ⚠️ Slow |
 | Active days | 4 / 7 |
-| Total commits | 12 |
+| Total commits | 13 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| **3** | ⚪ | **1** | ⚪ | **1** | **7** | ⚪ |
+| **3** | ⚪ | **1** | ⚪ | **1** | **8** | ⚪ |
 
 **Mon – Monday, May 4**
 
@@ -33,6 +62,7 @@
 
 **Sat – Saturday, May 9**
 
+- `4330c15` feat(epub): Phase E1 — schema migration for format + content_html — _dongzhang84_ `2026-05-09 12:02`
 - `6add55d` docs(epub): rewrite in project's bilingual voice — _dongzhang84_ `2026-05-09 11:47`
 - `1511b25` docs: add landing-page screenshot to README (en + zh) — _dongzhang84_ `2026-05-09 11:38`
 - `1fae0df` docs: EPUB support plan as next-iteration main focus — _dongzhang84_ `2026-05-09 11:33`
