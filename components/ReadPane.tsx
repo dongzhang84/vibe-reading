@@ -50,6 +50,29 @@ interface AskEntry {
 
 const MIN_SELECTION = 15
 
+/**
+ * Walk up from the current selection's start node to the closest
+ * ancestor with a `data-chapter-id` attribute (set by EpubChapterView
+ * on each chapter section). Used by the Ask flow so a highlight in a
+ * scrolled-into chapter is scoped to *that* chapter, not the one the
+ * user originally clicked Read on. Returns null when there's no
+ * selection or no enclosing chapter section (e.g. selection is in the
+ * sidebar, or the user is on the PDF path).
+ */
+function resolveChapterIdFromSelection(): string | null {
+  if (typeof window === 'undefined') return null
+  const sel = window.getSelection()
+  if (!sel || sel.rangeCount === 0) return null
+  let node: Node | null = sel.getRangeAt(0).startContainer
+  while (node) {
+    if (node instanceof HTMLElement && node.dataset.chapterId) {
+      return node.dataset.chapterId
+    }
+    node = node.parentNode
+  }
+  return null
+}
+
 export function ReadPane({
   bookId,
   chapterId,
@@ -87,6 +110,16 @@ export function ReadPane({
     if (!selection) return
     const entryId = crypto.randomUUID()
     const current = selection
+    // For EPUB the user might have scrolled into a chapter past the one
+    // they originally clicked Read on. Look up the chapter that
+    // contains the current selection so the ask is scoped to the right
+    // text. Fall back to the prop chapterId if we can't resolve it (or
+    // for PDF, which uses a single-chapter render).
+    const effectiveChapterId =
+      format === 'epub'
+        ? (resolveChapterIdFromSelection() ?? chapterId)
+        : chapterId
+
     setAsks((a) => [
       { id: entryId, selection: current, answer: null, loading: true },
       ...a,
@@ -98,7 +131,11 @@ export function ReadPane({
       const res = await fetch('/api/ask', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ bookId, chapterId, selection: current }),
+        body: JSON.stringify({
+          bookId,
+          chapterId: effectiveChapterId,
+          selection: current,
+        }),
       })
       if (!res.ok) {
         const { error } = await res
@@ -163,7 +200,11 @@ export function ReadPane({
       <div className="flex flex-1 overflow-hidden">
         <div className="flex-1 overflow-y-auto bg-secondary/20 px-4 py-6">
           {format === 'epub' ? (
-            <EpubChapterView chapterId={chapterId} fontScale={fontScale.scale} />
+            <EpubChapterView
+              bookId={bookId}
+              chapterId={chapterId}
+              fontScale={fontScale.scale}
+            />
           ) : (
             <PdfViewer url={pdfUrl} initialPage={pageStart} />
           )}
