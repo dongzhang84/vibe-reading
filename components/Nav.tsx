@@ -24,6 +24,13 @@ export function Nav() {
   // Auth state fetched client-side via /api/me. Keeping auth out of the
   // root layout lets the layout stay sync, which lets landing prerender
   // statically (CDN cache hit, no Vercel function cold start).
+  //
+  // Re-fetch on every pathname change. The Nav lives in the root layout,
+  // so it does NOT re-mount on client-side navigation — without a
+  // pathname dep, signing in via router.push() leaves the Nav showing
+  // its pre-login state until the next full page reload. The cost is
+  // one extra /api/me call per client nav, ~50ms; the route is
+  // intentionally tiny (just user.email).
   const [auth, setAuth] = useState<AuthState>({ kind: 'loading' })
   useEffect(() => {
     let cancelled = false
@@ -43,7 +50,7 @@ export function Nav() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [pathname])
 
   if (HIDE_PATTERNS.some((re) => re.test(pathname ?? ''))) return null
 
