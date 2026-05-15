@@ -1,6 +1,6 @@
 # Sprint Report
 
-**Generated:** 2026-05-14 23:57 UTC  
+**Generated:** 2026-05-15 00:08 UTC  
 **Showing:** last 4 week(s) of 4 total  
 
 ---
@@ -11,11 +11,11 @@
 |------|-------|
 | Status | ⚠️ Slow |
 | Active days | 3 / 7 |
-| Total commits | 10 |
+| Total commits | 12 |
 
 | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---|---|---|---|---|---|---|
-| **1** | ⚪ | **8** | **1** | ⚪ | ⚪ | ⚪ |
+| **1** | ⚪ | **8** | **3** | ⚪ | ⚪ | ⚪ |
 
 **Mon – Monday, May 11**
 
@@ -34,6 +34,8 @@
 
 **Thu – Thursday, May 14**
 
+- `490f66e` docs: swap README landing screenshot to landing_page_2 — _dongzhang84_ `2026-05-14 17:07`
+- `70e67f4` chore: regen db types + drop boundary casts + sweep dead EPUB route — _dongzhang84_ `2026-05-14 17:07`
 - `0cdd2d5` fix(nav): refetch auth state on pathname change — _dongzhang84_ `2026-05-14 16:57`
 
 ---
