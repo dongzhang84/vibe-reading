@@ -8,7 +8,7 @@
 
 🔗 **在线试用**: [vibe-reading.dev](https://vibe-reading.dev/)
 
-![Vibe Reading 落地页](./images/landing_page_1.png)
+![Vibe Reading 落地页](./images/landing_page_2.png)
 
 ---
 

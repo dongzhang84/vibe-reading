@@ -8,7 +8,7 @@
 
 🔗 **Live demo**: [vibe-reading.dev](https://vibe-reading.dev/)
 
-![Vibe Reading landing page](./images/landing_page_1.png)
+![Vibe Reading landing page](./images/landing_page_2.png)
 
 ---
 
