@@ -157,8 +157,7 @@ export async function POST(request: Request) {
   }
   const { data: book, error: bookError } = await db
     .from('books')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .insert(insertRow as any)
+    .insert(insertRow)
     .select()
     .single()
   if (bookError || !book) {
@@ -188,8 +187,7 @@ export async function POST(request: Request) {
   }))
   const { error: chaptersError } = await db
     .from('chapters')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .insert(safeChapters as any)
+    .insert(safeChapters)
   if (chaptersError) {
     console.error('chapters insert failed', chaptersError)
     await db.from('books').delete().eq('id', book.id)

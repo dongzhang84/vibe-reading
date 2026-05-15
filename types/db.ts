@@ -18,11 +18,13 @@ export type Database = {
         Row: {
           author: string | null
           created_at: string | null
+          format: string
           id: string
           overview: string | null
           owner_id: string | null
           page_count: number | null
           session_id: string | null
+          size_bytes: number | null
           storage_path: string
           suggested_questions: Json | null
           title: string
@@ -31,11 +33,13 @@ export type Database = {
         Insert: {
           author?: string | null
           created_at?: string | null
+          format?: string
           id?: string
           overview?: string | null
           owner_id?: string | null
           page_count?: number | null
           session_id?: string | null
+          size_bytes?: number | null
           storage_path: string
           suggested_questions?: Json | null
           title: string
@@ -44,11 +48,13 @@ export type Database = {
         Update: {
           author?: string | null
           created_at?: string | null
+          format?: string
           id?: string
           overview?: string | null
           owner_id?: string | null
           page_count?: number | null
           session_id?: string | null
+          size_bytes?: number | null
           storage_path?: string
           suggested_questions?: Json | null
           title?: string
@@ -98,6 +104,7 @@ export type Database = {
         Row: {
           book_id: string
           content: string
+          content_html: string | null
           id: string
           level: number | null
           page_end: number | null
@@ -108,6 +115,7 @@ export type Database = {
         Insert: {
           book_id: string
           content: string
+          content_html?: string | null
           id?: string
           level?: number | null
           page_end?: number | null
@@ -118,6 +126,7 @@ export type Database = {
         Update: {
           book_id?: string
           content?: string
+          content_html?: string | null
           id?: string
           level?: number | null
           page_end?: number | null
@@ -250,12 +259,40 @@ export type Database = {
           },
         ]
       }
+      usage_counters: {
+        Row: {
+          action: string
+          count: number
+          day: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          count?: number
+          day?: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          count?: number
+          day?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      bump_usage: {
+        Args: { p_action: string; p_cap: number; p_user_id: string }
+        Returns: {
+          allowed: boolean
+          cap: number
+          used: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

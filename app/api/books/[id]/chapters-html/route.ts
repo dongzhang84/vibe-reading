@@ -44,24 +44,15 @@ export async function GET(_request: Request, { params }: Ctx) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const { data: rawChapters } = await db
+  const { data: chapters } = await db
     .from('chapters')
     .select('id, seq, title, content_html')
     .eq('book_id', id)
     .order('seq')
 
-  // `content_html` is a v2.4 column not yet in types/db.ts (need to
-  // run npm run db:types). Widen at the boundary like the other routes.
-  const chapters = (rawChapters ?? []) as unknown as Array<{
-    id: string
-    seq: number
-    title: string
-    content_html: string | null
-  }>
-
   return NextResponse.json(
     {
-      chapters: chapters.map((c) => ({
+      chapters: (chapters ?? []).map((c) => ({
         id: c.id,
         seq: c.seq,
         title: c.title,

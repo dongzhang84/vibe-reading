@@ -3,26 +3,23 @@
 > Living list of things not yet done. Three buckets, ordered roughly by
 > "ship-blocker → polish → new edge".
 >
-> **Current focus (2026-05-12): EPUB format support** (dev focus) **+
-> Supabase storage capacity expansion** (operational, urgent).
+> **Current focus (2026-05-14): hardening (Sentry + Posthog) + export-TXT.**
 >
-> EPUB: first-user wave on 2026-05-09 surfaced enough demand (programming
-> books and Chinese novels are EPUB-native; PDF's parsing pain — font
-> NULs, scan-only pages, shadow-library watermark covers — mostly
-> evaporates in EPUB) that this jumped ahead of the Sentry / Posthog
-> hardening. Detailed plan: [`docs/epub-support.md`](./epub-support.md).
-> Estimated 2–3 working days end-to-end.
+> EPUB shipped 2026-05-13 (merged via PR #1 — see "Done" section below
+> for the full ladder of phases E1–E7 plus the parser / typography /
+> font-toggle / continuous-scroll follow-ups). First real-book test was
+> _Atomic Habits_; other books in `docs/epub-support.md` §E7 are still
+> open as opportunistic QA.
 >
-> Storage: now at 712.7 MB / 1024 MB on Free tier, ~10–14 days to ceiling
-> at current upload rate. See §B "Supabase storage capacity expansion"
-> for options — likely Pro upgrade.
+> Now that EPUB users + cold-email batch are in prod, the §B hardening
+> items finally bite — Sentry first (user-reported bugs come with stack
+> traces; we currently only get whatever lands in Vercel logs), Posthog
+> after when there's enough traffic to draw funnel conclusions.
 >
-> After EPUB + storage: Sentry + Posthog (§12.C, the remaining two items
-> in bucket B). Sentry first (user-reported bugs come with stack traces);
-> Posthog when there's enough traffic to draw funnel conclusions.
+> Export-TXT (§C) is also queued near the top — promised to Jason in
+> the 2026-05-12 reply email, lightweight to ship (≤ 1 day).
 >
-> Last updated: 2026-05-12 (storage at 70%, EPUB still current dev focus,
-> BYO-API + export-TXT items added from Jason feedback).
+> Last updated: 2026-05-14 (post EPUB merge + Nav refetch-on-pathname fix).
 
 ---
 
@@ -80,11 +77,12 @@ the user complains.
       on the OpenAI dashboard monthly hard cap. Worth fixing in a
       follow-up: extend usage_counters schema to allow session_id keys,
       or auth-gate uploads
-- [ ] **Supabase storage capacity expansion** — **URGENT, near-term.**
-      Current usage 712.7 MB / 1024 MB (~70%) as of 2026-05-12. Shared
-      project with launchradar + AIfy means three products competing for
-      the 1 GB Free cap. At ~25 MB/day growth from new-user uploads we
-      hit the ceiling in 10-14 days. Options:
+- [ ] **Supabase storage capacity expansion** — watch, not urgent.
+      Current usage 741.3 MB / 1024 MB (~72%) as of 2026-05-14, up only
+      ~28 MB across 2 days (slower than the initial 25 MB/day estimate
+      — orphan cleanup and cold-email batch tail-off helped). At this
+      pace ~4 weeks to ceiling. Shared project with launchradar + AIfy
+      means three products competing for the 1 GB Free cap. Options:
       (a) **Supabase Pro upgrade** — $25/mo gives 100 GB storage + 8 GB
           DB + daily backups. Cleanest path, also unlocks point-in-time
           recovery which we want before scaling
@@ -93,9 +91,9 @@ the user complains.
           stack and rewrites the storage layer
       (c) **Aggressive inactivity-based retention** (see §C bullet) +
           shrink per-user quota — buys weeks, not months
-      Recommend (a) for now; revisit (b) if storage growth > 10 GB/mo.
-      Belt-and-suspenders: ship the orphan cron (§C) and inactivity
-      retention in parallel so we're not paying for waste
+      Recommend (a) when usage hits ~90% (~920 MB) or before any new
+      user wave. Belt-and-suspenders: ship the orphan cron (§C) and
+      inactivity retention in parallel so we're not paying for waste
 - [ ] **Error tracking (Sentry / Highlight / similar)** — only console.error
       right now; prod errors invisible unless we manually check Vercel logs.
       Free tier is fine for an MVP. Hook it into `app/error.tsx` +
@@ -131,14 +129,6 @@ the user complains.
 Each is multi-day. Don't start until A + B are clean and 5–10 friends have
 tried v1.
 
-- [ ] **EPUB / non-PDF support** — **CURRENT FOCUS.** First-user wave
-      surfaced this as the highest-return next step. Detailed plan in
-      [`docs/epub-support.md`](./epub-support.md): `jszip` + manual
-      OPF/NAV parsing (no heavy SDK), reuse PDF's intake/relevance/brief
-      pipeline by adapting EPUB output to the same chapter shape, render
-      chapter HTML in Read pane (skip full epub.js reader for v1). Adds
-      `vr.books.format` + `vr.chapters.content_html` columns. Estimated
-      2–3 working days.
 - [ ] **Restate v1.1 (Reserved per spec)** — `vr.restatements` table,
       `lib/ai/checker.ts`, `components/RestateScreen.tsx`, `/api/check` are
       all preserved but unhooked. v1.1 plan: BriefPane gets an optional
@@ -208,6 +198,51 @@ tried v1.
 
 Quick reference of what's been shipped recently. Full history in `git log`
 and [`CHANGELOG.md`](../CHANGELOG.md).
+
+**EPUB support v1 (2026-05-12 → 05-14, merged via PR #1)**
+- ✅ Schema migration v2.4 — `vr.books.format` (`'pdf' | 'epub'`),
+  `vr.chapters.content_html`. Idempotent migration in
+  `scripts/migrate-v2.4-format.sql`
+- ✅ Upload format dispatch — `/api/upload/init` whitelists `.epub`,
+  `/api/upload/finalize` branches by storage-path suffix.
+  UploadDropzone widens its `accept` + content-type inference
+- ✅ EPUB parser (`lib/epub/{parser,outline,sanitize,detect}.ts`)
+  using `jszip` + `fast-xml-parser`. OPF metadata + spine, NCX (EPUB 2)
+  + NAV (EPUB 3) outline, XHTML→safe-HTML sanitize (allowlist of tags,
+  no scripts / event handlers / js: URLs). EpubParseError codes
+  (DRM / image-only / empty-spine / …) map to friendly 4xx messages
+- ✅ ReadPane format split — new `EpubChapterView` + new
+  `GET /api/books/[id]/chapters-html`. **Continuous-scroll** flow:
+  clicking Read on chapter N positions the viewport at N but the rest
+  of the book is right there to scroll into (matches PDF flow). Each
+  chapter wrapped in `<section data-chapter-id>` so the Ask flow
+  resolves the chapter from the live selection, not the originally-
+  clicked chapter
+- ✅ Library + landing polish — `EPUB` pill on EPUB cards, page-count
+  line says "chapters" for EPUB; landing copy says "PDF or EPUB"
+- ✅ Parser quality follow-ups: TOC-first title resolution, short-
+  chapter coalesce (folds part-dividers into their next substantive
+  chapter so the list isn't 70+ rows of fragments), chapter-number
+  `<h2>` → `<h1>` promotion for visual hierarchy
+- ✅ Read-pane typography — installed `@tailwindcss/typography` v4,
+  registered via `@plugin`, then bypassed the prose-X:utility modifier
+  syntax (unreliable with shadcn's heading reset) by writing native
+  `.prose h1 / h2 / h3 / p / …` CSS in `app/globals.css`
+- ✅ Font-size toggle — A | A pill in the EPUB Read pane header,
+  4-step scale (0.9 / 1.0 / 1.15 / 1.3), persisted in localStorage;
+  wired via `--prose-scale` CSS variable so headings + body scale
+  uniformly
+- ✅ Quota exempt list — opt-in `QUOTA_EXEMPT_USER_IDS` env var
+  bypasses daily-action + storage caps. For dev / test accounts so
+  iteration isn't blocked
+- ✅ Nav refetch on pathname change — Email/Password sign-in via
+  `router.push()` doesn't remount Nav, leaving it stuck on its
+  pre-login state. Adding `pathname` to the `/api/me` useEffect deps
+  triggers a refetch on the post-login route change
+- Real-book QA still open for §E7 test set (only _Atomic Habits_
+  tested so far — DDIA / 三体 / 沉默的大多数 / DRM EPUB /
+  single-XHTML / image-only EPUB remain). Production deployment is
+  live since 2026-05-13; opportunistic testing as new books come in
 
 **Launch + early-user wave (2026-05-09)**
 - ✅ Twitter launch post; ~33 new users / 38 books in first 24h

@@ -35,27 +35,17 @@ export default async function QuestionResultPage({
     redirect(`/b/${bookId}`)
   }
 
-  const { data: bookRaw } = await db
+  const { data: book } = await db
     .from('books')
     .select('id, owner_id, title, author, storage_path, format')
     .eq('id', bookId)
     .single()
-  // `format` is a v2.4 column; types/db.ts hasn't been regenerated yet
-  // so we widen at the boundary instead of casting the select string
-  // (which kills inference of every other field).
-  const book = bookRaw as
-    | {
-        id: string
-        owner_id: string
-        title: string
-        author: string | null
-        storage_path: string
-        format: 'pdf' | 'epub' | null
-      }
-    | null
   if (!book || book.owner_id !== user.id) {
     redirect('/library')
   }
+  // DB stores `format` as plain text + a check constraint
+  // (pdf | epub), so the generated type is just `string`. Narrow at
+  // the use site.
   const bookFormat: 'pdf' | 'epub' = book.format === 'epub' ? 'epub' : 'pdf'
 
   const { data: rawMatches } = await db
@@ -81,8 +71,9 @@ export default async function QuestionResultPage({
     }
   })
 
-  // EPUB books don't need a signed URL — the Read pane fetches per-chapter
-  // HTML via /api/chapter/[id]/html instead. Skip the round-trip.
+  // EPUB books don't need a signed URL — the Read pane fetches the
+  // whole book's chapter HTML via /api/books/[id]/chapters-html and
+  // scrolls to the requested chapter. Skip the round-trip.
   let pdfUrl = ''
   if (bookFormat === 'pdf') {
     const { data: signed } = await db.storage

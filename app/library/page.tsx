@@ -33,25 +33,13 @@ export default async function LibraryPage() {
   }
 
   const db = createAdminClient()
-  // Cast to bypass stale generated types — `size_bytes` is added in
-  // scripts/migrate-v2.3-storage-quota.sql and lands in types/db.ts on
-  // the next `npm run db:types`.
-  const { data: books } = (await db
+  const { data: books } = await db
     .from('books')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .select('id, title, author, page_count, format, created_at, size_bytes' as any)
+    .select(
+      'id, title, author, page_count, format, created_at, size_bytes',
+    )
     .eq('owner_id', user.id)
-    .order('created_at', { ascending: false })) as {
-    data: Array<{
-      id: string
-      title: string
-      author: string | null
-      page_count: number | null
-      format: 'pdf' | 'epub' | null
-      created_at: string | null
-      size_bytes: number | null
-    }> | null
-  }
+    .order('created_at', { ascending: false })
 
   // Latest question text per book — gives returning readers an instant
   // "what was I thinking about" signal on the card. One DB round-trip; we
@@ -71,8 +59,11 @@ export default async function LibraryPage() {
       if (!latestByBook.has(q.book_id)) latestByBook.set(q.book_id, q.text)
     }
   }
+  // DB stores `format` as plain text + a check constraint (pdf | epub),
+  // so the generated type is `string`. Narrow for LibraryList here.
   const enriched = (books ?? []).map((b) => ({
     ...b,
+    format: (b.format === 'epub' ? 'epub' : 'pdf') as 'pdf' | 'epub',
     lastAsked: latestByBook.get(b.id) ?? null,
   }))
 
